@@ -1,4 +1,36 @@
-*{
-  margin: 0;
-  padding: 0;
+/* Print styles for invoice */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable,
+  .printable * {
+    visibility: visible;
+  }
+  .printable {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 10mm;
+    box-sizing: border-box;
+    font-size: 10pt;
+  }
+  .MuiDialog-root,
+  .MuiDialogActions-root,
+  .MuiSnackbar-root,
+  /* .no-print {
+    display: none !important;
+  } */
+  table {
+    page-break-inside: avoid;
+  }
+  tr,
+  td {
+    page-break-inside: avoid;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 5mm;
+  }
 }
