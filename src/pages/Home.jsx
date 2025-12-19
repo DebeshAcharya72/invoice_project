@@ -94,6 +94,7 @@ const Home = ({ userRole }) => {
     date: new Date().toISOString().split("T")[0],
     product_name: "Boiled Rice Bran",
     contracted_rate: "",
+    final_contracted_rate: "0",
     bran_type: "Good",
     gross_weight_mt: "",
   });
@@ -1123,6 +1124,33 @@ const Home = ({ userRole }) => {
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
+                  label="Final Contracted Rate (₹)"
+                  value={
+                    purchaseForm.bran_type === "Red"
+                      ? Math.max(
+                          0,
+                          (parseFloat(purchaseForm.contracted_rate) || 0) - 500
+                        ).toFixed(2)
+                      : (parseFloat(purchaseForm.contracted_rate) || 0).toFixed(
+                          2
+                        )
+                  }
+                  InputProps={{
+                    readOnly: true,
+                    startAdornment: (
+                      <InputAdornment position="start">₹</InputAdornment>
+                    ),
+                  }}
+                  helperText={
+                    purchaseForm.bran_type === "Red"
+                      ? "Red bran: ₹500 deducted"
+                      : "Good bran: No deduction"
+                  }
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
                   label="Gross Weight (MT)"
                   type="number"
                   value={purchaseForm.gross_weight_mt}
@@ -1524,12 +1552,12 @@ const Home = ({ userRole }) => {
                     <FormControlLabel
                       value="Poly"
                       control={<Radio />}
-                      label="Poly (200g)"
+                      label="Poly"
                     />
                     <FormControlLabel
                       value="Jute"
                       control={<Radio />}
-                      label="Jute (500g)"
+                      label="Jute"
                     />
                   </RadioGroup>
                 </FormControl>

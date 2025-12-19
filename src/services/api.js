@@ -1,5 +1,6 @@
 // src/services/api.js
-const API_BASE = "http://localhost:8000";
+// const API_BASE = "http://localhost:8000";
+const API_BASE = "https://purchase-management-euke.onrender.com";
 
 const handleResponse = async (response) => {
   if (!response.ok) {
