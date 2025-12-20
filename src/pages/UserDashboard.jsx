@@ -50,6 +50,7 @@ import {
   Receipt as ReceiptIcon,
   TrendingUp as TrendingUpIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon, // ADDED THIS IMPORT
   Refresh as RefreshIcon,
   AttachMoney as AttachMoneyIcon,
   Search as SearchIcon,
@@ -82,6 +83,7 @@ const UserDashboard = () => {
   // Dialog states
   const [editDialog, setEditDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false); // ADDED THIS STATE
   const [selectedPurchaseId, setSelectedPurchaseId] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
 
@@ -434,6 +436,38 @@ const UserDashboard = () => {
     });
 
     setViewDialog(true);
+  };
+
+  // ADDED: Handle Delete function
+  const handleDelete = (form) => {
+    if (!form.canEdit) {
+      showSnackbar("Cannot delete before 24 hours have passed", "warning");
+      return;
+    }
+    setSelectedPurchaseId(form.id);
+    setSelectedForm(form);
+    setDeleteDialog(true);
+  };
+
+  // ADDED: Confirm Delete function
+  const confirmDelete = async () => {
+    try {
+      // Delete all related records using API service
+      await Promise.all([
+        api.deletePurchase(selectedPurchaseId),
+        selectedForm.vehicle?.id && api.deleteVehicle(selectedForm.vehicle.id),
+        selectedForm.quantity?.id &&
+          api.deleteQuantity(selectedForm.quantity.id),
+        selectedForm.lab?.id && api.deleteLabDetail(selectedForm.lab.id),
+        selectedForm.billing?.id && api.deleteBilling(selectedForm.billing.id),
+      ]);
+
+      showSnackbar("Form deleted successfully", "success");
+      loadDashboardData();
+      setDeleteDialog(false);
+    } catch (error) {
+      showSnackbar("Failed to delete: " + error.message, "error");
+    }
   };
 
   // Individual update functions for each section
@@ -927,6 +961,18 @@ const UserDashboard = () => {
                               )}
                             </IconButton>
                           </Tooltip>
+                          {/* ADDED: Delete button for editable forms */}
+                          {form.canEdit && (
+                            <Tooltip title="Delete Form">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDelete(form)}
+                                color="error"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1174,6 +1220,1066 @@ const UserDashboard = () => {
                           },
                         })
                       }
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* 2. PURCHASE DETAILS */}
+            <Card sx={{ mb: 3, borderRadius: 2 }} variant="outlined">
+              <CardHeader
+                title="2. Purchase Details"
+                avatar={
+                  <Avatar sx={{ bgcolor: "success.light" }}>
+                    <InventoryIcon />
+                  </Avatar>
+                }
+                action={
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={updatePurchaseSection}
+                    sx={{ mt: 1 }}
+                  >
+                    Update Purchase
+                  </Button>
+                }
+              />
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Report Type"
+                      value={editForm.purchase.report_type}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            report_type: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Party Name"
+                      value={editForm.purchase.party_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            party_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Purchased From"
+                      value={editForm.purchase.purchased_from}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            purchased_from: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Agent Name"
+                      value={editForm.purchase.agent_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            agent_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Agent Number"
+                      value={editForm.purchase.agent_number}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            agent_number: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Bank Account"
+                      value={editForm.purchase.bank_account}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            bank_account: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Bank Name"
+                      value={editForm.purchase.bank_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            bank_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Branch Name"
+                      value={editForm.purchase.branch_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            branch_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="IFSC Code"
+                      value={editForm.purchase.ifsc}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            ifsc: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Invoice No *"
+                      value={editForm.purchase.invoice_no}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            invoice_no: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Date"
+                      type="date"
+                      value={editForm.purchase.date}
+                      InputLabelProps={{ shrink: true }}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            date: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Product Name"
+                      value={editForm.purchase.product_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            product_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Contracted Rate (₹)"
+                      type="number"
+                      value={editForm.purchase.contracted_rate}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            contracted_rate: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Bran Type"
+                      value={editForm.purchase.bran_type}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            bran_type: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Gross Weight (MT)"
+                      type="number"
+                      value={editForm.purchase.gross_weight_mt}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          purchase: {
+                            ...editForm.purchase,
+                            gross_weight_mt: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* 3. VEHICLE DETAILS */}
+            <Card sx={{ mb: 3, borderRadius: 2 }} variant="outlined">
+              <CardHeader
+                title="3. Vehicle Details"
+                avatar={
+                  <Avatar sx={{ bgcolor: "info.light" }}>
+                    <LocalShippingIcon />
+                  </Avatar>
+                }
+                action={
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={updateVehicleSection}
+                    sx={{ mt: 1 }}
+                  >
+                    Update Vehicle
+                  </Button>
+                }
+              />
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Vehicle No *"
+                      value={editForm.vehicle.vehicle_no}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            vehicle_no: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner Name"
+                      value={editForm.vehicle.owner_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner RC"
+                      value={editForm.vehicle.owner_rc}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_rc: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner Address Line 1"
+                      value={editForm.vehicle.owner_address_line1}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_address_line1: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner Address Line 2"
+                      value={editForm.vehicle.owner_address_line2}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_address_line2: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner PO"
+                      value={editForm.vehicle.owner_po}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_po: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner Landmark"
+                      value={editForm.vehicle.owner_landmark}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_landmark: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner City"
+                      value={editForm.vehicle.owner_city}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_city: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner State"
+                      value={editForm.vehicle.owner_state}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_state: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Owner Pin"
+                      value={editForm.vehicle.owner_pin}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            owner_pin: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Mobile No"
+                      value={editForm.vehicle.mobile_no}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            mobile_no: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Rice Mill Name"
+                      value={editForm.vehicle.rice_mill_name}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            rice_mill_name: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Destination From"
+                      value={editForm.vehicle.destination_from}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            destination_from: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Destination To"
+                      value={editForm.vehicle.destination_to}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            destination_to: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Quantity (MT)"
+                      type="number"
+                      value={editForm.vehicle.quantity_mt}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            quantity_mt: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Freight/MT (₹)"
+                      type="number"
+                      value={editForm.vehicle.freight_per_mt}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            freight_per_mt: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Advance Amount (₹)"
+                      type="number"
+                      value={editForm.vehicle.advance_amount}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            advance_amount: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Paid By"
+                      value={editForm.vehicle.paid_by}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          vehicle: {
+                            ...editForm.vehicle,
+                            paid_by: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* 4. QUANTITY DETAILS */}
+            <Card sx={{ mb: 3, borderRadius: 2 }} variant="outlined">
+              <CardHeader
+                title="4. Quantity Details"
+                avatar={
+                  <Avatar sx={{ bgcolor: "warning.light" }}>
+                    <ScaleIcon />
+                  </Avatar>
+                }
+                action={
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={updateQuantitySection}
+                    sx={{ mt: 1 }}
+                  >
+                    Update Quantity
+                  </Button>
+                }
+              />
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Gross Weight (MT)"
+                      type="number"
+                      value={editForm.quantity.gross_weight_mt}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="No. of Bags"
+                      type="number"
+                      value={editForm.quantity.no_of_bags}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          quantity: {
+                            ...editForm.quantity,
+                            no_of_bags: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Bag Type"
+                      value={editForm.quantity.bag_type}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          quantity: {
+                            ...editForm.quantity,
+                            bag_type: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* 5. LAB DETAILS */}
+            <Card sx={{ mb: 3, borderRadius: 2 }} variant="outlined">
+              <CardHeader
+                title="5. Laboratory Details"
+                avatar={
+                  <Avatar sx={{ bgcolor: "secondary.light" }}>
+                    <ScienceIcon />
+                  </Avatar>
+                }
+                action={
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={updateLabSection}
+                    sx={{ mt: 1 }}
+                  >
+                    Update Lab
+                  </Button>
+                }
+              />
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Standard FFA"
+                      value={editForm.lab.standard_ffa}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Obtained FFA"
+                      type="number"
+                      value={editForm.lab.obtain_ffa}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          lab: { ...editForm.lab, obtain_ffa: e.target.value },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Standard Oil"
+                      value={editForm.lab.standard_oil}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Obtained Oil"
+                      type="number"
+                      value={editForm.lab.obtain_oil}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          lab: { ...editForm.lab, obtain_oil: e.target.value },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Rebate Percent"
+                      type="number"
+                      value={editForm.lab.rebate_percent}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          lab: {
+                            ...editForm.lab,
+                            rebate_percent: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Rebate Rs"
+                      type="number"
+                      value={editForm.lab.rebate_rs}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          lab: { ...editForm.lab, rebate_rs: e.target.value },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Premium Percent"
+                      type="number"
+                      value={editForm.lab.premium_percent}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          lab: {
+                            ...editForm.lab,
+                            premium_percent: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Premium Rs"
+                      type="number"
+                      value={editForm.lab.premium_rs}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          lab: { ...editForm.lab, premium_rs: e.target.value },
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* 6. BILLING DETAILS */}
+            <Card sx={{ borderRadius: 2 }} variant="outlined">
+              <CardHeader
+                title="6. Billing Details"
+                avatar={
+                  <Avatar sx={{ bgcolor: "error.light" }}>
+                    <AttachMoneyIcon />
+                  </Avatar>
+                }
+                action={
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={updateBillingSection}
+                    sx={{ mt: 1 }}
+                  >
+                    Update Billing
+                  </Button>
+                }
+              />
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="GST Type"
+                      value={editForm.billing.gst_type}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          billing: {
+                            ...editForm.billing,
+                            gst_type: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Invoice Amount (₹)"
+                      type="number"
+                      value={editForm.billing.invoice_amount}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          billing: {
+                            ...editForm.billing,
+                            invoice_amount: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleUpdate}
+            variant="contained"
+            color="primary"
+            startIcon={<SaveIcon />}
+          >
+            Update Complete Form
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DELETE CONFIRMATION DIALOG - ADDED */}
+      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this complete form? This will
+            delete:
+          </Typography>
+          <List dense sx={{ mt: 1 }}>
+            <ListItem>
+              <ListItemIcon>
+                <InventoryIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Purchase Details" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <LocalShippingIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Vehicle Details" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <ScaleIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Quantity Details" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <ScienceIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Lab Details" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <ReceiptIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Billing Details" />
+            </ListItem>
+          </List>
+          <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+            This action cannot be undone!
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog(false)}>Cancel</Button>
+          <Button onClick={confirmDelete} variant="contained" color="error">
+            Delete Complete Form
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* VIEW FORM DIALOG - Read-only for forms not yet editable (before 24 hours) */}
+      <Dialog
+        open={viewDialog}
+        onClose={() => setViewDialog(false)}
+        maxWidth="lg"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <VisibilityIcon />
+            View Form (Read Only) - Invoice:{" "}
+            {selectedForm?.purchase?.invoice_no}
+            <Chip
+              label="Not yet editable (24h required)"
+              size="small"
+              color="warning"
+              icon={<AccessTimeIcon />}
+              sx={{ ml: 2 }}
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ mt: 2 }}>
+            {/* 1. PARTY DETAILS - FULL */}
+            <Card sx={{ mb: 3, borderRadius: 2 }} variant="outlined">
+              <CardHeader
+                title="1. Party Details"
+                avatar={
+                  <Avatar sx={{ bgcolor: "primary.light" }}>
+                    <AccountCircleIcon />
+                  </Avatar>
+                }
+              />
+              <CardContent>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Party Name"
+                      value={editForm.party.party_name || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Contact Person"
+                      value={editForm.party.contact_person || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Address Line 1"
+                      value={editForm.party.address_line1 || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Address Line 2"
+                      value={editForm.party.address_line2 || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="PO"
+                      value={editForm.party.po || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Landmark"
+                      value={editForm.party.landmark || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="City"
+                      value={editForm.party.city || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="State"
+                      value={editForm.party.state || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Pin Code"
+                      value={editForm.party.pin || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="GST"
+                      value={editForm.party.gst || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Customer Type"
+                      value={editForm.party.customer_type || "N/A"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Description"
+                      multiline
+                      rows={2}
+                      value={editForm.party.description || "N/A"}
+                      InputProps={{ readOnly: true }}
                     />
                   </Grid>
                 </Grid>

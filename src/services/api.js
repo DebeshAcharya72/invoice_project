@@ -1,6 +1,6 @@
 // src/services/api.js
-// const API_BASE = "http://localhost:8000";
-const API_BASE = "https://purchase-management-euke.onrender.com";
+const API_BASE = "http://127.0.0.1:8000";
+// const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const handleResponse = async (response) => {
   if (!response.ok) {
