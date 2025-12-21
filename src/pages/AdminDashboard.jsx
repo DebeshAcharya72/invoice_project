@@ -99,6 +99,7 @@ const AdminDashboard = () => {
       state: "",
       pin: "",
       contact_person: "",
+      mobile_no: "",
       gst: "",
       customer_type: "Registered",
       description: "",
@@ -1085,6 +1086,23 @@ const AdminDashboard = () => {
                           party: { ...editForm.party, gst: e.target.value },
                         })
                       }
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Mobile No"
+                      value={editForm.party.mobile_no}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          party: {
+                            ...editForm.party,
+                            mobile_no: e.target.value,
+                          },
+                        })
+                      }
+                      type="tel"
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>

@@ -1,6 +1,7 @@
 // src/services/api.js
-const API_BASE = "http://127.0.0.1:8000";
-// const API_BASE = import.meta.env.VITE_API_BASE_URL;
+// Use localhost for local development
+// const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const handleResponse = async (response) => {
   if (!response.ok) {
@@ -71,8 +72,6 @@ export const api = {
       handleResponse
     ),
   getVehicle: (id) => fetch(`${API_BASE}/vehicles/${id}`).then(handleResponse),
-  getVehicleByPurchaseId: (purchaseId) =>
-    fetch(`${API_BASE}/vehicles/purchase/${purchaseId}`).then(handleResponse),
 
   // Quantity
   getQuantities: () => fetch(`${API_BASE}/quantities/`).then(handleResponse),
@@ -94,8 +93,6 @@ export const api = {
     ),
   getQuantity: (id) =>
     fetch(`${API_BASE}/quantities/${id}`).then(handleResponse),
-  getQuantityByPurchaseId: (purchaseId) =>
-    fetch(`${API_BASE}/quantities/purchase/${purchaseId}`).then(handleResponse),
 
   // Lab
   getLabDetails: () => fetch(`${API_BASE}/lab-details/`).then(handleResponse),
@@ -117,10 +114,6 @@ export const api = {
     ),
   getLabDetail: (id) =>
     fetch(`${API_BASE}/lab-details/${id}`).then(handleResponse),
-  getLabDetailByPurchaseId: (purchaseId) =>
-    fetch(`${API_BASE}/lab-details/purchase/${purchaseId}`).then(
-      handleResponse
-    ),
 
   // Billing
   getBillings: () => fetch(`${API_BASE}/billings/`).then(handleResponse),
@@ -141,27 +134,15 @@ export const api = {
       handleResponse
     ),
   getBilling: (id) => fetch(`${API_BASE}/billings/${id}`).then(handleResponse),
-  getBillingByPurchaseId: (purchaseId) =>
-    fetch(`${API_BASE}/billings/purchase/${purchaseId}`).then(handleResponse),
 
-  // Invoice
-  generateInvoice: (data) =>
-    fetch(`${API_BASE}/generate-invoice/`, {
+  // Add this to your api object
+  sendSMS: (smsData) =>
+    fetch(`${API_BASE}/send-sms`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(smsData),
     }).then(handleResponse),
 
   // Admin Stats
   getAdminStats: () => fetch(`${API_BASE}/admin/stats/`).then(handleResponse),
-
-  // Combined Form Operations
-  getCompleteForm: (purchaseId) =>
-    fetch(`${API_BASE}/forms/complete/${purchaseId}`).then(handleResponse),
-  updateCompleteForm: (purchaseId, data) =>
-    fetch(`${API_BASE}/forms/complete/${purchaseId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).then(handleResponse),
 };
