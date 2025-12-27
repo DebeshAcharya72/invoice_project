@@ -17,7 +17,14 @@ import {
 } from "@mui/material";
 import { Print as PrintIcon, Close as CloseIcon } from "@mui/icons-material";
 
-const PrintVehicleSlip = ({ open, onClose, vehicleData, purchaseData }) => {
+// Add companyData to the props
+const PrintVehicleSlip = ({
+  open,
+  onClose,
+  vehicleData,
+  purchaseData,
+  companyData,
+}) => {
   const {
     vehicle_no,
     rice_mill_name,
@@ -89,10 +96,14 @@ const PrintVehicleSlip = ({ open, onClose, vehicleData, purchaseData }) => {
           {/* Company Header */}
           <Box sx={{ textAlign: "center", mb: 3 }}>
             <Typography variant="h6" fontWeight="bold">
-              MANMATH PATTANAIK & CO
+              {companyData?.company_name || "MANMATH PATTANAIK & CO"}
             </Typography>
             <Typography variant="body2">
-              PLOT NO-746/3061, MANSA PALACE, NUASAHI, GANDARPUR, CUTTACK-753003
+              {companyData?.address_line1 ||
+                "PLOT NO-746/3061, MANSA PALACE, NUASAHI, GANDARPUR, CUTTACK-753003"}
+            </Typography>
+            <Typography variant="body2">
+              Mob: {companyData?.mobile_no || "9437025723 / 9178314411"}
             </Typography>
           </Box>
 
