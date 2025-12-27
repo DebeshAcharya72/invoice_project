@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate, // 👈 Add this
 } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -26,49 +27,54 @@ const theme = createTheme({
   },
 });
 
-function App() {
+// 👇 Create a wrapper component to use hooks
+function AppContent() {
+  const navigate = useNavigate(); // ✅ Now you can navigate
   const [userRole, setUserRole] = useState("user");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const handleLogin = (role) => {
     setUserRole(role);
     setIsAuthenticated(true);
+    // ✅ ALWAYS redirect to /home after login
+    navigate("/home");
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole("user");
+    // Optional: go back to login
+    navigate("/");
   };
 
   if (!isAuthenticated) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Login onLogin={handleLogin} />
-      </ThemeProvider>
-    );
+    return <Login onLogin={handleLogin} />;
   }
 
+  return (
+    <>
+      <Navigation userRole={userRole} onLogout={handleLogout} />
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="/home" element={<Home userRole={userRole} />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/user" element={<UserDashboard userRole={userRole} />} />
+          <Route path="/edit-form/:purchaseId" element={<EditForm />} />
+          <Route path="/view-form/:purchaseId" element={<ViewForm />} />
+        </Routes>
+      </Box>
+    </>
+  );
+}
+
+// 👇 Wrap AppContent in Router
+function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ display: "flex" }}>
-          <Navigation userRole={userRole} onLogout={handleLogout} />
-          <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/home" />} />
-              <Route path="/home" element={<Home userRole={userRole} />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route
-                path="/user"
-                element={<UserDashboard userRole={userRole} />}
-              />
-              <Route path="/edit-form/:purchaseId" element={<EditForm />} />
-              <Route path="/view-form/:purchaseId" element={<ViewForm />} />
-            </Routes>
-          </Box>
-        </Box>
+        <AppContent />
       </Router>
     </ThemeProvider>
   );

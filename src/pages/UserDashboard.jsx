@@ -176,13 +176,13 @@ const UserDashboard = ({ currentUser }) => {
     // Navigate to edit form with form data
     // You'll need to implement this navigation based on your routing
     console.log("Edit form:", form.purchaseId);
-    // Example: navigate(`/edit-form/${form.purchaseId}`);
+    navigate(`/edit-form/${form.purchaseId}`);
   };
 
   const handleViewForm = (form) => {
     // Navigate to view form
     console.log("View form:", form.purchaseId);
-    // Example: navigate(`/view-form/${form.purchaseId}`);
+    navigate(`/view-form/${form.purchaseId}`);
   };
 
   const handleGenerateInvoice = (form) => {
@@ -350,7 +350,7 @@ const UserDashboard = ({ currentUser }) => {
                 <TableRow>
                   <TableCell>Invoice No</TableCell>
                   <TableCell>Party Name</TableCell>
-                  <TableCell>Vehicle No</TableCell>
+                  {/* <TableCell>Vehicle No</TableCell> */}
                   <TableCell>Product</TableCell>
                   <TableCell>Weight (MT)</TableCell>
                   <TableCell>Status</TableCell>
@@ -371,11 +371,11 @@ const UserDashboard = ({ currentUser }) => {
                         {form.party_name || "N/A"}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       <Typography variant="body2">
                         {form.vehicle?.vehicle_no || "N/A"}
                       </Typography>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell>
                       <Chip
                         label={form.product_name || "N/A"}

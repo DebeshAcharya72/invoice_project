@@ -907,53 +907,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Top Navigation Bar */}
-      <AppBar
-        position="static"
-        elevation={1}
-        sx={{ bgcolor: "white", color: "text.primary" }}
-      >
-        <Toolbar sx={{ justifyContent: "space-between", minHeight: "56px" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <HomeIcon color="primary" />
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 1, fontWeight: "bold" }}
-            >
-              Rice Bran Invoice System
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Chip
-              label={userRole === "admin" ? "Administrator" : "User"}
-              color={userRole === "admin" ? "secondary" : "primary"}
-              size="small"
-              variant="outlined"
-            />
-            {userRole !== "admin" && (
-              <Chip
-                label={getUserCompanyName()}
-                color="info"
-                size="small"
-                variant="outlined"
-              />
-            )}
-            <IconButton color="primary" onClick={onLogout} size="small">
-              <LogoutIcon />
-            </IconButton>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
       <Box
         sx={{
           flex: 1,
-          overflow: "auto",
+          // overflow: "auto",
           bgcolor: "#f5f5f5",
-          p: 1,
+          // p: 1,
         }}
       >
         <Paper
@@ -1024,7 +983,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         value={company._id || company.id}
                       >
                         {company.company_name}
-                        {company.user_count && company.form_count && (
+                        {/* {company.user_count && company.form_count && (
                           <Typography
                             component="span"
                             variant="caption"
@@ -1033,7 +992,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             ({company.user_count} users, {company.form_count}{" "}
                             forms)
                           </Typography>
-                        )}
+                        )} */}
                       </MenuItem>
                     ))
                   )}
@@ -2002,7 +1961,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                   <Collapse in={expandedSections.lab}>
                     <Divider sx={{ my: 1 }} />
                     <Grid container spacing={1} sx={styles.compactGrid}>
-                      {/* Two Column Layout for Lab Details */}
+                      {/* Two Columns: FFA and Oil */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ mb: 1 }}>
                           <Typography
@@ -2027,24 +1986,77 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             label="Obtained FFA"
                             type="number"
                             value={labForm.obtain_ffa}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const ffaValue = e.target.value;
+                              let rebate = 0;
+                              const product =
+                                purchaseForm.product_name || "Boiled Rice Bran";
+                              const ffa = parseFloat(ffaValue) || 0;
+
+                              if (product === "Boiled Rice Bran") {
+                                if (ffa > 45) rebate = 4000;
+                                else if (ffa > 30) rebate = 3500;
+                                else if (ffa > 25) rebate = 2500;
+                                else if (ffa > 20) rebate = 2000;
+                                else if (ffa > 15) {
+                                  if (ffa <= 19.99) {
+                                    rebate += (ffa - 15) * 170;
+                                    let remaining = 15;
+                                    if (remaining > 10) {
+                                      rebate +=
+                                        Math.min(remaining - 10, 5) * 150;
+                                      remaining = 10;
+                                    }
+                                    if (remaining > 7) {
+                                      rebate += (remaining - 7) * 100;
+                                    }
+                                  }
+                                }
+                              } else {
+                                // For Raw/Rough — flat rebates
+                                if (ffa > 55) rebate = 1000;
+                                else if (ffa > 50) rebate = 700;
+                                else if (ffa > 45) rebate = 600;
+                                else if (ffa > 40) rebate = 500;
+                                else if (ffa > 35) rebate = 400;
+                                else if (ffa > 30) rebate = 300;
+                                else if (ffa > 25) rebate = 200;
+                                else if (ffa > 20) rebate = 100;
+                              }
+
                               setLabForm({
                                 ...labForm,
-                                obtain_ffa: e.target.value,
-                              })
-                            }
+                                obtain_ffa: ffaValue,
+                                rebate_rs: rebate > 0 ? rebate.toFixed(2) : "",
+                              });
+                            }}
+                            fullWidth
+                          />
+                          <TextField
+                            size="small"
+                            sx={[styles.compactField, { mb: 1 }]}
+                            label="Rebate Amount (₹)"
+                            value={labForm.rebate_rs}
+                            InputProps={{
+                              readOnly: true,
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  ₹
+                                </InputAdornment>
+                              ),
+                            }}
                             fullWidth
                           />
                           <TextField
                             size="small"
                             sx={styles.compactField}
-                            label="Rebate Amount (₹)"
+                            label="Premium Amount (₹)"
                             type="number"
-                            value={labForm.rebate_rs}
+                            value={labForm.premium_rs}
                             onChange={(e) =>
                               setLabForm({
                                 ...labForm,
-                                rebate_rs: e.target.value,
+                                premium_rs: e.target.value,
                               })
                             }
                             InputProps={{
@@ -2093,16 +2105,25 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           />
                           <TextField
                             size="small"
+                            sx={[styles.compactField, { mb: 1 }]}
+                            label="Rebate Amount (₹)"
+                            type="number"
+                            value={labForm.rebate_rs}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  ₹
+                                </InputAdornment>
+                              ),
+                            }}
+                            fullWidth
+                          />
+                          <TextField
+                            size="small"
                             sx={styles.compactField}
                             label="Premium Amount (₹)"
                             type="number"
                             value={labForm.premium_rs}
-                            onChange={(e) =>
-                              setLabForm({
-                                ...labForm,
-                                premium_rs: e.target.value,
-                              })
-                            }
                             InputProps={{
                               startAdornment: (
                                 <InputAdornment position="start">

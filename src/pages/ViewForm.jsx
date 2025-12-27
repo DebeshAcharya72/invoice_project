@@ -31,6 +31,7 @@ import {
   LocalShipping as VehicleIcon,
   Science as LabIcon,
   AttachMoney as BillingIcon,
+  AttachMoney as AttachMoneyIcon,
   Person as PersonIcon,
   Business as BusinessIcon,
   AccessTime as TimeIcon,
@@ -58,7 +59,7 @@ const ViewForm = () => {
       setError("");
 
       // Use the new endpoint to get complete form data
-      const data = await api.getCompleteForm(purchaseId);
+      const data = await api.getFormComplete(purchaseId);
       setFormData(data);
     } catch (err) {
       console.error("Failed to load form data:", err);
@@ -280,7 +281,7 @@ const ViewForm = () => {
                 </IconButton>
               </span>
             </Tooltip>
-            {billing && (
+            {/* {billing && (
               <Tooltip title="Generate Invoice">
                 <IconButton
                   onClick={handleGenerateInvoice}
@@ -290,12 +291,12 @@ const ViewForm = () => {
                   <ReceiptIcon />
                 </IconButton>
               </Tooltip>
-            )}
+            )} */}
           </Box>
         </Box>
 
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -303,7 +304,7 @@ const ViewForm = () => {
                   <Typography variant="h6">Invoice Information</Typography>
                 </Box>
                 <Grid container spacing={1}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Invoice No:
                     </Typography>
@@ -311,7 +312,7 @@ const ViewForm = () => {
                       {purchase?.invoice_no || "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Date:
                     </Typography>
@@ -319,7 +320,7 @@ const ViewForm = () => {
                       {formatDate(purchase?.date)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="body2" color="text.secondary">
                       Created:
                     </Typography>
@@ -331,7 +332,7 @@ const ViewForm = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -339,7 +340,7 @@ const ViewForm = () => {
                   <Typography variant="h6">Product Details</Typography>
                 </Box>
                 <Grid container spacing={1}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Product:
                     </Typography>
@@ -347,7 +348,7 @@ const ViewForm = () => {
                       {purchase?.product_name || "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Bran Type:
                     </Typography>
@@ -359,7 +360,7 @@ const ViewForm = () => {
                       }
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Contracted Rate:
                     </Typography>
@@ -367,7 +368,7 @@ const ViewForm = () => {
                       {formatCurrency(purchase?.contracted_rate)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Final Rate:
                     </Typography>
@@ -391,7 +392,7 @@ const ViewForm = () => {
           </Box>
           {party ? (
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Party Name:
                 </Typography>
@@ -399,7 +400,7 @@ const ViewForm = () => {
                   {party.party_name}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Contact Person:
                 </Typography>
@@ -407,7 +408,7 @@ const ViewForm = () => {
                   {party.contact_person || "N/A"}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Mobile No:
                 </Typography>
@@ -415,13 +416,13 @@ const ViewForm = () => {
                   {party.mobile_no || "N/A"}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   GST Number:
                 </Typography>
                 <Typography variant="body1">{party.gst || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="text.secondary">
                   Address:
                 </Typography>
@@ -441,7 +442,7 @@ const ViewForm = () => {
       {/* Two Column Layout for Vehicle and Quantity */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Vehicle Details */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -450,7 +451,7 @@ const ViewForm = () => {
               </Box>
               {vehicle ? (
                 <Grid container spacing={1}>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="body2" color="text.secondary">
                       Vehicle No:
                     </Typography>
@@ -458,7 +459,7 @@ const ViewForm = () => {
                       {vehicle.vehicle_no}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Owner Name:
                     </Typography>
@@ -466,7 +467,7 @@ const ViewForm = () => {
                       {vehicle.owner_name || "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Mobile No:
                     </Typography>
@@ -474,7 +475,7 @@ const ViewForm = () => {
                       {vehicle.mobile_no || "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       From:
                     </Typography>
@@ -482,7 +483,7 @@ const ViewForm = () => {
                       {vehicle.destination_from || "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       To:
                     </Typography>
@@ -490,7 +491,7 @@ const ViewForm = () => {
                       {vehicle.destination_to || "N/A"}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Quantity:
                     </Typography>
@@ -498,7 +499,7 @@ const ViewForm = () => {
                       {vehicle.quantity_mt || "0"} MT
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Rice Mill:
                     </Typography>
@@ -515,21 +516,16 @@ const ViewForm = () => {
         </Grid>
 
         {/* Quantity Details */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <AttachMoney
-                  as
-                  AttachMoneyIcon
-                  color="primary"
-                  sx={{ mr: 1 }}
-                />
+                <AttachMoneyIcon color="primary" sx={{ mr: 1 }} />
                 <Typography variant="h6">Quantity Details</Typography>
               </Box>
               {quantity ? (
                 <Grid container spacing={1}>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Gross Weight:
                     </Typography>
@@ -537,7 +533,7 @@ const ViewForm = () => {
                       {quantity.gross_weight_mt} MT
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       No. of Bags:
                     </Typography>
@@ -545,13 +541,13 @@ const ViewForm = () => {
                       {quantity.no_of_bags}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Bag Type:
                     </Typography>
                     <Chip label={quantity.bag_type} size="small" />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       Bag Weight:
                     </Typography>
@@ -559,10 +555,10 @@ const ViewForm = () => {
                       {quantity.bag_weight_mt} MT
                     </Typography>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Divider sx={{ my: 1 }} />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="body2" color="text.secondary">
                       Net Weight:
                     </Typography>
@@ -592,7 +588,7 @@ const ViewForm = () => {
           </Box>
           {lab ? (
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" color="primary" gutterBottom>
                   FFA Analysis
                 </Typography>
@@ -632,7 +628,7 @@ const ViewForm = () => {
                   </Box>
                 )}
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" color="primary" gutterBottom>
                   Oil Analysis
                 </Typography>
@@ -688,7 +684,7 @@ const ViewForm = () => {
           </Box>
           {billing ? (
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Account Rate:
                 </Typography>
@@ -696,7 +692,7 @@ const ViewForm = () => {
                   {formatCurrency(billing.account_rate)}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Net Rate:
                 </Typography>
@@ -704,7 +700,7 @@ const ViewForm = () => {
                   {formatCurrency(billing.net_rate)}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Material Amount:
                 </Typography>
@@ -712,7 +708,7 @@ const ViewForm = () => {
                   {formatCurrency(billing.material_amount)}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Net Amount:
                 </Typography>
@@ -720,10 +716,10 @@ const ViewForm = () => {
                   {formatCurrency(billing.net_amount)}
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 2 }} />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Gross Amount:
                 </Typography>
@@ -735,7 +731,7 @@ const ViewForm = () => {
                   {formatCurrency(billing.gross_amount)}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   GST Type:
                 </Typography>
@@ -743,7 +739,7 @@ const ViewForm = () => {
               </Grid>
               {billing.gst_type === "Intra" && (
                 <>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       CGST (2.5%):
                     </Typography>
@@ -751,7 +747,7 @@ const ViewForm = () => {
                       {formatCurrency(billing.cgst)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid size={{ xs: 12, md: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       SGST (2.5%):
                     </Typography>
@@ -762,7 +758,7 @@ const ViewForm = () => {
                 </>
               )}
               {billing.gst_type === "Inter" && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="body2" color="text.secondary">
                     IGST (5%):
                   </Typography>
@@ -771,10 +767,10 @@ const ViewForm = () => {
                   </Typography>
                 </Grid>
               )}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 2 }} />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Billed Amount:
                 </Typography>
@@ -786,7 +782,7 @@ const ViewForm = () => {
                   {formatCurrency(billing.billed_amount)}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   Invoice Amount:
                 </Typography>
@@ -794,10 +790,10 @@ const ViewForm = () => {
                   {formatCurrency(billing.invoice_amount)}
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 2 }} />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="text.secondary">
                   Amount Payable:
                 </Typography>
@@ -842,7 +838,7 @@ const ViewForm = () => {
           >
             Edit Form
           </Button>
-          {billing && (
+          {/* {billing && (
             <Button
               startIcon={<ReceiptIcon />}
               onClick={handleGenerateInvoice}
@@ -851,7 +847,7 @@ const ViewForm = () => {
             >
               Generate Invoice
             </Button>
-          )}
+          )} */}
         </Box>
       </Box>
 
