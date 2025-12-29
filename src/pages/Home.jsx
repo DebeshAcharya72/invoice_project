@@ -176,6 +176,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     severity: "success",
   });
 
+  // --- Add this function ---
+  const handleKeyDown = (e, nextFieldRef) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent default form submission behavior
+      if (nextFieldRef && nextFieldRef.current) {
+        nextFieldRef.current.focus();
+      }
+    }
+  };
+
   // Company states
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -250,8 +260,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     standard_oil: "19",
     obtain_ffa: "",
     obtain_oil: "",
-    rebate_rs: "",
-    premium_rs: "",
+    ffa_rebate_rs: "",
+    ffa_premium_rs: "",
+    oil_rebate_rs: "",
+    oil_premium_rs: "",
   });
 
   const [billingForm, setBillingForm] = useState({
@@ -575,11 +587,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       const labData = {
         ...labForm,
         purchase_id: purchaseId,
-        // Convert empty strings to null
         obtain_ffa: labForm.obtain_ffa ? parseFloat(labForm.obtain_ffa) : null,
         obtain_oil: labForm.obtain_oil ? parseFloat(labForm.obtain_oil) : null,
-        rebate_rs: labForm.rebate_rs ? parseFloat(labForm.rebate_rs) : null,
-        premium_rs: labForm.premium_rs ? parseFloat(labForm.premium_rs) : null,
+        rebate_rs: labForm.ffa_rebate_rs
+          ? parseFloat(labForm.ffa_rebate_rs)
+          : null, // ✅ FFA Rebate
+        premium_rs: labForm.ffa_premium_rs
+          ? parseFloat(labForm.ffa_premium_rs)
+          : null, // ✅ Oil Premium
+        standard_ffa: parseFloat(labForm.standard_ffa) || 0,
+        standard_oil: parseFloat(labForm.standard_oil) || 0,
       };
 
       // Ensure standard values are always numbers
@@ -1957,11 +1974,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       }}
                     />
                   </Box>
-
                   <Collapse in={expandedSections.lab}>
                     <Divider sx={{ my: 1 }} />
                     <Grid container spacing={1} sx={styles.compactGrid}>
-                      {/* Two Columns: FFA and Oil */}
+                      {/* FFA Analysis Column */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ mb: 1 }}>
                           <Typography
@@ -1994,11 +2010,15 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               const ffa = parseFloat(ffaValue) || 0;
 
                               if (product === "Boiled Rice Bran") {
-                                if (ffa > 45) rebate = 4000;
-                                else if (ffa > 30) rebate = 3500;
-                                else if (ffa > 25) rebate = 2500;
-                                else if (ffa > 20) rebate = 2000;
-                                else if (ffa > 15) {
+                                if (ffa > 45) {
+                                  rebate = 4000;
+                                } else if (ffa > 30) {
+                                  rebate = 3500;
+                                } else if (ffa > 25) {
+                                  rebate = 2500;
+                                } else if (ffa > 20) {
+                                  rebate = 2000;
+                                } else if (ffa > 15) {
                                   if (ffa <= 19.99) {
                                     rebate += (ffa - 15) * 170;
                                     let remaining = 15;
@@ -2013,7 +2033,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                   }
                                 }
                               } else {
-                                // For Raw/Rough — flat rebates
+                                // Other products: flat rebates
                                 if (ffa > 55) rebate = 1000;
                                 else if (ffa > 50) rebate = 700;
                                 else if (ffa > 45) rebate = 600;
@@ -2027,7 +2047,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               setLabForm({
                                 ...labForm,
                                 obtain_ffa: ffaValue,
-                                rebate_rs: rebate > 0 ? rebate.toFixed(2) : "",
+                                ffa_rebate_rs:
+                                  rebate > 0 ? rebate.toFixed(2) : "",
+                                // Do NOT modify premium here
                               });
                             }}
                             fullWidth
@@ -2036,7 +2058,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             size="small"
                             sx={[styles.compactField, { mb: 1 }]}
                             label="Rebate Amount (₹)"
-                            value={labForm.rebate_rs}
+                            value={labForm.ffa_rebate_rs}
                             InputProps={{
                               readOnly: true,
                               startAdornment: (
@@ -2052,11 +2074,11 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             sx={styles.compactField}
                             label="Premium Amount (₹)"
                             type="number"
-                            value={labForm.premium_rs}
+                            value={labForm.ffa_premium_rs}
                             onChange={(e) =>
                               setLabForm({
                                 ...labForm,
-                                premium_rs: e.target.value,
+                                ffa_premium_rs: e.target.value,
                               })
                             }
                             InputProps={{
@@ -2071,6 +2093,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         </Box>
                       </Grid>
 
+                      {/* Oil Analysis Column */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ mb: 1 }}>
                           <Typography
@@ -2108,7 +2131,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             sx={[styles.compactField, { mb: 1 }]}
                             label="Rebate Amount (₹)"
                             type="number"
-                            value={labForm.rebate_rs}
+                            value={labForm.oil_rebate_rs}
+                            onChange={(e) =>
+                              setLabForm({
+                                ...labForm,
+                                oil_rebate_rs: e.target.value,
+                              })
+                            }
                             InputProps={{
                               startAdornment: (
                                 <InputAdornment position="start">
@@ -2123,7 +2152,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             sx={styles.compactField}
                             label="Premium Amount (₹)"
                             type="number"
-                            value={labForm.premium_rs}
+                            value={labForm.oil_premium_rs}
+                            onChange={(e) =>
+                              setLabForm({
+                                ...labForm,
+                                oil_premium_rs: e.target.value,
+                              })
+                            }
                             InputProps={{
                               startAdornment: (
                                 <InputAdornment position="start">
