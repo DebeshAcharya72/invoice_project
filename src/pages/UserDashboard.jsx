@@ -359,143 +359,146 @@ const UserDashboard = ({ currentUser }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {forms.map((form) => (
-                  <TableRow key={form.purchaseId} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {form.invoice_no || "N/A"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {form.party_name || "N/A"}
-                      </Typography>
-                    </TableCell>
-                    {/* <TableCell>
+                {forms
+                  .slice()
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                  .map((form) => (
+                    <TableRow key={form.purchaseId} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {form.invoice_no || "N/A"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {form.party_name || "N/A"}
+                        </Typography>
+                      </TableCell>
+                      {/* <TableCell>
                       <Typography variant="body2">
                         {form.vehicle?.vehicle_no || "N/A"}
                       </Typography>
                     </TableCell> */}
-                    <TableCell>
-                      <Chip
-                        label={form.product_name || "N/A"}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {form.gross_weight_mt
-                          ? `${form.gross_weight_mt} MT`
-                          : "N/A"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={form.status}
-                        size="small"
-                        color={getStatusColor(form.status)}
-                      />
-                      {form.isLocked && (
-                        <Tooltip title="24-hour edit limit expired">
-                          <Chip
-                            icon={<LockIcon />}
-                            label="Locked"
-                            size="small"
-                            color="error"
-                            variant="outlined"
-                            sx={{ ml: 1 }}
-                          />
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Box>
+                      <TableCell>
+                        <Chip
+                          label={form.product_name || "N/A"}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
                         <Typography variant="body2">
-                          {formatDate(form.createdAt)}
+                          {form.gross_weight_mt
+                            ? `${form.gross_weight_mt} MT`
+                            : "N/A"}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {formatTimeAgo(form.createdAt)}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Tooltip
-                          title={
-                            form.isEditable
-                              ? "Edit Form"
-                              : "Cannot edit after 24 hours"
-                          }
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={form.status}
+                          size="small"
+                          color={getStatusColor(form.status)}
+                        />
+                        {form.isLocked && (
+                          <Tooltip title="24-hour edit limit expired">
+                            <Chip
+                              icon={<LockIcon />}
+                              label="Locked"
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                              sx={{ ml: 1 }}
+                            />
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2">
+                            {formatDate(form.createdAt)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatTimeAgo(form.createdAt)}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 1,
+                            justifyContent: "center",
+                          }}
                         >
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditForm(form)}
-                              disabled={!form.isEditable}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-
-                        <Tooltip title="View Form">
-                          <IconButton
-                            size="small"
-                            color="info"
-                            onClick={() => handleViewForm(form)}
+                          <Tooltip
+                            title={
+                              form.isEditable
+                                ? "Edit Form"
+                                : "Cannot edit after 24 hours"
+                            }
                           >
-                            <ViewIcon />
-                          </IconButton>
-                        </Tooltip>
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEditForm(form)}
+                                disabled={!form.isEditable}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
 
-                        {form.billing && (
-                          <Tooltip title="Generate Invoice">
+                          <Tooltip title="View Form">
                             <IconButton
                               size="small"
-                              color="success"
-                              onClick={() => handleGenerateInvoice(form)}
+                              color="info"
+                              onClick={() => handleViewForm(form)}
                             >
-                              <InvoiceIcon />
+                              <ViewIcon />
                             </IconButton>
                           </Tooltip>
-                        )}
 
-                        {form.vehicle && (
-                          <Tooltip title="Print Vehicle Slip">
-                            <IconButton
-                              size="small"
-                              color="secondary"
-                              onClick={() => handlePrintVehicleSlip(form)}
-                            >
-                              <VehicleIcon />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                          {form.billing && (
+                            <Tooltip title="Generate Invoice">
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={() => handleGenerateInvoice(form)}
+                              >
+                                <InvoiceIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
 
-                        {form.lab && (
-                          <Tooltip title="Send SMS">
-                            <IconButton
-                              size="small"
-                              color="warning"
-                              onClick={() => handleSendSMS(form)}
-                            >
-                              <SmsIcon />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {form.vehicle && (
+                            <Tooltip title="Print Vehicle Slip">
+                              <IconButton
+                                size="small"
+                                color="secondary"
+                                onClick={() => handlePrintVehicleSlip(form)}
+                              >
+                                <VehicleIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {form.lab && (
+                            <Tooltip title="Send SMS">
+                              <IconButton
+                                size="small"
+                                color="warning"
+                                onClick={() => handleSendSMS(form)}
+                              >
+                                <SmsIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>

@@ -632,87 +632,93 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {allForms.map((form) => (
-                      <TableRow key={form.purchase_id} hover>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="500">
-                            {form.invoice_no}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>{form.party_name}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={form.company}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center">
-                            <Avatar
-                              sx={{
-                                width: 24,
-                                height: 24,
-                                mr: 1,
-                                bgcolor: "primary.main",
-                              }}
-                            >
-                              <PersonIcon fontSize="small" />
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body2">
-                                {form.created_by_user}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="textSecondary"
+                    {allForms
+                      .slice() // Create a copy to avoid mutating state
+                      .sort(
+                        (a, b) =>
+                          new Date(b.created_at) - new Date(a.created_at)
+                      )
+                      .map((form) => (
+                        <TableRow key={form.purchase_id} hover>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="500">
+                              {form.invoice_no}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{form.party_name}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={form.company}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" alignItems="center">
+                              <Avatar
+                                sx={{
+                                  width: 24,
+                                  height: 24,
+                                  mr: 1,
+                                  bgcolor: "primary.main",
+                                }}
                               >
-                                {form.created_by_email}
-                              </Typography>
+                                <PersonIcon fontSize="small" />
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2">
+                                  {form.created_by_user}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="textSecondary"
+                                >
+                                  {form.created_by_email}
+                                </Typography>
+                              </Box>
                             </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{form.vehicle_no}</TableCell>
-                        <TableCell>{form.product}</TableCell>
-                        <TableCell>{form.weight_mt}</TableCell>
-                        <TableCell>
-                          ₹{form.amount ? form.amount.toFixed(2) : "0.00"}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={form.status}
-                            size="small"
-                            color={
-                              form.status === "Paid" ? "success" : "warning"
-                            }
-                            icon={
-                              form.status === "Paid" ? (
-                                <CheckCircleIcon />
-                              ) : null
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {new Date(form.created_at).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            }
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => handleOpenFormMenu(e, form)}
-                          >
-                            <MoreVertIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>{form.vehicle_no}</TableCell>
+                          <TableCell>{form.product}</TableCell>
+                          <TableCell>{form.weight_mt}</TableCell>
+                          <TableCell>
+                            ₹{form.amount ? form.amount.toFixed(2) : "0.00"}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={form.status}
+                              size="small"
+                              color={
+                                form.status === "Paid" ? "success" : "warning"
+                              }
+                              icon={
+                                form.status === "Paid" ? (
+                                  <CheckCircleIcon />
+                                ) : null
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {new Date(form.created_at).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => handleOpenFormMenu(e, form)}
+                            >
+                              <MoreVertIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </TableContainer>

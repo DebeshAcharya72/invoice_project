@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Container,
   Box,
@@ -175,6 +175,47 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     message: "",
     severity: "success",
   });
+
+  const partyNameRef = useRef(null);
+  const contactPersonRef = useRef(null);
+  const partyMobileRef = useRef(null);
+  const partyAddressRef = useRef(null);
+  const partyCityRef = useRef(null);
+  const partyStateRef = useRef(null);
+  const partyPinRef = useRef(null);
+  const partyGstRef = useRef(null);
+
+  const invoiceNoRef = useRef(null);
+  const purchaseDateRef = useRef(null);
+  const contractedRateRef = useRef(null);
+  const grossWeightRef = useRef(null);
+  const noOfBagsRef = useRef(null);
+  const agentNameRef = useRef(null);
+  const agentMobileRef = useRef(null);
+
+  const vehicleNoRef = useRef(null);
+  const ownerNameRef = useRef(null);
+  const ownerMobileRef = useRef(null);
+  const riceMillRef = useRef(null);
+  const destFromRef = useRef(null);
+  const destToRef = useRef(null);
+  const quantityMtRef = useRef(null);
+  const freightMtRef = useRef(null);
+  const advanceAmtRef = useRef(null);
+  const bankAccRef = useRef(null);
+  const bankNameRef = useRef(null);
+  const ifscRef = useRef(null);
+  const ownerAddrRef = useRef(null);
+  const ownerCityRef = useRef(null);
+  const ownerStateRef = useRef(null);
+  const ownerPinRef = useRef(null);
+
+  const obtainFfaRef = useRef(null);
+  const ffaPremiumRef = useRef(null);
+  const obtainOilRef = useRef(null);
+  const oilRebateRef = useRef(null);
+  const oilPremiumRef = useRef(null);
+  const invoiceAmountRef = useRef(null);
 
   // --- Add this function ---
   const handleKeyDown = (e, nextFieldRef) => {
@@ -1088,6 +1129,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               party_name: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, contactPersonRef)}
+                          inputRef={partyNameRef}
                           fullWidth
                         />
                       </Grid>
@@ -1103,6 +1146,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               contact_person: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, partyMobileRef)}
+                          inputRef={contactPersonRef}
                           fullWidth
                         />
                       </Grid>
@@ -1118,6 +1163,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           inputProps={{ maxLength: 10 }}
                           type="tel"
                           helperText="10 digits only"
+                          onKeyDown={(e) => handleKeyDown(e, partyAddressRef)}
+                          inputRef={partyMobileRef}
                           fullWidth
                         />
                       </Grid>
@@ -1133,6 +1180,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               address_line1: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, partyCityRef)}
+                          inputRef={partyAddressRef}
                           fullWidth
                         />
                       </Grid>
@@ -1145,6 +1194,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setPartyForm({ ...partyForm, city: e.target.value })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, partyStateRef)}
+                          inputRef={partyCityRef}
                           fullWidth
                         />
                       </Grid>
@@ -1160,6 +1211,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               state: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, partyPinRef)}
+                          inputRef={partyStateRef}
                           fullWidth
                         />
                       </Grid>
@@ -1172,6 +1225,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setPartyForm({ ...partyForm, pin: e.target.value })
                           }
+                          inputProps={{ maxLength: 6 }}
+                          onKeyDown={(e) => handleKeyDown(e, partyGstRef)}
+                          inputRef={partyPinRef}
                           fullWidth
                         />
                       </Grid>
@@ -1212,6 +1268,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 gst: e.target.value,
                               })
                             }
+                            onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
+                            inputRef={partyGstRef}
                             fullWidth
                           />
                         </Grid>
@@ -1320,6 +1378,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               invoice_no: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, purchaseDateRef)}
+                          inputRef={invoiceNoRef}
                           fullWidth
                         />
                       </Grid>
@@ -1337,6 +1397,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               date: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, contractedRateRef)}
+                          inputRef={purchaseDateRef}
                           fullWidth
                         />
                       </Grid>
@@ -1389,6 +1451,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               </InputAdornment>
                             ),
                           }}
+                          onKeyDown={(e) => handleKeyDown(e, grossWeightRef)}
+                          inputRef={contractedRateRef}
                           fullWidth
                         />
                       </Grid>
@@ -1405,6 +1469,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               gross_weight_mt: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, noOfBagsRef)}
+                          inputRef={grossWeightRef}
                           fullWidth
                         />
                       </Grid>
@@ -1421,6 +1487,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               no_of_bags: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, vehicleNoRef)}
+                          inputRef={noOfBagsRef}
                           fullWidth
                         />
                       </Grid>
@@ -1639,6 +1707,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               vehicle_no: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ownerNameRef)}
+                          inputRef={vehicleNoRef}
                           fullWidth
                         />
                       </Grid>
@@ -1654,6 +1724,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               owner_name: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ownerMobileRef)}
+                          inputRef={ownerNameRef}
                           fullWidth
                         />
                       </Grid>
@@ -1668,6 +1740,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           }
                           inputProps={{ maxLength: 10 }}
                           type="tel"
+                          onKeyDown={(e) => handleKeyDown(e, riceMillRef)}
+                          inputRef={ownerMobileRef}
                           fullWidth
                         />
                       </Grid>
@@ -1683,6 +1757,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               rice_mill_name: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, destFromRef)}
+                          inputRef={riceMillRef}
                           fullWidth
                         />
                       </Grid>
@@ -1698,6 +1774,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               destination_from: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, destToRef)}
+                          inputRef={destFromRef}
                           fullWidth
                         />
                       </Grid>
@@ -1713,6 +1791,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               destination_to: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, quantityMtRef)}
+                          inputRef={destToRef}
                           fullWidth
                         />
                       </Grid>
@@ -1729,6 +1809,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               quantity_mt: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, freightMtRef)}
+                          inputRef={quantityMtRef}
                           fullWidth
                         />
                       </Grid>
@@ -1745,6 +1827,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               freight_per_mt: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, advanceAmtRef)}
+                          inputRef={freightMtRef}
                           fullWidth
                         />
                       </Grid>
@@ -1761,6 +1845,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               advance_amount: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, bankAccRef)}
+                          inputRef={advanceAmtRef}
                           fullWidth
                         />
                       </Grid>
@@ -1786,6 +1872,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               bank_account: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, bankNameRef)}
+                          inputRef={bankAccRef}
                           fullWidth
                         />
                       </Grid>
@@ -1801,6 +1889,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               bank_name: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ifscRef)}
+                          inputRef={bankNameRef}
                           fullWidth
                         />
                       </Grid>
@@ -1816,6 +1906,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               ifsc: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ownerAddrRef)}
+                          inputRef={ifscRef}
                           fullWidth
                         />
                       </Grid>
@@ -1831,6 +1923,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               owner_address_line1: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ownerCityRef)}
+                          inputRef={ownerAddrRef}
                           fullWidth
                         />
                       </Grid>
@@ -1846,6 +1940,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               owner_city: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ownerStateRef)}
+                          inputRef={ownerCityRef}
                           fullWidth
                         />
                       </Grid>
@@ -1861,6 +1957,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               owner_state: e.target.value,
                             })
                           }
+                          onKeyDown={(e) => handleKeyDown(e, ownerPinRef)}
+                          inputRef={ownerStateRef}
                           fullWidth
                         />
                       </Grid>
@@ -1876,6 +1974,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               owner_pin: e.target.value,
                             })
                           }
+                          inputProps={{ maxLength: 6 }}
+                          onKeyDown={(e) => handleKeyDown(e, obtainFfaRef)}
+                          inputRef={ownerPinRef}
                           fullWidth
                         />
                       </Grid>
@@ -2052,6 +2153,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 // Do NOT modify premium here
                               });
                             }}
+                            onKeyDown={(e) => handleKeyDown(e, ffaPremiumRef)}
+                            inputRef={obtainFfaRef}
                             fullWidth
                           />
                           <TextField
@@ -2088,6 +2191,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 </InputAdornment>
                               ),
                             }}
+                            onKeyDown={(e) => handleKeyDown(e, obtainOilRef)}
+                            inputRef={ffaPremiumRef}
                             fullWidth
                           />
                         </Box>
@@ -2124,6 +2229,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 obtain_oil: e.target.value,
                               })
                             }
+                            onKeyDown={(e) => handleKeyDown(e, oilRebateRef)}
+                            inputRef={obtainOilRef}
                             fullWidth
                           />
                           <TextField
@@ -2145,6 +2252,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 </InputAdornment>
                               ),
                             }}
+                            onKeyDown={(e) => handleKeyDown(e, oilPremiumRef)}
+                            inputRef={oilRebateRef}
                             fullWidth
                           />
                           <TextField
@@ -2166,6 +2275,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 </InputAdornment>
                               ),
                             }}
+                            onKeyDown={(e) =>
+                              handleKeyDown(e, invoiceAmountRef)
+                            }
+                            inputRef={oilPremiumRef}
                             fullWidth
                           />
                         </Box>
@@ -2450,6 +2563,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           invoice_amount: e.target.value,
                         })
                       }
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, null, handleSaveBilling)
+                      }
+                      inputRef={invoiceAmountRef}
                       fullWidth
                     />
                   </Grid>
