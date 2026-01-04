@@ -32,6 +32,8 @@ const SMSDialog = ({
   purchaseData,
   partyData,
   agentData,
+  vehicleData,
+  companyData,
 }) => {
   const [smsOption, setSmsOption] = useState("party");
   const [customMessage, setCustomMessage] = useState("");
@@ -39,6 +41,7 @@ const SMSDialog = ({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  // Extract data from props
   const {
     obtain_ffa = "",
     obtain_oil = "",
@@ -48,21 +51,67 @@ const SMSDialog = ({
 
   const {
     invoice_no = "",
+    date = "",
     gross_weight_mt = 0,
     contracted_rate = 0,
+    no_of_bags = "",
+    bag_type = "",
+    product_name = "",
   } = purchaseData || {};
+
   const partyName = partyData?.party_name || "N/A";
   const partyContact = partyData?.contact_person || partyData?.mobile_no || "";
   const agentContact = agentData?.agent_number || "";
 
-  const defaultMessage = `Lab Results - Invoice ${invoice_no}:
-FFA: ${obtain_ffa} (Std: ${standard_ffa})
-OIL: ${obtain_oil}% (Std: ${standard_oil}%)
-Net Weight: ${(parseFloat(gross_weight_mt) || 0).toFixed(3)} MT
-Gross Amount: ₹${(
-    (parseFloat(gross_weight_mt) || 0) * (parseFloat(contracted_rate) || 0)
-  ).toFixed(2)}
-- Manmath Pattanaik & Co`;
+  // Vehicle data
+  const vehicleNo = vehicleData?.vehicle_no || "N/A";
+
+  // Company data
+  const companyName = companyData?.company_name || "MANMATH PATTANAIK & CO";
+
+  // Format date to DD-MM-YYYY
+  const formatDate = (dateString) => {
+    if (!dateString) return new Date().toISOString().split("T")[0];
+    try {
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Generate G.R. number (you might want to get this from your database)
+  const generateGRNo = () => {
+    // This should come from your database/backend
+    // For now, generate a random 3-digit number
+    return Math.floor(Math.random() * 900) + 100;
+  };
+
+  // Format the message as requested
+  const defaultMessage = `${partyName}
+Date.- ${formatDate(date)}
+G.R.no.- ${generateGRNo()} (Auto Generated)
+Tr. No.- ${vehicleNo}
+Bags.- ${no_of_bags || "0"}
+Bag Type:- ${
+    bag_type === "Poly" ? "Poly" : bag_type === "Jute" ? "Jute" : "Poly/Jute"
+  }
+Weight.- ${(parseFloat(gross_weight_mt) || 0).toFixed(2)}
+Rate.- ${parseFloat(contracted_rate) || 0}
+Oil.- ${parseFloat(obtain_oil) || parseFloat(standard_oil) || 0}.${String(
+    Math.round(
+      (parseFloat(obtain_oil) || parseFloat(standard_oil) || 0) * 100
+    ) % 100
+  ).padStart(2, "0")}
+FFA.- ${parseFloat(obtain_ffa) || parseFloat(standard_ffa) || 0}.${String(
+    Math.round(
+      (parseFloat(obtain_ffa) || parseFloat(standard_ffa) || 0) * 100
+    ) % 100
+  ).padStart(2, "0")}
+${companyName}`;
 
   const getRecipients = () => {
     const recipients = [];
@@ -170,51 +219,45 @@ Gross Amount: ₹${(
                 label="Send to Both"
                 disabled={!partyContact || !agentContact}
               />
-              {/* <FormControlLabel
-                value="party"
-                control={<Radio />}
-                label={`Party: ${partyName} (${partyContact || "No contact"})`}
-                disabled={!partyContact}
-              />
-              <FormControlLabel
-                value="agent"
-                control={<Radio />}
-                label={`Agent: ${agentData?.agent_name || "Agent"} (${
-                  agentContact || "No contact"
-                })`}
-                disabled={!agentContact}
-              />
-              <FormControlLabel
-                value="both"
-                control={<Radio />}
-                label="Send to Both"
-                disabled={!partyContact || !agentContact}
-              /> */}
             </RadioGroup>
           </FormControl>
 
           <Typography variant="subtitle2" gutterBottom>
-            Recipients will receive:
+            Message Format:
           </Typography>
 
           <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: "#fafafa" }}>
             <Typography
               variant="body2"
-              sx={{ whiteSpace: "pre-line", fontFamily: "monospace" }}
+              sx={{
+                whiteSpace: "pre-line",
+                fontFamily: "monospace",
+                lineHeight: "1.5",
+                fontSize: "14px",
+              }}
             >
               {customMessage.trim() || defaultMessage}
             </Typography>
           </Paper>
 
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mb: 2, display: "block" }}
+          >
+            Format: Party Name → Date → G.R.no → Tr.No → Bags → Bag Type →
+            Weight → Rate → Oil → FFA → Company Name
+          </Typography>
+
           <TextField
             fullWidth
             multiline
-            rows={4}
+            rows={6}
             label="Customize Message (Optional)"
             value={customMessage}
             onChange={(e) => setCustomMessage(e.target.value)}
             placeholder={defaultMessage}
-            helperText="Leave empty to use default message"
+            helperText="Leave empty to use default message format"
           />
 
           <Box sx={{ mt: 3 }}>

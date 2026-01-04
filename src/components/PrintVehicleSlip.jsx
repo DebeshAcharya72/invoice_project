@@ -8,36 +8,39 @@ import {
   Button,
   Box,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-  TableContainer,
-  Paper,
 } from "@mui/material";
 import { Print as PrintIcon, Close as CloseIcon } from "@mui/icons-material";
 
-// Add companyData to the props
 const PrintVehicleSlip = ({
   open,
   onClose,
-  vehicleData,
-  purchaseData,
-  companyData,
+  vehicleData = {},
+  purchaseData = {},
+  companyData = {},
 }) => {
+  console.log("Vehicle slip received data:", {
+    vehicleData,
+    hasBankName: !!vehicleData.bank_name,
+    hasBankAccount: !!vehicleData.bank_account,
+    hasIfsc: !!vehicleData.ifsc,
+    allFields: Object.keys(vehicleData),
+  });
+  // Extract ALL data from vehicleData - THIS IS WHERE BANK DATA COMES FROM
   const {
-    vehicle_no,
-    rice_mill_name,
-    destination_from,
-    destination_to,
-    quantity_mt,
-    freight_per_mt,
-    advance_amount,
-    owner_name,
-    mobile_no,
-  } = vehicleData || {};
-
-  const { bank_name, bank_account } = purchaseData || {};
+    vehicle_no = "",
+    rice_mill_name = "",
+    destination_from = "",
+    destination_to = "",
+    quantity_mt = "0",
+    freight_per_mt = "0",
+    advance_amount = "0",
+    bank_name = "", // <-- This should come from vehicleData
+    bank_account = "", // <-- This should come from vehicleData
+    ifsc = "", // <-- This should come from vehicleData
+    owner_name = "",
+    mobile_no = "",
+    bank_details = "", // Also check for this field
+  } = vehicleData;
 
   const totalFreight =
     (parseFloat(quantity_mt) || 0) * (parseFloat(freight_per_mt) || 0);
@@ -48,36 +51,218 @@ const PrintVehicleSlip = ({
     const printWindow = window.open("", "_blank");
 
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
-        <head>
-          <title>Transportation Slip - ${vehicle_no}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .content { font-size: 14px; line-height: 1.6; }
-            table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-            th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-            .signature-box { margin-top: 40px; }
-            .signature-line { height: 1px; border-bottom: 1px dashed #000; margin-top: 60px; }
-            @media print {
-              body { margin: 0; padding: 0; }
-              .no-print { display: none; }
+      <head>
+        <title>Vehicle Slip - ${vehicle_no}</title>
+        <style>
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 5mm;
             }
-          </style>
-        </head>
-        <body>
-          ${printContent.innerHTML}
-          <div class="no-print" style="margin-top:20px;text-align:center;">
-            <button onclick="window.print()" style="padding:10px 20px;background:#4CAF50;color:white;border:none;cursor:pointer;">
-              Print
-            </button>
-            <button onclick="window.close()" style="padding:10px 20px;background:#f44336;color:white;border:none;cursor:pointer;margin-left:10px;">
-              Close
-            </button>
+            body {
+              margin: 0;
+              padding: 5mm;
+              font-size: 12px;
+              font-family: 'Arial', sans-serif;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            margin: 10px;
+            padding: 0;
+            font-size: 12px;
+            color: #000;
+            background: #fff;
+          }
+          
+          .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 15px;
+            line-height: 1.2;
+          }
+          
+          .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+          }
+          
+          .company-address {
+            font-size: 12px;
+            margin-bottom: 3px;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 5px 0;
+          }
+          
+          td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            vertical-align: top;
+          }
+          
+          .signature-section {
+            margin-top: 20px;
+            font-size: 11px;
+          }
+          
+          .signature-line {
+            border-bottom: 1px dashed #000;
+            width: 100%;
+            margin-top: 20px;
+          }
+          
+          .bank-details {
+            font-size: 11px;
+            line-height: 1.3;
+          }
+          
+          .no-print {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="company-name">${
+              companyData?.company_name || "MANMATH PATTANAIK & CO"
+            }</div>
+            <div class="company-address">${
+              companyData?.address_line1 ||
+              "PLOT NO-746/3061_MANSA PALACE_NUASAHI, GANDARPUR, CUTTACK-753003"
+            }</div>
           </div>
-        </body>
+          
+          <table>
+            <tr>
+              <td style="width: 50%;">
+                <strong>VEHICLE NO-</strong><br/>
+                ${vehicle_no || "_______________"}
+              </td>
+              <td style="width: 50%;">
+                <div><strong>Date of Loading</strong><br/>${new Date().toLocaleDateString()}</div>
+                <div style="margin-top: 8px;"><strong>Date of unloading</strong><br/>_______________</div>
+              </td>
+            </tr>
+          </table>
+          
+          <table>
+            <tr>
+              <td style="width: 25%;"><strong>Rice Mill Name</strong></td>
+              <td style="width: 25%;"><strong>Bank Details</strong></td>
+              <td style="width: 12.5%; text-align: center;"><strong>Quantity</strong></td>
+              <td style="width: 12.5%; text-align: center;"><strong>Per MT</strong></td>
+              <td style="width: 25%; text-align: center;"><strong>Amount</strong></td>
+            </tr>
+            <tr>
+              <td style="height: 50px; vertical-align: middle;">${
+                rice_mill_name || "_______________"
+              }</td>
+              <td style="height: 50px; vertical-align: middle;" class="bank-details">
+                ${bank_name ? `${bank_name}<br/>` : ""}
+                ${bank_account ? `A/C: ${bank_account}<br/>` : ""}
+                ${ifsc ? `IFSC: ${ifsc}` : ""}
+                ${!bank_name && !bank_account && !ifsc ? "_______________" : ""}
+              </td>
+              <td style="height: 50px; text-align: center; vertical-align: middle;">${
+                quantity_mt || "0"
+              } MT</td>
+              <td style="height: 50px; text-align: center; vertical-align: middle;">₹${
+                freight_per_mt || "0"
+              }</td>
+              <td style="height: 50px; text-align: center; vertical-align: middle; font-weight: bold;">₹${totalFreight.toFixed(
+                2
+              )}</td>
+            </tr>
+          </table>
+          
+          <table>
+            <tr>
+              <td style="width: 50%;"><strong>FROM</strong></td>
+              <td style="width: 50%;"><strong>TO</strong></td>
+            </tr>
+            <tr>
+              <td style="height: 35px;">${
+                destination_from || "_______________"
+              }</td>
+              <td style="height: 35px;">${
+                destination_to || "_______________"
+              }</td>
+            </tr>
+          </table>
+          
+          <table>
+            <tr>
+              <td style="width: 50%;"><strong>Advance Date</strong></td>
+              <td style="width: 50%;"><strong>Topay</strong></td>
+            </tr>
+            <tr>
+              <td style="height: 35px;">_______________</td>
+              <td style="height: 35px; font-weight: bold;">₹${toPay.toFixed(
+                2
+              )}</td>
+            </tr>
+          </table>
+          
+          <div class="signature-section">
+            <div style="margin-bottom: 15px;">
+              <strong>Date of Submission</strong><br/>
+              ${new Date().toLocaleDateString()}
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+              <strong>Carrage Inward/RiceMill A/C</strong>
+              <div class="signature-line"></div>
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+              <strong>Unloading Staff Signature</strong>
+              <div class="signature-line"></div>
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+              <strong>Date of Freight</strong>
+              <div class="signature-line"></div>
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+              <strong>Account staff Signature</strong>
+              <div class="signature-line"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-print">
+          <button onclick="window.print()" style="padding:8px 16px;background:#4CAF50;color:white;border:none;cursor:pointer;margin:5px;">
+            🖨️ Print Now
+          </button>
+          <button onclick="window.close()" style="padding:8px 16px;background:#f44336;color:white;border:none;cursor:pointer;margin:5px;">
+            ✕ Close Window
+          </button>
+        </div>
+      </body>
       </html>
     `);
+
     printWindow.document.close();
     printWindow.focus();
   };
@@ -87,163 +272,354 @@ const PrintVehicleSlip = ({
       <DialogTitle>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <PrintIcon color="primary" />
-          Vehicle Transportation Slip
+          <Typography variant="h6">Vehicle Transportation Slip</Typography>
         </Box>
       </DialogTitle>
 
       <DialogContent>
-        <Box id="print-vehicle-slip" sx={{ mt: 2 }}>
-          {/* Company Header */}
-          <Box sx={{ textAlign: "center", mb: 3 }}>
-            <Typography variant="h6" fontWeight="bold">
+        {/* Hidden div for printing */}
+        <Box id="print-vehicle-slip" sx={{ display: "none" }}>
+          Printing content
+        </Box>
+
+        {/* Preview in dialog */}
+        <Box
+          sx={{ mt: 2, border: "1px solid #ccc", padding: 2, bgcolor: "white" }}
+        >
+          {/* Header */}
+          <Box sx={{ textAlign: "center", mb: 2 }}>
+            <Typography
+              sx={{
+                fontSize: "18px",
+                fontWeight: "bold",
+                mb: 0.5,
+                textTransform: "uppercase",
+              }}
+            >
               {companyData?.company_name || "MANMATH PATTANAIK & CO"}
             </Typography>
-            <Typography variant="body2">
+            <Typography sx={{ fontSize: "12px", lineHeight: 1.2 }}>
               {companyData?.address_line1 ||
-                "PLOT NO-746/3061, MANSA PALACE, NUASAHI, GANDARPUR, CUTTACK-753003"}
-            </Typography>
-            <Typography variant="body2">
-              Mob: {companyData?.mobile_no || "9437025723 / 9178314411"}
+                "PLOT NO-746/3061_MANSA PALACE_NUASAHI, GANDARPUR, CUTTACK-753003"}
             </Typography>
           </Box>
 
-          {/* Vehicle Details */}
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-            <Table size="small">
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <strong>VEHICLE NO:</strong>
-                  </TableCell>
-                  <TableCell>{vehicle_no || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Owner Name:</strong>
-                  </TableCell>
-                  <TableCell>{owner_name || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Mobile No:</strong>
-                  </TableCell>
-                  <TableCell>{mobile_no || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Date of Loading:</strong>
-                  </TableCell>
-                  <TableCell>{new Date().toLocaleDateString()}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Date of unloading:</strong>
-                  </TableCell>
-                  <TableCell>_________________</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+          {/* Vehicle No and Dates */}
+          <Box sx={{ display: "flex", mb: 2 }}>
+            <Box
+              sx={{ flex: 1, border: "1px solid black", padding: "6px 8px" }}
+            >
+              <Typography sx={{ fontSize: "11px", fontWeight: "bold" }}>
+                VEHICLE NO-
+              </Typography>
+              <Typography sx={{ fontSize: "13px", mt: 0.5 }}>
+                {vehicle_no || "_______________"}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                flex: 1,
+                border: "1px solid black",
+                borderLeft: "none",
+                padding: "6px 8px",
+              }}
+            >
+              <Box sx={{ mb: 1 }}>
+                <Typography sx={{ fontSize: "11px", fontWeight: "bold" }}>
+                  Date of Loading
+                </Typography>
+                <Typography sx={{ fontSize: "12px", mt: 0.5 }}>
+                  {new Date().toLocaleDateString()}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: "11px", fontWeight: "bold" }}>
+                  Date of unloading
+                </Typography>
+                <Typography sx={{ fontSize: "12px", mt: 0.5 }}>
+                  _______________
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
 
           {/* Main Table */}
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <strong>Rice Mill Name</strong>
-                  </TableCell>
-                  <TableCell>{rice_mill_name || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Bank Details</strong>
-                  </TableCell>
-                  <TableCell>
-                    {bank_name || "N/A"}
-                    <br />
-                    {bank_account ? `A/C: ${bank_account}` : ""}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Quantity</strong>
-                  </TableCell>
-                  <TableCell>{quantity_mt || "0"} MT</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Per MT</strong>
-                  </TableCell>
-                  <TableCell>₹{freight_per_mt || "0"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Amount</strong>
-                  </TableCell>
-                  <TableCell>₹{totalFreight.toFixed(2)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box sx={{ border: "1px solid black" }}>
+            {/* Header Row */}
+            <Box sx={{ display: "flex", borderBottom: "1px solid black" }}>
+              <Box
+                sx={{
+                  width: "25%",
+                  p: 1,
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  borderRight: "1px solid black",
+                }}
+              >
+                Rice Mill Name
+              </Box>
+              <Box
+                sx={{
+                  width: "25%",
+                  p: 1,
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  borderRight: "1px solid black",
+                }}
+              >
+                Bank Details
+              </Box>
+              <Box
+                sx={{
+                  width: "12.5%",
+                  p: 1,
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  borderRight: "1px solid black",
+                  textAlign: "center",
+                }}
+              >
+                Quantity
+              </Box>
+              <Box
+                sx={{
+                  width: "12.5%",
+                  p: 1,
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  borderRight: "1px solid black",
+                  textAlign: "center",
+                }}
+              >
+                Per MT
+              </Box>
+              <Box
+                sx={{
+                  width: "25%",
+                  p: 1,
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  textAlign: "center",
+                }}
+              >
+                Amount
+              </Box>
+            </Box>
 
-          {/* Route & Payment */}
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-            <Table size="small">
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <strong>FROM</strong>
-                  </TableCell>
-                  <TableCell>{destination_from || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>TO</strong>
-                  </TableCell>
-                  <TableCell>{destination_to || "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Advance Date</strong>
-                  </TableCell>
-                  <TableCell>_________________</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Advance Amount</strong>
-                  </TableCell>
-                  <TableCell>₹{advance_amount || "0"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>To Pay</strong>
-                  </TableCell>
-                  <TableCell>₹{toPay.toFixed(2)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+            {/* Data Row */}
+            <Box sx={{ display: "flex" }}>
+              <Box
+                sx={{
+                  width: "25%",
+                  p: 1.5,
+                  borderRight: "1px solid black",
+                  minHeight: "50px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {rice_mill_name || "_______________"}
+              </Box>
+
+              {/* BANK DETAILS CELL - This is what you want */}
+              <Box
+                sx={{
+                  width: "25%",
+                  p: 1.5,
+                  borderRight: "1px solid black",
+                  minHeight: "50px",
+                  fontSize: "11px",
+                  lineHeight: 1.4,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                }}
+              >
+                {bank_name && (
+                  <Typography sx={{ fontSize: "11px" }}>{bank_name}</Typography>
+                )}
+                {bank_account && (
+                  <Typography sx={{ fontSize: "11px", mt: 0.5 }}>
+                    A/C: {bank_account}
+                  </Typography>
+                )}
+                {ifsc && (
+                  <Typography sx={{ fontSize: "11px", mt: 0.5 }}>
+                    IFSC: {ifsc}
+                  </Typography>
+                )}
+                {!bank_name && !bank_account && !ifsc && (
+                  <Typography
+                    sx={{ fontSize: "11px", color: "text.secondary" }}
+                  >
+                    _______________
+                  </Typography>
+                )}
+              </Box>
+
+              <Box
+                sx={{
+                  width: "12.5%",
+                  p: 1.5,
+                  borderRight: "1px solid black",
+                  minHeight: "50px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {quantity_mt || "0"} MT
+              </Box>
+              <Box
+                sx={{
+                  width: "12.5%",
+                  p: 1.5,
+                  borderRight: "1px solid black",
+                  minHeight: "50px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ₹{freight_per_mt || "0"}
+              </Box>
+              <Box
+                sx={{
+                  width: "25%",
+                  p: 1.5,
+                  minHeight: "50px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "bold",
+                }}
+              >
+                ₹{totalFreight.toFixed(2)}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* FROM/TO Section */}
+          <Box
+            sx={{
+              display: "flex",
+              border: "1px solid black",
+              borderTop: "none",
+            }}
+          >
+            <Box sx={{ width: "50%", borderRight: "1px solid black" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                }}
+              >
+                FROM
+              </Box>
+              <Box sx={{ p: 1.5, minHeight: "35px", fontSize: "11px" }}>
+                {destination_from || "_______________"}
+              </Box>
+            </Box>
+            <Box sx={{ width: "50%" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                }}
+              >
+                TO
+              </Box>
+              <Box sx={{ p: 1.5, minHeight: "35px", fontSize: "11px" }}>
+                {destination_to || "_______________"}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Advance Date/Topay Section */}
+          <Box
+            sx={{
+              display: "flex",
+              border: "1px solid black",
+              borderTop: "none",
+            }}
+          >
+            <Box sx={{ width: "50%", borderRight: "1px solid black" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                }}
+              >
+                Advance Date
+              </Box>
+              <Box sx={{ p: 1.5, minHeight: "35px", fontSize: "11px" }}>
+                _______________
+              </Box>
+            </Box>
+            <Box sx={{ width: "50%" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                }}
+              >
+                Topay
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  minHeight: "35px",
+                  fontSize: "11px",
+                  fontWeight: "bold",
+                }}
+              >
+                ₹{toPay.toFixed(2)}
+              </Box>
+            </Box>
+          </Box>
 
           {/* Signatures */}
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="body2">
-              <strong>Date of Submission:</strong>{" "}
+          <Box sx={{ mt: 3 }}>
+            <Typography sx={{ fontSize: "11px", fontWeight: "bold", mb: 1 }}>
+              Date of Submission
+            </Typography>
+            <Typography sx={{ fontSize: "11px", mb: 3 }}>
               {new Date().toLocaleDateString()}
             </Typography>
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="body2">
-                Carriage Inward/RiceMill A/C: _________________
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                Unloading Staff Signature: _________________
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                Date of Freight: _________________
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                Account Staff Signature: _________________
-              </Typography>
+
+            <Box sx={{ fontSize: "10px" }}>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontWeight: "bold", mb: 0.5 }}>
+                  Carrage Inward/RiceMill A/C
+                </Typography>
+                <Box sx={{ borderBottom: "1px dashed black", mt: 1 }} />
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontWeight: "bold", mb: 0.5 }}>
+                  Unloading Staff Signature
+                </Typography>
+                <Box sx={{ borderBottom: "1px dashed black", mt: 1 }} />
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontWeight: "bold", mb: 0.5 }}>
+                  Date of Freight
+                </Typography>
+                <Box sx={{ borderBottom: "1px dashed black", mt: 1 }} />
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontWeight: "bold", mb: 0.5 }}>
+                  Account staff Signature
+                </Typography>
+                <Box sx={{ borderBottom: "1px dashed black", mt: 1 }} />
+              </Box>
             </Box>
           </Box>
         </Box>

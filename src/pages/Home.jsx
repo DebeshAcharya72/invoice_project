@@ -170,12 +170,300 @@ const styles = {
 
 const Home = ({ userRole, onLogout, currentUser }) => {
   const [loading, setLoading] = useState(false);
+  const receivedDateRef = useRef(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
+  // ============ CALCULATION FUNCTIONS ============
+
+  // 1. FFA Rebate Calculation (Keeping your logic intact)
+  const calculateFFARebate = (product, ffa) => {
+    const ffaValue = parseFloat(ffa) || 0;
+    let rebate = 0;
+
+    if (product === "Boiled Rice Bran") {
+      // Handle flat deductions for high FFA
+      if (ffaValue > 45) {
+        rebate = 4000;
+      } else if (ffaValue > 30) {
+        rebate = 3500;
+      } else if (ffaValue > 25) {
+        rebate = 2500;
+      } else if (ffaValue > 20) {
+        rebate = 2000;
+      } else if (ffaValue > 15) {
+        // Tier 3: 15.1 to 19.99
+        if (ffaValue <= 19.99) {
+          rebate += (ffaValue - 15) * 170;
+        }
+
+        // Tier 2: 10.1 to 15.0 (max 5 units)
+        if (15 > 10) {
+          rebate += Math.min(15 - 10, 5) * 150;
+        }
+
+        // Tier 1: 7.1 to 10.0
+        if (10 > 7) {
+          rebate += (10 - 7) * 100;
+        }
+      } else if (ffaValue > 10) {
+        // Only in tiers 1 and 2 (10.1 to 15.0)
+        // Tier 2: 10.1 to 15.0 (max 5 units)
+        rebate += Math.min(ffaValue - 10, 5) * 150;
+
+        // Tier 1: 7.1 to 10.0
+        if (10 > 7) {
+          rebate += (10 - 7) * 100;
+        }
+      } else if (ffaValue > 7) {
+        // Only in tier 1 (7.1 to 10.0)
+        rebate += (ffaValue - 7) * 100;
+      }
+    } else {
+      // For other products: flat rebates
+      if (ffaValue > 55) rebate = 1000;
+      else if (ffaValue > 50) rebate = 700;
+      else if (ffaValue > 45) rebate = 600;
+      else if (ffaValue > 40) rebate = 500;
+      else if (ffaValue > 35) rebate = 400;
+      else if (ffaValue > 30) rebate = 300;
+      else if (ffaValue > 25) rebate = 200;
+      else if (ffaValue > 20) rebate = 100;
+    }
+
+    return rebate;
+  };
+
+  // 2. Oil Rebate & Premium Calculation (Keeping your logic intact)
+  const calculateOilRebatePremium = (product, oilObtained, contractedRate) => {
+    const oilValue = parseFloat(oilObtained) || 0;
+    const rate = parseFloat(contractedRate) || 0;
+    let rebate = 0;
+    let premium = 0;
+
+    if (product === "Boiled Rice Bran") {
+      const oilStandard = 19;
+      const oilDiff = oilValue - oilStandard;
+
+      if (oilDiff > 0) {
+        // Premium calculation for boiled rice oil
+        if (oilDiff <= 5) {
+          // Up to 24% (19+5)
+          premium = (oilDiff * rate) / 100; // Full premium
+        } else if (oilDiff <= 9) {
+          // 24% to 28% (19+9)
+          const fullPremiumRange = 5;
+          const halfPremiumRange = oilDiff - fullPremiumRange;
+          premium =
+            (fullPremiumRange * rate) / 100 + (halfPremiumRange * rate) / 200;
+        }
+        // Above 28%: no premium
+      } else if (oilDiff < 0) {
+        // Rebate calculation for boiled rice oil
+        const diff = Math.abs(oilDiff);
+        if (oilValue >= 16) {
+          // 19% to 16%
+          rebate = (diff * rate) / 100; // 1% deduction
+        } else {
+          // Below 16%
+          const diffTo16 = 16 - oilValue;
+          const diffFrom19 = 3; // 19-16
+          // First 3% (19-16): 1% each
+          let totalRebate = (diffFrom19 * rate) / 100;
+          // Below 16%: 2% each
+          totalRebate += (diffTo16 * rate * 2) / 100;
+          rebate = totalRebate;
+        }
+      }
+    } else if (product === "Raw Rice Bran") {
+      const oilStandard = 16;
+      const oilDiff = oilValue - oilStandard;
+
+      if (oilDiff > 0) {
+        // Premium calculation for raw rice oil
+        if (oilDiff <= 3) {
+          // Up to 19% (16+3)
+          premium = (oilDiff * rate) / 100; // Full premium
+        }
+      } else if (oilDiff < 0) {
+        // Rebate calculation for raw rice oil
+        const diff = Math.abs(oilDiff);
+        if (oilValue >= 12) {
+          // 16% to 12%
+          rebate = (diff * rate) / 100; // 1% deduction
+        } else {
+          // Below 12%
+          const diffTo12 = 12 - oilValue;
+          const diffFrom16 = 4; // 16-12
+          // First 4% (16-12): 1% each
+          let totalRebate = (diffFrom16 * rate) / 100;
+          // Below 12%: 1.5% each
+          totalRebate += (diffTo12 * rate * 1.5) / 100;
+          rebate = totalRebate;
+        }
+      }
+    } else if (product === "Rough Rice Bran") {
+      const oilStandard = 7;
+      const oilDiff = oilValue - oilStandard;
+
+      if (oilDiff > 0) {
+        // Premium calculation for rough rice
+        if (oilDiff === 1) {
+          // 8%
+          premium = rate / 100; // Full premium
+        } else if (oilDiff === 2) {
+          // 9%
+          premium = rate / 200; // Half premium
+        }
+        // Above 9%: no premium
+      }
+      // Note: No rebate mentioned for rough rice
+    }
+
+    return {
+      rebate: parseFloat(rebate.toFixed(2)),
+      premium: parseFloat(premium.toFixed(2)),
+    };
+  };
+
+  const calculateAccountRate = () => {
+    // Use final contracted rate for Red Bran, otherwise use contracted rate
+    const contractedRate =
+      parseFloat(
+        purchaseForm.bran_type === "Red"
+          ? purchaseForm.final_contracted_rate || purchaseForm.contracted_rate
+          : purchaseForm.contracted_rate
+      ) || 0;
+
+    // Get FFA rebate from either saved data or current form
+    const ffaRebate =
+      parseFloat(
+        savedLabData?.ffa_rebate_rs ||
+          savedLabData?.rebate_rs ||
+          labForm.ffa_rebate_rs
+      ) || 0;
+
+    console.log("Account rate calculation:", {
+      contractedRate,
+      ffaRebate,
+      branType: purchaseForm.bran_type,
+      finalContractedRate: purchaseForm.final_contracted_rate,
+      savedLabData,
+      labForm,
+    });
+
+    // Account Rate = Contracted Rate - FFA Rebate
+    const accountRate = Math.max(0, contractedRate - ffaRebate);
+
+    return parseFloat(accountRate.toFixed(2));
+  };
+
+  // 4. NEW: Net Rate Calculation (Account Rate / Oil Standard) * Oil Difference
+  const calculateNetRate = () => {
+    const accountRate = calculateAccountRate();
+    const oilStandard = parseFloat(labForm.standard_oil) || 19;
+    const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
+    const oilDifference = oilObtained - oilStandard;
+
+    if (oilStandard === 0) return 0;
+
+    const netRate = (accountRate / oilStandard) * oilDifference;
+    return parseFloat(netRate.toFixed(2));
+  };
+
+  // 5. NEW: Net Amount Calculation (Account Rate / Oil Standard) * Oil Difference
+  // Note: This appears to be the same as Net Rate? Based on your description.
+  // If Net Amount should be different, please clarify.
+  const calculateNetAmount = () => {
+    // Assuming Net Amount = Net Rate (same calculation)
+    return calculateNetRate();
+  };
+
+  // 6. NEW: Material Amount Calculation (Account Rate × Net Weight)
+  const calculateMaterialAmount = () => {
+    const accountRate = calculateAccountRate();
+    const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+
+    const materialAmount = accountRate * netWeight;
+    return parseFloat(materialAmount.toFixed(2));
+  };
+
+  // 7. NEW: Gross Amount Calculation (Net Amount + Material Amount)
+  const calculateGrossAmount = () => {
+    const netAmount = calculateNetAmount();
+    const materialAmount = calculateMaterialAmount();
+
+    const grossAmount = netAmount + materialAmount;
+    return parseFloat(grossAmount.toFixed(2));
+  };
+
+  // 8. NEW: GST Calculation
+  const calculateGST = () => {
+    const grossAmount = calculateGrossAmount();
+    const gstType = billingForm.gst_type;
+
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (gstType === "Intra") {
+      // Intra State: 2.5% CGST + 2.5% SGST
+      cgst = grossAmount * 0.025;
+      sgst = grossAmount * 0.025;
+    } else if (gstType === "Inter") {
+      // Inter State: 5% IGST
+      igst = grossAmount * 0.05;
+    }
+
+    return {
+      cgst: parseFloat(cgst.toFixed(2)),
+      sgst: parseFloat(sgst.toFixed(2)),
+      igst: parseFloat(igst.toFixed(2)),
+      total: parseFloat((cgst + sgst + igst).toFixed(2)),
+    };
+  };
+
+  // 9. NEW: Billed Amount Calculation (Gross Amount + GST)
+  const calculateBilledAmount = () => {
+    const grossAmount = calculateGrossAmount();
+    const gst = calculateGST();
+
+    const billedAmount = grossAmount + gst.total;
+    return parseFloat(billedAmount.toFixed(2));
+  };
+
+  // 10. NEW: Amount Payable Calculation (Billed Amount - Invoice Amount)
+  const calculateAmountPayable = () => {
+    const billedAmount = calculateBilledAmount();
+    const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
+
+    const amountPayable = billedAmount - invoiceAmount;
+    return parseFloat(amountPayable.toFixed(2));
+  };
+
+  // 11. Helper function to get oil standard
+  const getOilStandard = (product) => {
+    const mapping = {
+      "Boiled Rice Bran": 19.0,
+      "Raw Rice Bran": 16.0,
+      "Rough Rice Bran": 7.0,
+    };
+    return mapping[product] || 19.0;
+  };
+
+  // ============ UTILITY FUNCTIONS ============
+  const toTitleCase = (str) => {
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Refs for all input fields...
   const partyNameRef = useRef(null);
   const contactPersonRef = useRef(null);
   const partyMobileRef = useRef(null);
@@ -217,22 +505,20 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const oilPremiumRef = useRef(null);
   const invoiceAmountRef = useRef(null);
 
-  // --- Add this function ---
+  // Enter key navigation
   const handleKeyDown = (e, nextFieldRef) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // Prevent default form submission behavior
+      e.preventDefault();
       if (nextFieldRef && nextFieldRef.current) {
         nextFieldRef.current.focus();
       }
     }
   };
 
-  // Company states
+  // ============ STATE VARIABLES ============
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-
-  // Dialog States
   const [showVehicleSlip, setShowVehicleSlip] = useState(false);
   const [showSMSDialog, setShowSMSDialog] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
@@ -265,14 +551,17 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     agent_number: "",
     invoice_no: "",
     date: new Date().toISOString().split("T")[0],
+    received_date: "",
     product_name: "Boiled Rice Bran",
     contracted_rate: "",
+    final_contracted_rate: "",
     bran_type: "Good",
     gross_weight_mt: "",
     no_of_bags: "",
     bag_type: "Poly",
     bag_weight_mt: "0.000200",
     net_weight_mt: "",
+    billed_weight_mt: "",
   });
 
   const [vehicleForm, setVehicleForm] = useState({
@@ -329,15 +618,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const [savedPurchaseData, setSavedPurchaseData] = useState(null);
   const [savedPartyData, setSavedPartyData] = useState(null);
 
+  // ============ USE EFFECTS ============
+
   // Load companies and parties on mount
   useEffect(() => {
     loadCompanies();
     loadParties();
   }, []);
 
-  // Add this useEffect in Home.jsx
+  // Auto-fill destination_from from selected party
   useEffect(() => {
-    // Auto-fill destination_from from selected party
     if (purchaseForm.party_name) {
       const selectedParty = parties.find(
         (p) => p.party_name === purchaseForm.party_name
@@ -360,8 +650,27 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [purchaseForm.party_name, parties]);
 
+  // Auto-fill rice mill name from selected party
   useEffect(() => {
-    // Auto-fill destination_to from selected company
+    if (purchaseForm.party_name) {
+      setVehicleForm((prev) => ({
+        ...prev,
+        rice_mill_name: purchaseForm.party_name,
+      }));
+    }
+  }, [purchaseForm.party_name]);
+
+  useEffect(() => {
+    if (purchaseForm.gross_weight_mt) {
+      setVehicleForm((prev) => ({
+        ...prev,
+        quantity_mt: purchaseForm.gross_weight_mt,
+      }));
+    }
+  }, [purchaseForm.gross_weight_mt]);
+
+  // Auto-fill destination_to from selected company
+  useEffect(() => {
     if (selectedCompany) {
       const selectedCompanyObj = companies.find(
         (c) => (c._id || c.id) === selectedCompany
@@ -384,54 +693,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [selectedCompany, companies]);
 
-  // Load companies from backend
-  const loadCompanies = async () => {
-    try {
-      setLoadingCompanies(true);
-
-      // Everyone sees all companies
-      const companiesData = await api.getMyCompanies();
-      console.log("Loaded companies for dropdown:", companiesData);
-
-      setCompanies(companiesData);
-
-      // Set default selected company
-      if (companiesData.length > 0) {
-        // Priority 1: User's previously selected/assigned company
-        if (currentUser?.company_id) {
-          const userCompany = companiesData.find(
-            (c) => (c._id || c.id) === currentUser.company_id
-          );
-          if (userCompany) {
-            setSelectedCompany(userCompany._id || userCompany.id);
-            console.log("Selected user's company:", userCompany.company_name);
-          } else {
-            // Priority 2: Default company (first one)
-            const firstCompany = companiesData[0];
-            setSelectedCompany(firstCompany._id || firstCompany.id);
-            console.log("Selected first company:", firstCompany.company_name);
-          }
-        } else {
-          // No company assigned, use first one
-          const firstCompany = companiesData[0];
-          setSelectedCompany(firstCompany._id || firstCompany.id);
-          console.log(
-            "No user company, selected first:",
-            firstCompany.company_name
-          );
-        }
-      } else {
-        console.log("No companies available");
-        setSelectedCompany("");
-      }
-    } catch (err) {
-      console.error("Failed to load companies:", err);
-      showError("Failed to load companies");
-    } finally {
-      setLoadingCompanies(false);
-    }
-  };
-
   // Auto-update lab standards based on product
   useEffect(() => {
     const map = {
@@ -444,7 +705,38 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       oil: "19",
     };
     setLabForm((prev) => ({ ...prev, standard_ffa: ffa, standard_oil: oil }));
+
+    // Auto-calculate oil rebate/premium when product changes if oil value exists
+    if (labForm.obtain_oil && purchaseForm.contracted_rate) {
+      const oilCalc = calculateOilRebatePremium(
+        purchaseForm.product_name,
+        labForm.obtain_oil,
+        purchaseForm.contracted_rate
+      );
+      setLabForm((prev) => ({
+        ...prev,
+        oil_rebate_rs: oilCalc.rebate > 0 ? oilCalc.rebate.toFixed(2) : "",
+        oil_premium_rs: oilCalc.premium > 0 ? oilCalc.premium.toFixed(2) : "",
+      }));
+    }
   }, [purchaseForm.product_name]);
+
+  useEffect(() => {
+    if (purchaseForm.bran_type === "Red") {
+      const baseRate = parseFloat(purchaseForm.contracted_rate) || 0;
+      const finalRate = Math.max(0, baseRate - 500);
+      setPurchaseForm((prev) => ({
+        ...prev,
+        final_contracted_rate: finalRate.toString(),
+      }));
+    } else {
+      // Clear final rate for Good Bran
+      setPurchaseForm((prev) => ({
+        ...prev,
+        final_contracted_rate: "",
+      }));
+    }
+  }, [purchaseForm.bran_type, purchaseForm.contracted_rate]);
 
   // Auto-calculate bag weight and net weight
   useEffect(() => {
@@ -456,10 +748,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const netWeight = grossWeight - noOfBags * bagWeight;
     const netWeightStr = netWeight >= 0 ? netWeight.toFixed(6) : "0.000000";
 
+    // const billedWeightStr = grossWeight > 0 ? grossWeight.toFixed(6) : "";
+
     setPurchaseForm((prev) => ({
       ...prev,
       bag_weight_mt: bagWeightStr,
       net_weight_mt: netWeightStr,
+      // billed_weight_mt: billedWeightStr,
     }));
   }, [
     purchaseForm.bag_type,
@@ -478,6 +773,50 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       }));
     }
   }, [partyForm.gst]);
+
+  // ============ HELPER FUNCTIONS ============
+
+  // Load companies from backend
+  const loadCompanies = async () => {
+    try {
+      setLoadingCompanies(true);
+      const companiesData = await api.getMyCompanies();
+      console.log("Loaded companies for dropdown:", companiesData);
+
+      setCompanies(companiesData);
+
+      if (companiesData.length > 0) {
+        if (currentUser?.company_id) {
+          const userCompany = companiesData.find(
+            (c) => (c._id || c.id) === currentUser.company_id
+          );
+          if (userCompany) {
+            setSelectedCompany(userCompany._id || userCompany.id);
+            console.log("Selected user's company:", userCompany.company_name);
+          } else {
+            const firstCompany = companiesData[0];
+            setSelectedCompany(firstCompany._id || firstCompany.id);
+            console.log("Selected first company:", firstCompany.company_name);
+          }
+        } else {
+          const firstCompany = companiesData[0];
+          setSelectedCompany(firstCompany._id || firstCompany.id);
+          console.log(
+            "No user company, selected first:",
+            firstCompany.company_name
+          );
+        }
+      } else {
+        console.log("No companies available");
+        setSelectedCompany("");
+      }
+    } catch (err) {
+      console.error("Failed to load companies:", err);
+      showError("Failed to load companies");
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
 
   // Mobile number validation
   const validateMobileNumber = (value) => {
@@ -498,7 +837,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const companyId = event.target.value;
     setSelectedCompany(companyId);
 
-    // Get company name for display
     const selectedCompanyObj = companies.find(
       (c) => (c._id || c.id) === companyId
     );
@@ -513,7 +851,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     (parseFloat(vehicleForm.freight_per_mt) || 0);
   const toPay = totalFreight - (parseFloat(vehicleForm.advance_amount) || 0);
 
-  // Helper functions
+  // Load parties
   const loadParties = async () => {
     try {
       const data = await api.getParties();
@@ -551,10 +889,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     setShowSMSDialog(true);
   };
 
-  // FORM HANDLERS
+  // ============ FORM HANDLERS ============
+
   const handleSaveParty = async () => {
     try {
-      // Add company_id to party data if a company is selected
       const partyData = {
         ...partyForm,
         company_id: selectedCompany,
@@ -586,7 +924,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         bag_weight_mt: bagWeight.toFixed(6),
         net_weight_mt: netWeight.toFixed(6),
         gross_weight_mt: grossWeight,
+        no_of_bags: noOfBags,
         company_id: selectedCompany,
+        date: purchaseForm.date, // Invoice Date
+        received_date: purchaseForm.received_date || null,
       };
 
       const purchase = await api.createPurchase(purchaseData);
@@ -625,31 +966,49 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         showError("Purchase must be saved first");
         return;
       }
+
+      // Calculate oil rebate and premium
+      const oilCalc = calculateOilRebatePremium(
+        purchaseForm.product_name,
+        labForm.obtain_oil,
+        purchaseForm.contracted_rate
+      );
+
+      // IMPORTANT: Match backend field names
       const labData = {
-        ...labForm,
         purchase_id: purchaseId,
         obtain_ffa: labForm.obtain_ffa ? parseFloat(labForm.obtain_ffa) : null,
         obtain_oil: labForm.obtain_oil ? parseFloat(labForm.obtain_oil) : null,
         rebate_rs: labForm.ffa_rebate_rs
           ? parseFloat(labForm.ffa_rebate_rs)
-          : null, // ✅ FFA Rebate
+          : null, // Backend uses rebate_rs
         premium_rs: labForm.ffa_premium_rs
           ? parseFloat(labForm.ffa_premium_rs)
-          : null, // ✅ Oil Premium
+          : null, // Backend uses premium_rs
+        oil_rebate_rs: oilCalc.rebate > 0 ? oilCalc.rebate : null,
+        oil_premium_rs: oilCalc.premium > 0 ? oilCalc.premium : null,
         standard_ffa: parseFloat(labForm.standard_ffa) || 0,
         standard_oil: parseFloat(labForm.standard_oil) || 0,
       };
 
-      // Ensure standard values are always numbers
-      labData.standard_ffa = parseFloat(labForm.standard_ffa) || 0;
-      labData.standard_oil = parseFloat(labForm.standard_oil) || 0;
+      console.log("Saving lab data to backend:", labData);
 
       const savedLab = await api.createLabDetail(labData);
-      setSavedLabData(savedLab);
+      console.log("Backend response:", savedLab);
+
+      // Store with both field names for frontend compatibility
+      const completeLabData = {
+        ...savedLab,
+        ffa_rebate_rs: savedLab.rebate_rs, // Map for frontend
+        ffa_premium_rs: savedLab.premium_rs, // Map for frontend
+      };
+
+      setSavedLabData(completeLabData);
       setSavedSections((prev) => ({ ...prev, lab: true }));
       showSuccess("Laboratory details saved!");
     } catch (err) {
-      showError("Failed to save Lab");
+      console.error("Lab save error:", err);
+      showError("Failed to save Lab: " + err.message);
     }
   };
 
@@ -674,175 +1033,239 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         return;
       }
 
+      // Debug: Check current state
+      console.log("Current state before generating invoice:", {
+        purchaseId,
+        purchaseForm,
+        labForm,
+        savedLabData,
+        selectedCompany,
+        companies,
+        parties,
+      });
+
+      // Get complete form data from backend
       const response = await api.generateInvoice(purchaseId);
+      console.log("API Response for invoice:", response);
 
       if (response && response.data) {
         const raw = response.data;
 
-        // Transform backend data to match InvoicePreview expectations
-        const transformedData = {
-          // Company Info (from backend)
-          companyName: raw.company?.company_name || "MANMATH PATTANAIK & CO",
-          companyAddress:
-            raw.company?.address_line1 || "16- MAHANADI VIHAR CUTTACK-4",
-          companyMobile: raw.company?.mobile_no || "9437025723 / 9178314411",
-          companyGST: raw.company?.gstin || "21AMJPP6577A124",
+        // Get selected company
+        const selectedCompanyObj = companies.find(
+          (c) => (c._id || c.id) === selectedCompany
+        );
+        console.log("Selected company:", selectedCompanyObj);
 
-          // Party Info
-          partyName: raw.party?.party_name || "N/A",
-          partyAddress:
-            [
-              raw.party?.address_line1,
-              raw.party?.city,
-              raw.party?.state,
-              raw.party?.pin,
-            ]
-              .filter(Boolean)
-              .join(", ") || "N/A",
-          partyGST: raw.party?.gst || "N/A",
+        // Get party data
+        const partyData = parties.find(
+          (p) => p.party_name === purchaseForm.party_name
+        );
+        console.log("Found party data:", partyData);
 
-          // Purchase Info
-          reportType: raw.purchase?.report_type || "Purchase",
-          invoiceNo: raw.purchase?.invoice_no || "N/A",
-          invoiceDate:
-            raw.purchase?.date || new Date().toISOString().split("T")[0],
-          productName: raw.purchase?.product_name || "Boiled Rice Bran",
-          contractedRate: parseFloat(raw.purchase?.contracted_rate) || 0,
-          grossWeight: parseFloat(raw.purchase?.gross_weight_mt) || 0,
+        // Get lab data - handle both backend and local data
+        const rawLab = raw.lab || {};
+        console.log("Raw lab data from API:", rawLab);
+        console.log("Local lab form data:", labForm);
+        console.log("Saved lab data:", savedLabData);
 
-          // Vehicle Info
-          vehicleNo: raw.vehicle?.vehicle_no || "N/A",
-          destinationFrom: raw.vehicle?.destination_from || "N/A",
-          destinationTo: raw.vehicle?.destination_to || "N/A",
+        // Combine lab data with proper field mapping
+        const labData = {
+          // FFA Analysis
+          obtain_ffa:
+            parseFloat(rawLab.obtain_ffa) ||
+            parseFloat(savedLabData?.obtain_ffa) ||
+            parseFloat(labForm.obtain_ffa) ||
+            0,
 
-          // Quantity Info
-          plasticBags: parseInt(raw.quantity?.no_of_bags) || 0,
-          bagWeight: parseFloat(raw.quantity?.bag_weight_mt) || 0.0002,
-          netWeight: parseFloat(raw.quantity?.net_weight_mt) || 0,
+          // Map backend 'rebate_rs' to frontend 'ffa_rebate_rs'
+          ffa_rebate_rs:
+            parseFloat(rawLab.rebate_rs) ||
+            parseFloat(savedLabData?.rebate_rs) ||
+            parseFloat(savedLabData?.ffa_rebate_rs) ||
+            parseFloat(labForm.ffa_rebate_rs) ||
+            0,
 
-          // Lab Info
-          ffaStandard: parseFloat(raw.lab?.standard_ffa) || 7,
-          ffaResult: parseFloat(raw.lab?.obtain_ffa) || 0,
-          ffaDifference: (
-            parseFloat(raw.lab?.obtain_ffa || 0) -
-            parseFloat(raw.lab?.standard_ffa || 0)
-          ).toFixed(2),
-          oilStandard: parseFloat(raw.lab?.standard_oil) || 19,
-          oilResult: parseFloat(raw.lab?.obtain_oil) || 0,
-          oilDifference: (
-            parseFloat(raw.lab?.obtain_oil || 0) -
-            parseFloat(raw.lab?.standard_oil || 0)
-          ).toFixed(2),
+          ffa_premium_rs:
+            parseFloat(rawLab.premium_rs) ||
+            parseFloat(savedLabData?.premium_rs) ||
+            parseFloat(savedLabData?.ffa_premium_rs) ||
+            parseFloat(labForm.ffa_premium_rs) ||
+            0,
 
-          // Billing Info
-          gstType: raw.billing?.gst_type || "Intra",
-          accountRate: parseFloat(raw.billing?.account_rate) || 0,
-          netRate: parseFloat(raw.billing?.net_rate) || 0,
-          materialAmount: parseFloat(raw.billing?.material_amount) || 0,
-          netAmount: parseFloat(raw.billing?.net_amount) || 0,
-          grossAmount: parseFloat(raw.billing?.gross_amount) || 0,
-          cgstAmount: parseFloat(raw.billing?.cgst) || 0,
-          sgstAmount: parseFloat(raw.billing?.sgst) || 0,
-          igstAmount: parseFloat(raw.billing?.igst) || 0,
-          billedAmount: parseFloat(raw.billing?.billed_amount) || 0,
-          invoiceAmount: parseFloat(raw.billing?.invoice_amount) || 0,
-          amountPayable: parseFloat(raw.billing?.amount_payable) || 0,
-          amountPayableAbs: Math.abs(
-            parseFloat(raw.billing?.amount_payable) || 0
-          ).toFixed(2),
+          // Oil Analysis
+          obtain_oil:
+            parseFloat(rawLab.obtain_oil) ||
+            parseFloat(savedLabData?.obtain_oil) ||
+            parseFloat(labForm.obtain_oil) ||
+            0,
 
-          // Serial No (generate or use invoice no)
-          serialNo: `SRM/G-${new Date().getFullYear()}${String(
-            new Date().getMonth() + 1
-          ).padStart(2, "0")}/${Math.floor(Math.random() * 1000)}`,
+          oil_rebate_rs:
+            parseFloat(rawLab.oil_rebate_rs) ||
+            parseFloat(savedLabData?.oil_rebate_rs) ||
+            parseFloat(labForm.oil_rebate_rs) ||
+            0,
 
-          // In Words (add number-to-words function if needed)
-          inWords: "Zero ONLY", // You can implement this later
+          oil_premium_rs:
+            parseFloat(rawLab.oil_premium_rs) ||
+            parseFloat(savedLabData?.oil_premium_rs) ||
+            parseFloat(labForm.oil_premium_rs) ||
+            0,
+
+          // Standards
+          standard_ffa:
+            parseFloat(rawLab.standard_ffa) ||
+            parseFloat(savedLabData?.standard_ffa) ||
+            parseFloat(labForm.standard_ffa) ||
+            7,
+
+          standard_oil:
+            parseFloat(rawLab.standard_oil) ||
+            parseFloat(savedLabData?.standard_oil) ||
+            parseFloat(labForm.standard_oil) ||
+            19,
         };
+
+        console.log("Combined lab data for invoice:", labData);
+
+        // Get billing data
+        const billingData = raw.billing || {};
+        console.log("Billing data:", billingData);
+
+        // Calculate values using new calculation functions
+        const accountRate = calculateAccountRate();
+        const netRate = calculateNetRate();
+        const netAmount = calculateNetAmount();
+        const materialAmount = calculateMaterialAmount();
+        const grossAmount = calculateGrossAmount();
+        const gst = calculateGST();
+        const billedAmount = calculateBilledAmount();
+        const amountPayable = calculateAmountPayable();
+
+        console.log("Calculated values:", {
+          accountRate,
+          netRate,
+          netAmount,
+          materialAmount,
+          grossAmount,
+          gst,
+          billedAmount,
+          amountPayable,
+        });
+
+        // Transform data to match InvoicePreview format
+        const transformedData = {
+          // Company Details
+          company: selectedCompanyObj || {
+            company_name: "Sriyansh Solvent Solutions Pvt Ltd",
+            address_line1: "At-Kamira, Po-Singhijuba, Via-Binka",
+            mobile_no: "6371195818",
+          },
+
+          // Party Details
+          party: partyData || {
+            party_name: "MANMATH PATTNAIK & CO",
+            address_line1: "MANASA PLACE GANDARPUR",
+            city: "Cuttack",
+            state: "Odisha",
+            pin: "753003",
+            gst: "21AMJPP6577A124",
+            mobile_no: "9876543210",
+            contact_person: "Mr. Mammath Pathnak",
+          },
+
+          // Purchase Details
+          purchase: {
+            ...raw.purchase,
+            ...purchaseForm,
+            product_name: purchaseForm.product_name || "Boiled Rice Bran",
+            gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt) || 0,
+            contracted_rate: parseFloat(purchaseForm.contracted_rate) || 0,
+            bran_type: purchaseForm.bran_type || "Good",
+            final_contracted_rate:
+              parseFloat(purchaseForm.final_contracted_rate) ||
+              parseFloat(purchaseForm.contracted_rate) ||
+              0,
+          },
+
+          // Quantity Details
+          quantity: {
+            no_of_bags: parseInt(purchaseForm.no_of_bags) || 0,
+            gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt) || 0,
+            net_weight_mt: parseFloat(purchaseForm.net_weight_mt) || 0,
+            bag_weight_mt: parseFloat(purchaseForm.bag_weight_mt) || 0,
+            bag_type: purchaseForm.bag_type || "Poly",
+          },
+
+          // Lab Details
+          lab: labData,
+
+          // Billing Details
+          billing: {
+            account_rate: accountRate.toFixed(2),
+            net_rate: netRate.toFixed(2),
+            net_amount: netAmount.toFixed(2),
+            material_amount: materialAmount.toFixed(2),
+            gross_amount: grossAmount.toFixed(2),
+            cgst: gst.cgst.toFixed(2),
+            sgst: gst.sgst.toFixed(2),
+            igst: gst.igst.toFixed(2),
+            billed_amount: billedAmount.toFixed(2),
+            amount_payable: amountPayable.toFixed(2),
+            gst_type: billingForm.gst_type || "Intra",
+            invoice_amount: parseFloat(billingForm.invoice_amount) || 0,
+            ...billingData,
+          },
+
+          // Vehicle Details
+          vehicle: raw.vehicle ||
+            vehicleForm || {
+              vehicle_no: "O015F 6232",
+              owner_name: "",
+              mobile_no: "",
+            },
+
+          // Invoice Details
+          debitNoteNo: `FSR-${purchaseForm.invoice_no || "7203"}`,
+          purchaseDate:
+            purchaseForm.date || new Date().toISOString().split("T")[0],
+          supplierInvNo: `MPI/20/4/5/${purchaseForm.invoice_no || "19-Jan-25"}`,
+          brokerName: purchaseForm.agent_name || "Sunil Jain",
+        };
+
+        console.log("Final transformed invoice data:", transformedData);
+
+        // Additional debug: Check if FFA data is present
+        console.log("FFA data check:", {
+          obtain_ffa: transformedData.lab.obtain_ffa,
+          ffa_rebate_rs: transformedData.lab.ffa_rebate_rs,
+          oil_rebate_rs: transformedData.lab.oil_rebate_rs,
+          labData: transformedData.lab,
+        });
 
         setGeneratedInvoice(transformedData);
         setShowInvoice(true);
         showSuccess("Invoice generated successfully!");
       } else {
+        console.error("No invoice data returned from server");
         showError("No invoice data returned from server");
       }
     } catch (err) {
       console.error("Invoice generation error:", err);
-      showError("Failed to generate invoice: " + err.message);
+      console.error("Error details:", {
+        message: err.message,
+        stack: err.stack,
+        response: err.response?.data,
+      });
+      showError(
+        "Failed to generate invoice: " + (err.message || "Unknown error")
+      );
     }
   };
 
-  // Add helper function to get oil standard
-  const getOilStandard = (product) => {
-    const mapping = {
-      "Boiled Rice Bran": 19.0,
-      "Raw Rice Bran": 16.0,
-      "Rough Rice Bran": 7.0,
-    };
-    return mapping[product] || 19.0;
-  };
-
-  // Also update the calculateAccountRate function to handle edge cases:
-  const calculateAccountRate = (product, contractedRate, ffa) => {
-    // Ensure valid numbers
-    const rate = parseFloat(contractedRate) || 0;
-    const ffaValue = parseFloat(ffa) || 0;
-
-    let deduction = 0;
-    let remainingFFA = ffaValue;
-
-    if (product === "Boiled Rice Bran") {
-      if (remainingFFA > 45) {
-        deduction = 4000.0;
-      } else if (remainingFFA > 30) {
-        deduction = 3500.0;
-      } else if (remainingFFA > 25) {
-        deduction = 2500.0;
-      } else if (remainingFFA > 20) {
-        deduction = 2000.0;
-      } else if (remainingFFA > 15) {
-        if (remainingFFA <= 19.99) {
-          deduction += (remainingFFA - 15) * 170;
-          remainingFFA = 15;
-        }
-        if (remainingFFA > 10) {
-          deduction += Math.min(remainingFFA - 10, 5) * 150;
-          remainingFFA = 10;
-        }
-        if (remainingFFA > 7) {
-          deduction += (remainingFFA - 7) * 100;
-        }
-      }
-    } else {
-      // For other products
-      if (remainingFFA > 55) {
-        deduction = 1000.0;
-      } else if (remainingFFA > 50) {
-        deduction = 700.0;
-      } else if (remainingFFA > 45) {
-        deduction = 600.0;
-      } else if (remainingFFA > 40) {
-        deduction = 500.0;
-      } else if (remainingFFA > 35) {
-        deduction = 400.0;
-      } else if (remainingFFA > 30) {
-        deduction = 300.0;
-      } else if (remainingFFA > 25) {
-        deduction = 200.0;
-      } else if (remainingFFA > 20) {
-        deduction = 100.0;
-      }
-    }
-
-    const result = Math.max(0, rate - deduction);
-    return parseFloat(result.toFixed(2));
-  };
-
-  // Ensure numberToWords function exists
+  // Add this helper function for number to words conversion
   const numberToWords = (num) => {
-    if (num === 0) return "Zero ONLY";
-
-    const units = [
+    const a = [
       "",
       "One",
       "Two",
@@ -853,9 +1276,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       "Seven",
       "Eight",
       "Nine",
-    ];
-
-    const teens = [
       "Ten",
       "Eleven",
       "Twelve",
@@ -867,8 +1287,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       "Eighteen",
       "Nineteen",
     ];
-
-    const tens = [
+    const b = [
       "",
       "",
       "Twenty",
@@ -881,78 +1300,55 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       "Ninety",
     ];
 
-    // Handle decimals (paise)
-    const wholePart = Math.floor(num);
-    const decimalPart = Math.round((num - wholePart) * 100);
+    if (num === 0) return "Zero";
 
-    let words = "";
+    const convert = (n) => {
+      if (n < 20) return a[n];
+      const digit = n % 10;
+      if (n < 100) return b[Math.floor(n / 10)] + (digit ? " " + a[digit] : "");
+      if (n < 1000)
+        return (
+          a[Math.floor(n / 100)] +
+          " Hundred" +
+          (n % 100 ? " and " + convert(n % 100) : "")
+        );
+      if (n < 100000)
+        return (
+          convert(Math.floor(n / 1000)) +
+          " Thousand" +
+          (n % 1000 ? " " + convert(n % 1000) : "")
+        );
+      if (n < 10000000)
+        return (
+          convert(Math.floor(n / 100000)) +
+          " Lakh" +
+          (n % 100000 ? " " + convert(n % 100000) : "")
+        );
+      return (
+        convert(Math.floor(n / 10000000)) +
+        " Crore" +
+        (n % 10000000 ? " " + convert(n % 10000000) : "")
+      );
+    };
 
-    // Convert whole part
-    let n = wholePart;
+    const integerPart = Math.floor(num);
+    const decimalPart = Math.round((num - integerPart) * 100);
 
-    if (n >= 100) {
-      words += units[Math.floor(n / 100)] + " Hundred ";
-      n %= 100;
-    }
-
-    if (n >= 20) {
-      words += tens[Math.floor(n / 10)] + " ";
-      n %= 10;
-    } else if (n >= 10) {
-      words += teens[n - 10] + " ";
-      n = 0;
-    }
-
-    if (n > 0) {
-      words += units[n] + " ";
-    }
-
-    words = words.trim();
-
-    // Add "Rupees" if there's a whole part
-    if (wholePart > 0) {
-      words += " Rupees";
-    }
-
-    // Add paise if there's a decimal part
+    let words = convert(integerPart) + " Rupees";
     if (decimalPart > 0) {
-      if (wholePart > 0) {
-        words += " and ";
-      }
-
-      if (decimalPart >= 20) {
-        words += tens[Math.floor(decimalPart / 10)] + " ";
-        const unit = decimalPart % 10;
-        if (unit > 0) {
-          words += units[unit] + " ";
-        }
-      } else if (decimalPart >= 10) {
-        words += teens[decimalPart - 10] + " ";
-      } else if (decimalPart > 0) {
-        words += units[decimalPart] + " ";
-      }
-
-      words += "Paise";
+      words += " and " + convert(decimalPart) + " Paise";
     }
 
-    return words + " ONLY";
+    return words + " Only";
   };
 
   const allSectionsSaved = Object.values(savedSections).every(Boolean);
 
-  // Add this useEffect to log and check the currentUser
-  useEffect(() => {
-    console.log("Current User in Home:", currentUser);
-    console.log("Companies available:", companies);
-  }, [currentUser, companies]);
-
-  // Update the getUserCompanyName function to be more robust
   const getUserCompanyName = () => {
     if (!currentUser || companies.length === 0) {
       return "Select Company";
     }
 
-    // Get the currently selected company name
     if (selectedCompany) {
       const selected = companies.find(
         (c) => (c._id || c.id) === selectedCompany
@@ -968,9 +1364,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       <Box
         sx={{
           flex: 1,
-          // overflow: "auto",
           bgcolor: "#f5f5f5",
-          // p: 1,
         }}
       >
         <Paper
@@ -1041,16 +1435,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         value={company._id || company.id}
                       >
                         {company.company_name}
-                        {/* {company.user_count && company.form_count && (
-                          <Typography
-                            component="span"
-                            variant="caption"
-                            sx={{ ml: 1, color: "text.secondary" }}
-                          >
-                            ({company.user_count} users, {company.form_count}{" "}
-                            forms)
-                          </Typography>
-                        )} */}
                       </MenuItem>
                     ))
                   )}
@@ -1067,6 +1451,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               )}
             </Box>
           </Box>
+
           {/* Party and Purchase Details Side by Side */}
           <Grid container spacing={1} sx={styles.compactGrid}>
             {/* PARTY DETAILS - Left Column */}
@@ -1126,7 +1511,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setPartyForm({
                               ...partyForm,
-                              party_name: e.target.value,
+                              party_name: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, contactPersonRef)}
@@ -1143,7 +1528,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setPartyForm({
                               ...partyForm,
-                              contact_person: e.target.value,
+                              contact_person: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, partyMobileRef)}
@@ -1177,7 +1562,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setPartyForm({
                               ...partyForm,
-                              address_line1: e.target.value,
+                              address_line1: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, partyCityRef)}
@@ -1192,7 +1577,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="City"
                           value={partyForm.city}
                           onChange={(e) =>
-                            setPartyForm({ ...partyForm, city: e.target.value })
+                            setPartyForm({
+                              ...partyForm,
+                              city: toTitleCase(e.target.value),
+                            })
                           }
                           onKeyDown={(e) => handleKeyDown(e, partyStateRef)}
                           inputRef={partyCityRef}
@@ -1208,7 +1596,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setPartyForm({
                               ...partyForm,
-                              state: e.target.value,
+                              state: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, partyPinRef)}
@@ -1383,11 +1771,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           fullWidth
                         />
                       </Grid>
+                      {/* Date Fields */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           size="small"
                           sx={styles.compactField}
-                          label="Date"
+                          label="Invoice Date *"
                           type="date"
                           value={purchaseForm.date}
                           InputLabelProps={{ shrink: true }}
@@ -1397,8 +1786,27 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               date: e.target.value,
                             })
                           }
-                          onKeyDown={(e) => handleKeyDown(e, contractedRateRef)}
+                          onKeyDown={(e) => handleKeyDown(e, receivedDateRef)}
                           inputRef={purchaseDateRef}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Received Date"
+                          type="date"
+                          value={purchaseForm.received_date}
+                          InputLabelProps={{ shrink: true }}
+                          onChange={(e) =>
+                            setPurchaseForm({
+                              ...purchaseForm,
+                              received_date: e.target.value,
+                            })
+                          }
+                          onKeyDown={(e) => handleKeyDown(e, contractedRateRef)}
+                          inputRef={receivedDateRef}
                           fullWidth
                         />
                       </Grid>
@@ -1438,12 +1846,33 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="Contracted Rate (₹)"
                           type="number"
                           value={purchaseForm.contracted_rate}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const newRate = e.target.value;
                             setPurchaseForm({
                               ...purchaseForm,
-                              contracted_rate: e.target.value,
-                            })
-                          }
+                              contracted_rate: newRate,
+                            });
+
+                            // Auto-calculate oil rebate/premium when rate changes
+                            if (labForm.obtain_oil) {
+                              const oilCalc = calculateOilRebatePremium(
+                                purchaseForm.product_name,
+                                labForm.obtain_oil,
+                                newRate
+                              );
+                              setLabForm((prev) => ({
+                                ...prev,
+                                oil_rebate_rs:
+                                  oilCalc.rebate > 0
+                                    ? oilCalc.rebate.toFixed(2)
+                                    : "",
+                                oil_premium_rs:
+                                  oilCalc.premium > 0
+                                    ? oilCalc.premium.toFixed(2)
+                                    : "",
+                              }));
+                            }
+                          }}
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
@@ -1456,11 +1885,56 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           fullWidth
                         />
                       </Grid>
+                      {purchaseForm.bran_type === "Red" && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <TextField
+                            size="small"
+                            sx={styles.compactField}
+                            label="Final Contracted Rate (₹)"
+                            type="number"
+                            value={purchaseForm.final_contracted_rate}
+                            onChange={(e) => {
+                              const finalRate = e.target.value;
+                              setPurchaseForm({
+                                ...purchaseForm,
+                                final_contracted_rate: finalRate,
+                              });
+                            }}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  ₹
+                                </InputAdornment>
+                              ),
+                            }}
+                            fullWidth
+                            // helperText="Only for Red Bran"
+                          />
+                        </Grid>
+                      )}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           size="small"
                           sx={styles.compactField}
-                          label="Gross Weight (MT)"
+                          label="Billed Weight (MT)"
+                          type="number"
+                          value={purchaseForm.billed_weight_mt}
+                          onChange={(e) => {
+                            const billedWeight = e.target.value;
+                            setPurchaseForm({
+                              ...purchaseForm,
+                              billed_weight_mt: billedWeight,
+                            });
+                          }}
+                          fullWidth
+                          // helperText="Separate from Actual Weight"
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Actual Weight (MT)"
                           type="number"
                           value={purchaseForm.gross_weight_mt}
                           onChange={(e) =>
@@ -1521,7 +1995,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="Bag Weight (MT)"
                           value={purchaseForm.bag_weight_mt}
                           InputProps={{ readOnly: true }}
-                          // helperText="Auto-calculated"
                           fullWidth
                         />
                       </Grid>
@@ -1532,7 +2005,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="Net Weight (MT)"
                           value={purchaseForm.net_weight_mt}
                           InputProps={{ readOnly: true }}
-                          // helperText="Auto-calculated"
                           fullWidth
                         />
                       </Grid>
@@ -1645,6 +2117,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               </Card>
             </Grid>
           </Grid>
+
           {/* Vehicle and Lab Details Side by Side */}
           <Grid container spacing={1} sx={styles.compactGrid}>
             {/* VEHICLE DETAILS - Left Column */}
@@ -1721,7 +2194,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setVehicleForm({
                               ...vehicleForm,
-                              owner_name: e.target.value,
+                              owner_name: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, ownerMobileRef)}
@@ -1745,12 +2218,17 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           fullWidth
                         />
                       </Grid>
+
+                      {/* Rice Mill Name - Auto-filled from Party Name but editable */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           size="small"
                           sx={styles.compactField}
                           label="Rice Mill Name"
-                          value={vehicleForm.rice_mill_name}
+                          value={
+                            vehicleForm.rice_mill_name ||
+                            purchaseForm.party_name
+                          }
                           onChange={(e) =>
                             setVehicleForm({
                               ...vehicleForm,
@@ -1760,6 +2238,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, destFromRef)}
                           inputRef={riceMillRef}
                           fullWidth
+                          helperText="Auto-filled from Party Name"
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1796,22 +2275,26 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           fullWidth
                         />
                       </Grid>
+
+                      {/* Vehicle Quantity - Auto-filled from Actual Weight */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           size="small"
                           sx={styles.compactField}
-                          label="Quantity (MT)"
+                          label="Quantity (MT) *"
                           type="number"
                           value={vehicleForm.quantity_mt}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const quantity = e.target.value;
                             setVehicleForm({
                               ...vehicleForm,
-                              quantity_mt: e.target.value,
-                            })
-                          }
+                              quantity_mt: quantity,
+                            });
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, freightMtRef)}
                           inputRef={quantityMtRef}
                           fullWidth
+                          helperText="Auto-filled from Actual Weight"
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1886,7 +2369,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setVehicleForm({
                               ...vehicleForm,
-                              bank_name: e.target.value,
+                              bank_name: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, ifscRef)}
@@ -1920,7 +2403,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setVehicleForm({
                               ...vehicleForm,
-                              owner_address_line1: e.target.value,
+                              owner_address_line1: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, ownerCityRef)}
@@ -1937,7 +2420,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setVehicleForm({
                               ...vehicleForm,
-                              owner_city: e.target.value,
+                              owner_city: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, ownerStateRef)}
@@ -1954,7 +2437,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onChange={(e) =>
                             setVehicleForm({
                               ...vehicleForm,
-                              owner_state: e.target.value,
+                              owner_state: toTitleCase(e.target.value),
                             })
                           }
                           onKeyDown={(e) => handleKeyDown(e, ownerPinRef)}
@@ -2105,52 +2588,18 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             value={labForm.obtain_ffa}
                             onChange={(e) => {
                               const ffaValue = e.target.value;
-                              let rebate = 0;
                               const product =
                                 purchaseForm.product_name || "Boiled Rice Bran";
-                              const ffa = parseFloat(ffaValue) || 0;
-
-                              if (product === "Boiled Rice Bran") {
-                                if (ffa > 45) {
-                                  rebate = 4000;
-                                } else if (ffa > 30) {
-                                  rebate = 3500;
-                                } else if (ffa > 25) {
-                                  rebate = 2500;
-                                } else if (ffa > 20) {
-                                  rebate = 2000;
-                                } else if (ffa > 15) {
-                                  if (ffa <= 19.99) {
-                                    rebate += (ffa - 15) * 170;
-                                    let remaining = 15;
-                                    if (remaining > 10) {
-                                      rebate +=
-                                        Math.min(remaining - 10, 5) * 150;
-                                      remaining = 10;
-                                    }
-                                    if (remaining > 7) {
-                                      rebate += (remaining - 7) * 100;
-                                    }
-                                  }
-                                }
-                              } else {
-                                // Other products: flat rebates
-                                if (ffa > 55) rebate = 1000;
-                                else if (ffa > 50) rebate = 700;
-                                else if (ffa > 45) rebate = 600;
-                                else if (ffa > 40) rebate = 500;
-                                else if (ffa > 35) rebate = 400;
-                                else if (ffa > 30) rebate = 300;
-                                else if (ffa > 25) rebate = 200;
-                                else if (ffa > 20) rebate = 100;
-                              }
+                              const rebate = calculateFFARebate(
+                                product,
+                                ffaValue
+                              );
 
                               setLabForm({
                                 ...labForm,
                                 obtain_ffa: ffaValue,
                                 ffa_rebate_rs:
                                   rebate > 0 ? rebate.toFixed(2) : "",
-                                // Do NOT modify premium here
                               });
                             }}
                             onKeyDown={(e) => handleKeyDown(e, ffaPremiumRef)}
@@ -2198,7 +2647,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         </Box>
                       </Grid>
 
-                      {/* Oil Analysis Column */}
+                      {/* Oil Analysis Column (AUTO-CALCULATING) */}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ mb: 1 }}>
                           <Typography
@@ -2207,7 +2656,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             color="primary"
                             gutterBottom
                           >
-                            Oil Analysis
+                            Oil Analysis (Auto-Calculated)
                           </Typography>
                           <TextField
                             size="small"
@@ -2223,12 +2672,32 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             label="Obtained Oil"
                             type="number"
                             value={labForm.obtain_oil}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const oilValue = e.target.value;
+                              const product =
+                                purchaseForm.product_name || "Boiled Rice Bran";
+                              const contractedRate =
+                                purchaseForm.contracted_rate || 0;
+
+                              const oilCalc = calculateOilRebatePremium(
+                                product,
+                                oilValue,
+                                contractedRate
+                              );
+
                               setLabForm({
                                 ...labForm,
-                                obtain_oil: e.target.value,
-                              })
-                            }
+                                obtain_oil: oilValue,
+                                oil_rebate_rs:
+                                  oilCalc.rebate > 0
+                                    ? oilCalc.rebate.toFixed(2)
+                                    : "",
+                                oil_premium_rs:
+                                  oilCalc.premium > 0
+                                    ? oilCalc.premium.toFixed(2)
+                                    : "",
+                              });
+                            }}
                             onKeyDown={(e) => handleKeyDown(e, oilRebateRef)}
                             inputRef={obtainOilRef}
                             fullWidth
@@ -2237,48 +2706,30 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             size="small"
                             sx={[styles.compactField, { mb: 1 }]}
                             label="Rebate Amount (₹)"
-                            type="number"
                             value={labForm.oil_rebate_rs}
-                            onChange={(e) =>
-                              setLabForm({
-                                ...labForm,
-                                oil_rebate_rs: e.target.value,
-                              })
-                            }
                             InputProps={{
+                              readOnly: true,
                               startAdornment: (
                                 <InputAdornment position="start">
                                   ₹
                                 </InputAdornment>
                               ),
                             }}
-                            onKeyDown={(e) => handleKeyDown(e, oilPremiumRef)}
-                            inputRef={oilRebateRef}
                             fullWidth
                           />
                           <TextField
                             size="small"
                             sx={styles.compactField}
                             label="Premium Amount (₹)"
-                            type="number"
                             value={labForm.oil_premium_rs}
-                            onChange={(e) =>
-                              setLabForm({
-                                ...labForm,
-                                oil_premium_rs: e.target.value,
-                              })
-                            }
                             InputProps={{
+                              readOnly: true,
                               startAdornment: (
                                 <InputAdornment position="start">
                                   ₹
                                 </InputAdornment>
                               ),
                             }}
-                            onKeyDown={(e) =>
-                              handleKeyDown(e, invoiceAmountRef)
-                            }
-                            inputRef={oilPremiumRef}
                             fullWidth
                           />
                         </Box>
@@ -2377,14 +2828,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       size="small"
                       sx={styles.compactField}
                       label="Account Rate (₹)"
-                      value={calculateAccountRate(
-                        purchaseForm.product_name,
-                        parseFloat(purchaseForm.contracted_rate) || 0,
-                        parseFloat(labForm.obtain_ffa) || 0
-                      ).toFixed(2)}
+                      value={calculateAccountRate().toFixed(2)}
                       InputProps={{ readOnly: true }}
-                      // helperText="Contracted Rate - FFA Price"
                       fullWidth
+                      helperText="Final Contracted Rate - FFA Price"
                     />
                   </Grid>
 
@@ -2393,24 +2840,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       size="small"
                       sx={styles.compactField}
                       label="Net Rate (₹)"
-                      value={(() => {
-                        const accountRate = calculateAccountRate(
-                          purchaseForm.product_name,
-                          parseFloat(purchaseForm.contracted_rate) || 0,
-                          parseFloat(labForm.obtain_ffa) || 0
-                        );
-                        const oilStandard =
-                          parseFloat(labForm.standard_oil) || 19;
-                        const oilObtained =
-                          parseFloat(labForm.obtain_oil) || oilStandard;
-                        const oilDiff = oilObtained - oilStandard;
-                        return oilStandard > 0
-                          ? ((accountRate / oilStandard) * oilDiff).toFixed(2)
-                          : "0.00";
-                      })()}
+                      value={calculateNetRate().toFixed(2)}
                       InputProps={{ readOnly: true }}
-                      // helperText="(Account Rate/Oil Standard) × Oil Difference"
                       fullWidth
+                      helperText="(Account Rate / Oil Standard) × Oil Difference"
                     />
                   </Grid>
 
@@ -2419,28 +2852,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       size="small"
                       sx={styles.compactField}
                       label="Net Amount (₹)"
-                      value={(() => {
-                        const accountRate = calculateAccountRate(
-                          purchaseForm.product_name,
-                          parseFloat(purchaseForm.contracted_rate) || 0,
-                          parseFloat(labForm.obtain_ffa) || 0
-                        );
-                        const oilStandard =
-                          parseFloat(labForm.standard_oil) || 19;
-                        const oilObtained =
-                          parseFloat(labForm.obtain_oil) || oilStandard;
-                        const oilDiff = oilObtained - oilStandard;
-                        const netRate =
-                          oilStandard > 0
-                            ? (accountRate / oilStandard) * oilDiff
-                            : 0;
-                        const netWeight =
-                          parseFloat(purchaseForm.net_weight_mt) || 0;
-                        return (netRate * accountRate).toFixed(2);
-                      })()}
+                      value={calculateNetAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
-                      // helperText="Net Rate × Account Rate"
                       fullWidth
+                      helperText="(Account Rate / Oil Standard) × Oil Difference"
                     />
                   </Grid>
 
@@ -2449,19 +2864,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       size="small"
                       sx={styles.compactField}
                       label="Material Amount (₹)"
-                      value={(() => {
-                        const accountRate = calculateAccountRate(
-                          purchaseForm.product_name,
-                          parseFloat(purchaseForm.contracted_rate) || 0,
-                          parseFloat(labForm.obtain_ffa) || 0
-                        );
-                        const netWeight =
-                          parseFloat(purchaseForm.net_weight_mt) || 0;
-                        return (accountRate * netWeight).toFixed(2);
-                      })()}
+                      value={calculateMaterialAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
-                      // helperText="Account Rate × Net Weight"
                       fullWidth
+                      helperText="Account Rate × Net Weight"
                     />
                   </Grid>
 
@@ -2470,30 +2876,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       size="small"
                       sx={styles.compactField}
                       label="Gross Amount (₹)"
-                      value={(() => {
-                        const accountRate = calculateAccountRate(
-                          purchaseForm.product_name,
-                          parseFloat(purchaseForm.contracted_rate) || 0,
-                          parseFloat(labForm.obtain_ffa) || 0
-                        );
-                        const oilStandard =
-                          parseFloat(labForm.standard_oil) || 19;
-                        const oilObtained =
-                          parseFloat(labForm.obtain_oil) || oilStandard;
-                        const oilDiff = oilObtained - oilStandard;
-                        const netRate =
-                          oilStandard > 0
-                            ? (accountRate / oilStandard) * oilDiff
-                            : 0;
-                        const netWeight =
-                          parseFloat(purchaseForm.net_weight_mt) || 0;
-                        const netAmount = netRate * accountRate;
-                        const materialAmount = accountRate * netWeight;
-                        return (netAmount + materialAmount).toFixed(2);
-                      })()}
+                      value={calculateGrossAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
-                      // helperText="Net Amount + Material Amount"
                       fullWidth
+                      helperText="Net Amount + Material Amount"
                     />
                   </Grid>
 
@@ -2550,6 +2936,57 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     </Typography>
                   </Grid>
 
+                  {/* GST Fields */}
+                  {billingForm.gst_type === "Intra" && (
+                    <>
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="CGST (2.5%)"
+                          value={calculateGST().cgst.toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="SGST (2.5%)"
+                          value={calculateGST().sgst.toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                    </>
+                  )}
+
+                  {billingForm.gst_type === "Inter" && (
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <TextField
+                        size="small"
+                        sx={styles.compactField}
+                        label="IGST (5%)"
+                        value={calculateGST().igst.toFixed(2)}
+                        InputProps={{ readOnly: true }}
+                        fullWidth
+                      />
+                    </Grid>
+                  )}
+
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <TextField
+                      size="small"
+                      sx={styles.compactField}
+                      label="Billed Amount (₹)"
+                      value={calculateBilledAmount().toFixed(2)}
+                      InputProps={{ readOnly: true }}
+                      fullWidth
+                      helperText="Gross Amount + GST"
+                    />
+                  </Grid>
+
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -2576,44 +3013,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       size="small"
                       sx={styles.compactField}
                       label="Amount Payable (₹)"
-                      value={(() => {
-                        // Calculate billed amount
-                        const accountRate = calculateAccountRate(
-                          purchaseForm.product_name,
-                          parseFloat(purchaseForm.contracted_rate) || 0,
-                          parseFloat(labForm.obtain_ffa) || 0
-                        );
-                        const oilStandard =
-                          parseFloat(labForm.standard_oil) || 19;
-                        const oilObtained =
-                          parseFloat(labForm.obtain_oil) || oilStandard;
-                        const oilDiff = oilObtained - oilStandard;
-                        const netRate =
-                          oilStandard > 0
-                            ? (accountRate / oilStandard) * oilDiff
-                            : 0;
-                        const netWeight =
-                          parseFloat(purchaseForm.net_weight_mt) || 0;
-                        const netAmount = netRate * accountRate;
-                        const materialAmount = accountRate * netWeight;
-                        const grossAmount = netAmount + materialAmount;
-
-                        // Calculate GST
-                        let gstAmount = 0;
-                        if (billingForm.gst_type === "Intra") {
-                          gstAmount = grossAmount * 0.05; // 2.5% CGST + 2.5% SGST
-                        } else if (billingForm.gst_type === "Inter") {
-                          gstAmount = grossAmount * 0.05; // 5% IGST
-                        }
-
-                        const billedAmount = grossAmount + gstAmount;
-                        const invoiceAmount =
-                          parseFloat(billingForm.invoice_amount) || 0;
-                        return (billedAmount - invoiceAmount).toFixed(2);
-                      })()}
+                      value={calculateAmountPayable().toFixed(2)}
                       InputProps={{ readOnly: true }}
-                      // helperText="Billed Amount - Invoice Amount"
                       fullWidth
+                      helperText="Billed Amount - Invoice Amount"
                     />
                   </Grid>
 
@@ -2632,6 +3035,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               </Collapse>
             </CardContent>
           </Card>
+
           {/* Generate Invoice Button */}
           {allSectionsSaved && (
             <Box sx={{ textAlign: "center", mt: 2, mb: 1 }}>

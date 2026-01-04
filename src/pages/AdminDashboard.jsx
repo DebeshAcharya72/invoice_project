@@ -27,10 +27,6 @@ import {
   Tooltip,
   Avatar,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
   CircularProgress,
   Menu,
   MenuItem,
@@ -92,7 +88,7 @@ const AdminDashboard = () => {
   const [userToEdit, setUserToEdit] = useState(null);
   const [viewFormDialog, setViewFormDialog] = useState(false);
   const [selectedFormDetails, setSelectedFormDetails] = useState(null);
-  const [formDetails, setFormDetails] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     loadData();
@@ -101,18 +97,12 @@ const AdminDashboard = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load companies with user info
       const companiesData = await api.getCompaniesSimple();
       setCompanies(companiesData);
-
-      // Load all forms with user info
       const formsData = await api.getAllFormsEnhanced();
       setAllForms(formsData);
-
-      // Load all users
       const usersData = await api.getUsers();
       setAllUsers(usersData);
-
       showSnackbar("Data loaded successfully", "success");
     } catch (error) {
       showSnackbar("Failed to load data: " + error.message, "error");
@@ -130,7 +120,6 @@ const AdminDashboard = () => {
       showSnackbar("Company name is required", "error");
       return;
     }
-
     try {
       await api.createCompanySimple(newCompany);
       await loadData();
@@ -149,9 +138,7 @@ const AdminDashboard = () => {
     ) {
       return;
     }
-
     try {
-      // First check if company has any forms
       const companyForms = allForms.filter(
         (form) => form.company === companyName
       );
@@ -164,8 +151,6 @@ const AdminDashboard = () => {
           return;
         }
       }
-
-      // Delete company
       await api.deleteCompany(companyId);
       await loadData();
       showSnackbar(`Company "${companyName}" deleted successfully`, "success");
@@ -201,7 +186,6 @@ const AdminDashboard = () => {
 
   const handleDeleteForm = async () => {
     if (!selectedForm) return;
-
     if (
       !window.confirm(
         `Are you sure you want to delete invoice ${selectedForm.invoice_no}? This action cannot be undone.`
@@ -210,9 +194,7 @@ const AdminDashboard = () => {
       handleCloseFormMenu();
       return;
     }
-
     try {
-      // Delete the purchase and all related data
       await api.deletePurchase(selectedForm.purchase_id);
       await loadData();
       showSnackbar(
@@ -230,7 +212,6 @@ const AdminDashboard = () => {
       showSnackbar("Username, email and password are required", "error");
       return;
     }
-
     try {
       await api.createUser(newUser);
       await loadData();
@@ -256,16 +237,14 @@ const AdminDashboard = () => {
 
   const handleUpdateUser = async () => {
     if (!userToEdit) return;
-
     try {
       const updateData = {
         email: userToEdit.email,
         full_name: userToEdit.full_name,
         role: userToEdit.role,
-        company_id: userToEdit.company_id || "", // Company ID can be empty
+        company_id: userToEdit.company_id || "",
         is_active: userToEdit.is_active,
       };
-
       await api.updateUser(userToEdit._id, updateData);
       await loadData();
       setEditUserDialog(false);
@@ -284,7 +263,6 @@ const AdminDashboard = () => {
     ) {
       return;
     }
-
     try {
       await api.deleteUser(userId);
       await loadData();
@@ -299,7 +277,6 @@ const AdminDashboard = () => {
       const updateData = {
         is_active: !user.is_active,
       };
-
       await api.updateUser(user._id, updateData);
       await loadData();
       showSnackbar(
@@ -321,13 +298,55 @@ const AdminDashboard = () => {
     return allForms.filter((form) => form.company === companyName);
   };
 
+  // 🔍 Search Helper
+  const matchesSearch = (text, term) => {
+    return text?.toString().toLowerCase().includes(term.toLowerCase());
+  };
+
+  // 🔍 Filtered Data
+  const filteredCompanies = companies.filter(
+    (company) =>
+      matchesSearch(company.company_name, searchTerm) ||
+      matchesSearch(company.address_line1, searchTerm) ||
+      matchesSearch(company.mobile_no, searchTerm)
+  );
+
+  const filteredForms = allForms.filter(
+    (form) =>
+      matchesSearch(form.invoice_no, searchTerm) ||
+      matchesSearch(form.party_name, searchTerm) ||
+      matchesSearch(form.company, searchTerm) ||
+      matchesSearch(form.created_by_user, searchTerm) ||
+      matchesSearch(form.vehicle_no, searchTerm) ||
+      matchesSearch(form.product, searchTerm)
+  );
+
+  const filteredUsers = allUsers.filter(
+    (user) =>
+      matchesSearch(user.username, searchTerm) ||
+      matchesSearch(user.full_name, searchTerm) ||
+      matchesSearch(user.email, searchTerm) ||
+      matchesSearch(user.role, searchTerm)
+  );
+
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Admin Dashboard
       </Typography>
 
-      {/* Tabs for switching between sections */}
+      {/* 🔍 Global Search */}
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search companies, forms, or users..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        sx={{ mb: 2 }}
+        size="small"
+      />
+
+      {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
         <Tabs
           value={selectedTab}
@@ -335,7 +354,7 @@ const AdminDashboard = () => {
         >
           <Tab
             label={
-              <Badge badgeContent={companies.length} color="primary">
+              <Badge badgeContent={filteredCompanies.length} color="primary">
                 Companies
               </Badge>
             }
@@ -343,7 +362,7 @@ const AdminDashboard = () => {
           />
           <Tab
             label={
-              <Badge badgeContent={allForms.length} color="secondary">
+              <Badge badgeContent={filteredForms.length} color="secondary">
                 All Forms
               </Badge>
             }
@@ -351,7 +370,7 @@ const AdminDashboard = () => {
           />
           <Tab
             label={
-              <Badge badgeContent={allUsers.length} color="info">
+              <Badge badgeContent={filteredUsers.length} color="info">
                 Users
               </Badge>
             }
@@ -360,18 +379,14 @@ const AdminDashboard = () => {
         </Tabs>
       </Box>
 
+      {/* 🏢 Companies Tab */}
       {selectedTab === 0 && (
         <>
-          {/* Add Company Section */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 <BusinessIcon sx={{ mr: 1, verticalAlign: "middle" }} />
                 Register New Company
-              </Typography>
-              <Typography variant="body2" color="textSecondary" paragraph>
-                All users will see all companies in their dropdown. Users can
-                select any company when creating forms.
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
@@ -428,7 +443,6 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Companies List */}
           <Card>
             <CardContent>
               <Box
@@ -438,33 +452,29 @@ const AdminDashboard = () => {
                 mb={2}
               >
                 <Typography variant="h6">
-                  All Companies ({companies.length})
+                  All Companies ({filteredCompanies.length})
                 </Typography>
                 <Button startIcon={<RefreshIcon />} onClick={loadData}>
                   Refresh
                 </Button>
               </Box>
 
-              {companies.length === 0 ? (
+              {filteredCompanies.length === 0 ? (
                 <Box textAlign="center" py={4}>
                   <BusinessIcon
                     sx={{ fontSize: 60, color: "text.disabled", mb: 2 }}
                   />
                   <Typography variant="h6" color="textSecondary">
-                    No companies yet
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Add your first company above
+                    No companies match your search
                   </Typography>
                 </Box>
               ) : (
                 <Grid container spacing={2}>
-                  {companies.map((company) => {
+                  {filteredCompanies.map((company) => {
                     const companyUsers = getUsersByCompany(company._id);
                     const companyForms = getFormsByCompany(
                       company.company_name
                     );
-
                     return (
                       <Grid item xs={12} md={6} lg={4} key={company._id}>
                         <Paper variant="outlined" sx={{ p: 2, height: "100%" }}>
@@ -491,7 +501,6 @@ const AdminDashboard = () => {
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Box>
-
                           <Box sx={{ mb: 2 }}>
                             {company.address_line1 && (
                               <Typography
@@ -522,9 +531,7 @@ const AdminDashboard = () => {
                               </Typography>
                             )}
                           </Box>
-
                           <Divider sx={{ my: 1 }} />
-
                           <Box>
                             <Box
                               display="flex"
@@ -546,7 +553,6 @@ const AdminDashboard = () => {
                                 variant="outlined"
                               />
                             </Box>
-
                             <Typography
                               variant="caption"
                               color="textSecondary"
@@ -581,6 +587,7 @@ const AdminDashboard = () => {
         </>
       )}
 
+      {/* 📝 All Forms Tab */}
       {selectedTab === 1 && (
         <Card>
           <CardContent>
@@ -591,26 +598,24 @@ const AdminDashboard = () => {
               mb={2}
             >
               <Typography variant="h6">
-                All Submitted Forms ({allForms.length})
+                All Submitted Forms ({filteredForms.length})
               </Typography>
-              <Box>
-                <Button startIcon={<RefreshIcon />} onClick={loadData}>
-                  Refresh
-                </Button>
-              </Box>
+              <Button startIcon={<RefreshIcon />} onClick={loadData}>
+                Refresh
+              </Button>
             </Box>
 
             {loading ? (
               <Box display="flex" justifyContent="center" py={4}>
                 <CircularProgress />
               </Box>
-            ) : allForms.length === 0 ? (
+            ) : filteredForms.length === 0 ? (
               <Box textAlign="center" py={4}>
                 <ReceiptIcon
                   sx={{ fontSize: 60, color: "text.disabled", mb: 2 }}
                 />
                 <Typography variant="h6" color="textSecondary">
-                  No forms submitted yet
+                  No forms match your search
                 </Typography>
               </Box>
             ) : (
@@ -632,8 +637,8 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {allForms
-                      .slice() // Create a copy to avoid mutating state
+                    {filteredForms
+                      .slice()
                       .sort(
                         (a, b) =>
                           new Date(b.created_at) - new Date(a.created_at)
@@ -727,6 +732,7 @@ const AdminDashboard = () => {
         </Card>
       )}
 
+      {/* 👥 Users Tab */}
       {selectedTab === 2 && (
         <Card>
           <CardContent>
@@ -737,7 +743,7 @@ const AdminDashboard = () => {
               mb={2}
             >
               <Typography variant="h6">
-                User Management ({allUsers.length})
+                User Management ({filteredUsers.length})
               </Typography>
               <Box>
                 <Button
@@ -758,6 +764,15 @@ const AdminDashboard = () => {
               <Box display="flex" justifyContent="center" py={4}>
                 <CircularProgress />
               </Box>
+            ) : filteredUsers.length === 0 ? (
+              <Box textAlign="center" py={4}>
+                <PeopleIcon
+                  sx={{ fontSize: 60, color: "text.disabled", mb: 2 }}
+                />
+                <Typography variant="h6" color="textSecondary">
+                  No users match your search
+                </Typography>
+              </Box>
             ) : (
               <TableContainer component={Paper} variant="outlined">
                 <Table>
@@ -772,7 +787,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {allUsers.map((user) => (
+                    {filteredUsers.map((user) => (
                       <TableRow key={user._id} hover>
                         <TableCell>
                           <Box display="flex" alignItems="center">
