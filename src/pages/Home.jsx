@@ -238,89 +238,121 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   };
 
   // 2. Oil Rebate & Premium Calculation (Keeping your logic intact)
-  const calculateOilRebatePremium = (product, oilObtained, contractedRate) => {
+  // 2. Oil Rebate & Premium Calculation (CORRECTED with proper half premium logic)
+  const calculateOilRebatePremium = (
+    product,
+    oilObtained,
+    contractedRate,
+    netWeight
+  ) => {
     const oilValue = parseFloat(oilObtained) || 0;
     const rate = parseFloat(contractedRate) || 0;
+    const weight = parseFloat(netWeight) || 0;
     let rebate = 0;
     let premium = 0;
 
-    if (product === "Boiled Rice Bran") {
-      const oilStandard = 19;
-      const oilDiff = oilValue - oilStandard;
+    const oilStandard = getOilStandard(product);
+    const oilDiff = oilValue - oilStandard;
 
-      if (oilDiff > 0) {
-        // Premium calculation for boiled rice oil
+    if (oilDiff > 0) {
+      // PREMIUM CALCULATION
+      if (product === "Boiled Rice Bran") {
         if (oilDiff <= 5) {
-          // Up to 24% (19+5)
-          premium = (oilDiff * rate) / 100; // Full premium
+          // 19% to 24% (19+5) - FULL PREMIUM
+          // Premium = (Excess / Standard) × Net Weight × Rate
+          const ratio = oilDiff / oilStandard;
+          const effectivePremiumWeight = weight * ratio;
+          premium = effectivePremiumWeight * rate;
         } else if (oilDiff <= 9) {
-          // 24% to 28% (19+9)
-          const fullPremiumRange = 5;
-          const halfPremiumRange = oilDiff - fullPremiumRange;
-          premium =
-            (fullPremiumRange * rate) / 100 + (halfPremiumRange * rate) / 200;
+          // 24% to 28% (19+9) - HALF PREMIUM
+          // Premium = ((Excess/2) / Standard) × Net Weight × Rate
+          const halfExcess = oilDiff / 2;
+          const ratio = halfExcess / oilStandard;
+          const effectivePremiumWeight = weight * ratio;
+          premium = effectivePremiumWeight * rate;
         }
         // Above 28%: no premium
-      } else if (oilDiff < 0) {
-        // Rebate calculation for boiled rice oil
-        const diff = Math.abs(oilDiff);
-        if (oilValue >= 16) {
-          // 19% to 16%
-          rebate = (diff * rate) / 100; // 1% deduction
-        } else {
-          // Below 16%
-          const diffTo16 = 16 - oilValue;
-          const diffFrom19 = 3; // 19-16
-          // First 3% (19-16): 1% each
-          let totalRebate = (diffFrom19 * rate) / 100;
-          // Below 16%: 2% each
-          totalRebate += (diffTo16 * rate * 2) / 100;
-          rebate = totalRebate;
-        }
-      }
-    } else if (product === "Raw Rice Bran") {
-      const oilStandard = 16;
-      const oilDiff = oilValue - oilStandard;
-
-      if (oilDiff > 0) {
-        // Premium calculation for raw rice oil
+      } else if (product === "Raw Rice Bran") {
+        const rawStandard = 16;
         if (oilDiff <= 3) {
-          // Up to 19% (16+3)
-          premium = (oilDiff * rate) / 100; // Full premium
+          // 16% to 19% (16+3) - FULL PREMIUM
+          const ratio = oilDiff / rawStandard;
+          const effectivePremiumWeight = weight * ratio;
+          premium = effectivePremiumWeight * rate;
         }
-      } else if (oilDiff < 0) {
-        // Rebate calculation for raw rice oil
-        const diff = Math.abs(oilDiff);
-        if (oilValue >= 12) {
-          // 16% to 12%
-          rebate = (diff * rate) / 100; // 1% deduction
-        } else {
-          // Below 12%
-          const diffTo12 = 12 - oilValue;
-          const diffFrom16 = 4; // 16-12
-          // First 4% (16-12): 1% each
-          let totalRebate = (diffFrom16 * rate) / 100;
-          // Below 12%: 1.5% each
-          totalRebate += (diffTo12 * rate * 1.5) / 100;
-          rebate = totalRebate;
-        }
-      }
-    } else if (product === "Rough Rice Bran") {
-      const oilStandard = 7;
-      const oilDiff = oilValue - oilStandard;
-
-      if (oilDiff > 0) {
-        // Premium calculation for rough rice
+        // Above 19%: no premium
+      } else if (product === "Rough Rice Bran") {
+        const roughStandard = 7;
         if (oilDiff === 1) {
-          // 8%
-          premium = rate / 100; // Full premium
+          // 7% to 8% - FULL PREMIUM
+          const ratio = 1 / roughStandard;
+          const effectivePremiumWeight = weight * ratio;
+          premium = effectivePremiumWeight * rate;
         } else if (oilDiff === 2) {
-          // 9%
-          premium = rate / 200; // Half premium
+          // 7% to 9% - HALF PREMIUM
+          const halfExcess = 2 / 2; // Half of 2% excess
+          const ratio = halfExcess / roughStandard;
+          const effectivePremiumWeight = weight * ratio;
+          premium = effectivePremiumWeight * rate;
         }
         // Above 9%: no premium
       }
-      // Note: No rebate mentioned for rough rice
+    } else if (oilDiff < 0) {
+      // REBATE CALCULATION (for less oil than standard)
+      const diff = Math.abs(oilDiff);
+
+      if (product === "Boiled Rice Bran") {
+        const boiledStandard = 19;
+        if (oilValue >= 16) {
+          // 19% to 16%: 1% each (FULL rebate)
+          const ratio = diff / boiledStandard;
+          const effectiveRebateWeight = weight * ratio;
+          rebate = effectiveRebateWeight * rate;
+        } else {
+          // Below 16%: 2% each (DOUBLE rebate)
+          const diffTo16 = 16 - oilValue;
+          const diffFrom19 = 3; // 19-16
+
+          // First 3% (19-16): 1% each (full rebate)
+          const ratio1 = diffFrom19 / boiledStandard;
+          const weight1 = weight * ratio1;
+          const rebate1 = weight1 * rate;
+
+          // Below 16%: 2% each (double rebate)
+          const doubleExcess = diffTo16 * 2;
+          const ratio2 = doubleExcess / boiledStandard;
+          const weight2 = weight * ratio2;
+          const rebate2 = weight2 * rate;
+
+          rebate = rebate1 + rebate2;
+        }
+      } else if (product === "Raw Rice Bran") {
+        const rawStandard = 16;
+        if (oilValue >= 12) {
+          // 16% to 12%: 1% each (FULL rebate)
+          const ratio = diff / rawStandard;
+          const effectiveRebateWeight = weight * ratio;
+          rebate = effectiveRebateWeight * rate;
+        } else {
+          // Below 12%: 1.5% each
+          const diffTo12 = 12 - oilValue;
+          const diffFrom16 = 4; // 16-12
+
+          // First 4% (16-12): 1% each (full rebate)
+          const ratio1 = diffFrom16 / rawStandard;
+          const weight1 = weight * ratio1;
+          const rebate1 = weight1 * rate;
+
+          // Below 12%: 1.5% each
+          const onePointFiveExcess = diffTo12 * 1.5;
+          const ratio2 = onePointFiveExcess / rawStandard;
+          const weight2 = weight * ratio2;
+          const rebate2 = weight2 * rate;
+
+          rebate = rebate1 + rebate2;
+        }
+      }
+      // Rough Rice Bran: No rebate mentioned
     }
 
     return {
@@ -370,16 +402,20 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
     if (oilStandard === 0) return 0;
 
-    const netRate = (accountRate / oilStandard) * oilDifference;
+    const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
     return parseFloat(netRate.toFixed(2));
   };
 
-  // 5. NEW: Net Amount Calculation (Account Rate / Oil Standard) * Oil Difference
-  // Note: This appears to be the same as Net Rate? Based on your description.
-  // If Net Amount should be different, please clarify.
+  // 5. NEW: Net Amount Calculation
+
   const calculateNetAmount = () => {
-    // Assuming Net Amount = Net Rate (same calculation)
-    return calculateNetRate();
+    const netRate = calculateNetRate();
+    // const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    const accountRate = calculateAccountRate();
+
+    // Net Amount = Net Rate per MT × Net Weight
+    const netAmount = netRate * accountRate;
+    return parseFloat(netAmount.toFixed(2));
   };
 
   // 6. NEW: Material Amount Calculation (Account Rate × Net Weight)
@@ -393,11 +429,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
   // 7. NEW: Gross Amount Calculation (Net Amount + Material Amount)
   const calculateGrossAmount = () => {
-    const netAmount = calculateNetAmount();
     const materialAmount = calculateMaterialAmount();
+    const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
+    const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
 
-    const grossAmount = netAmount + materialAmount;
-    return parseFloat(grossAmount.toFixed(2));
+    // Only one of premium or rebate will be non-zero
+    return materialAmount + oilPremium - oilRebate;
   };
 
   // 8. NEW: GST Calculation
@@ -693,6 +730,38 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [selectedCompany, companies]);
 
+  // Auto-recalculate oil rebate/premium when ANY input changes
+  useEffect(() => {
+    const oilValue = parseFloat(labForm.obtain_oil);
+    const rate = parseFloat(purchaseForm.contracted_rate);
+    const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
+    const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
+    const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
+    const netWeight = grossWeight - noOfBags * bagWeight;
+    const product = purchaseForm.product_name;
+
+    if (!isNaN(oilValue) && !isNaN(rate) && netWeight > 0 && product) {
+      const oilCalc = calculateOilRebatePremium(
+        product,
+        oilValue,
+        rate,
+        netWeight
+      );
+      setLabForm((prev) => ({
+        ...prev,
+        oil_rebate_rs: oilCalc.rebate > 0 ? oilCalc.rebate.toFixed(2) : "",
+        oil_premium_rs: oilCalc.premium > 0 ? oilCalc.premium.toFixed(2) : "",
+      }));
+    }
+  }, [
+    labForm.obtain_oil,
+    purchaseForm.contracted_rate,
+    purchaseForm.gross_weight_mt,
+    purchaseForm.no_of_bags,
+    purchaseForm.bag_type,
+    purchaseForm.product_name,
+  ]);
+
   // Auto-update lab standards based on product
   useEffect(() => {
     const map = {
@@ -711,7 +780,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       const oilCalc = calculateOilRebatePremium(
         purchaseForm.product_name,
         labForm.obtain_oil,
-        purchaseForm.contracted_rate
+        purchaseForm.contracted_rate,
+        netWeight
       );
       setLabForm((prev) => ({
         ...prev,
@@ -966,12 +1036,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         showError("Purchase must be saved first");
         return;
       }
+      const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
 
       // Calculate oil rebate and premium
       const oilCalc = calculateOilRebatePremium(
         purchaseForm.product_name,
         labForm.obtain_oil,
-        purchaseForm.contracted_rate
+        purchaseForm.contracted_rate,
+        netWeight
       );
 
       // IMPORTANT: Match backend field names
@@ -1204,7 +1276,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           billing: {
             account_rate: accountRate.toFixed(2),
             net_rate: netRate.toFixed(2),
-            net_amount: netAmount.toFixed(2),
+            // net_amount: netAmount.toFixed(2),
             material_amount: materialAmount.toFixed(2),
             gross_amount: grossAmount.toFixed(2),
             cgst: gst.cgst.toFixed(2),
@@ -1855,10 +1927,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
                             // Auto-calculate oil rebate/premium when rate changes
                             if (labForm.obtain_oil) {
+                              const netWeight =
+                                parseFloat(purchaseForm.net_weight_mt) || 0;
                               const oilCalc = calculateOilRebatePremium(
                                 purchaseForm.product_name,
                                 labForm.obtain_oil,
-                                newRate
+                                newRate,
+                                netWeight
                               );
                               setLabForm((prev) => ({
                                 ...prev,
@@ -2238,7 +2313,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, destFromRef)}
                           inputRef={riceMillRef}
                           fullWidth
-                          helperText="Auto-filled from Party Name"
+                          // helperText="Auto-filled from Party Name"
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2294,7 +2369,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, freightMtRef)}
                           inputRef={quantityMtRef}
                           fullWidth
-                          helperText="Auto-filled from Actual Weight"
+                          // helperText="Auto-filled from Actual Weight"
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2594,7 +2669,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 product,
                                 ffaValue
                               );
-
                               setLabForm({
                                 ...labForm,
                                 obtain_ffa: ffaValue,
@@ -2656,7 +2730,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             color="primary"
                             gutterBottom
                           >
-                            Oil Analysis (Auto-Calculated)
+                            Oil Analysis
                           </Typography>
                           <TextField
                             size="small"
@@ -2672,32 +2746,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             label="Obtained Oil"
                             type="number"
                             value={labForm.obtain_oil}
-                            onChange={(e) => {
-                              const oilValue = e.target.value;
-                              const product =
-                                purchaseForm.product_name || "Boiled Rice Bran";
-                              const contractedRate =
-                                purchaseForm.contracted_rate || 0;
-
-                              const oilCalc = calculateOilRebatePremium(
-                                product,
-                                oilValue,
-                                contractedRate
-                              );
-
-                              setLabForm({
-                                ...labForm,
-                                obtain_oil: oilValue,
-                                oil_rebate_rs:
-                                  oilCalc.rebate > 0
-                                    ? oilCalc.rebate.toFixed(2)
-                                    : "",
-                                oil_premium_rs:
-                                  oilCalc.premium > 0
-                                    ? oilCalc.premium.toFixed(2)
-                                    : "",
-                              });
-                            }}
+                            onChange={(e) =>
+                              setLabForm((prev) => ({
+                                ...prev,
+                                obtain_oil: e.target.value,
+                              }))
+                            }
                             onKeyDown={(e) => handleKeyDown(e, oilRebateRef)}
                             inputRef={obtainOilRef}
                             fullWidth
@@ -2797,7 +2851,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     <AttachMoneyIcon fontSize="small" />
                   </Avatar>
                   <Typography variant="subtitle1" fontWeight="bold">
-                    5. Billing Details (Auto-Calculated)
+                    5. Billing Details
                   </Typography>
                   {savedSections.billing && (
                     <Chip
@@ -2831,7 +2885,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateAccountRate().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="Final Contracted Rate - FFA Price"
+                      // helperText="Final Contracted Rate - FFA Price"
                     />
                   </Grid>
 
@@ -2843,11 +2897,11 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateNetRate().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="(Account Rate / Oil Standard) × Oil Difference"
+                      // helperText="(Account Rate / Oil Standard) × Oil Difference"
                     />
                   </Grid>
 
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  {/* <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
                       sx={styles.compactField}
@@ -2855,9 +2909,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateNetAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="(Account Rate / Oil Standard) × Oil Difference"
+                      // helperText="(Account Rate / Oil Standard) × Oil Difference"
                     />
-                  </Grid>
+                  </Grid> */}
 
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
@@ -2867,7 +2921,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateMaterialAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="Account Rate × Net Weight"
+                      // helperText="Account Rate × Net Weight"
                     />
                   </Grid>
 
@@ -2879,7 +2933,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateGrossAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="Net Amount + Material Amount"
+                      // helperText="Net Amount + Material Amount"
                     />
                   </Grid>
 
@@ -2983,7 +3037,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateBilledAmount().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="Gross Amount + GST"
+                      // helperText="Gross Amount + GST"
                     />
                   </Grid>
 
@@ -3016,7 +3070,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       value={calculateAmountPayable().toFixed(2)}
                       InputProps={{ readOnly: true }}
                       fullWidth
-                      helperText="Billed Amount - Invoice Amount"
+                      // helperText="Billed Amount - Invoice Amount"
                     />
                   </Grid>
 

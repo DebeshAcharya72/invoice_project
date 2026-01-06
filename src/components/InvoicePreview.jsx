@@ -386,9 +386,11 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
     parseFloat(invoiceData.lab?.ffa_rebate_rs || invoiceData.lab?.rebate_rs) ||
     0;
   const oilRebate = parseFloat(invoiceData.lab?.oil_rebate_rs) || 0;
+  const oilPremium = parseFloat(invoiceData.lab?.oil_premium_rs) || 0;
 
   // Calculate Net Amount after rebates
-  const netAmountAfterRebates = materialAmount - ffaRebate - oilRebate;
+  const netAmountAfterRebates =
+    materialAmount - ffaRebate - oilRebate + oilPremium;
 
   // GST Calculations based on type
   let inputCGST = 0;
@@ -815,7 +817,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                           letterSpacing: "1px",
                         }}
                       >
-                        FFA ({formatCurrency(ffaRebate)})
+                        FFA Rebate ({formatCurrency(ffaRebate)})
                       </td>
                       <td
                         style={{
@@ -826,7 +828,21 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                           letterSpacing: "1px",
                         }}
                       >
-                        OIL ({formatCurrency(oilRebate)})
+                        Oil Rebate ({formatCurrency(oilRebate)})
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        colSpan="2"
+                        style={{
+                          border: "1px solid #000",
+                          padding: "4px",
+                          textAlign: "center",
+                          color: "green",
+                          letterSpacing: "1px",
+                        }}
+                      >
+                        Oil Premium ({formatCurrency(oilPremium)})
                       </td>
                     </tr>
                     <tr>
