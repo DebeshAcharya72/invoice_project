@@ -362,7 +362,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   };
 
   const calculateAccountRate = () => {
-    // Use final contracted rate for Red Bran, otherwise use contracted rate
     const contractedRate =
       parseFloat(
         purchaseForm.bran_type === "Red"
@@ -370,7 +369,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           : purchaseForm.contracted_rate
       ) || 0;
 
-    // Get FFA rebate from either saved data or current form
     const ffaRebate =
       parseFloat(
         savedLabData?.ffa_rebate_rs ||
@@ -378,19 +376,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           labForm.ffa_rebate_rs
       ) || 0;
 
-    console.log("Account rate calculation:", {
-      contractedRate,
-      ffaRebate,
-      branType: purchaseForm.bran_type,
-      finalContractedRate: purchaseForm.final_contracted_rate,
-      savedLabData,
-      labForm,
-    });
-
-    // Account Rate = Contracted Rate - FFA Rebate
-    const accountRate = Math.max(0, contractedRate - ffaRebate);
-
-    return parseFloat(accountRate.toFixed(2));
+    return parseFloat((contractedRate - ffaRebate).toFixed(2));
   };
 
   // 4. NEW: Net Rate Calculation (Account Rate / Oil Standard) * Oil Difference
@@ -422,36 +408,47 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const calculateMaterialAmount = () => {
     const accountRate = calculateAccountRate();
     const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
-
-    const materialAmount = accountRate * netWeight;
-    return parseFloat(materialAmount.toFixed(2));
+    return parseFloat((accountRate * netWeight).toFixed(2));
   };
 
   // 7. NEW: Gross Amount Calculation (Net Amount + Material Amount)
+  // const calculateGrossAmount = () => {
+  //   const materialAmount = calculateMaterialAmount();
+  //   const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
+  //   const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
+
+  //   // Only one of premium or rebate will be non-zero
+  //   return materialAmount + oilPremium - oilRebate;
+  // };
   const calculateGrossAmount = () => {
     const materialAmount = calculateMaterialAmount();
     const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
     const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
 
-    // Only one of premium or rebate will be non-zero
-    return materialAmount + oilPremium - oilRebate;
+    if (oilPremium > 0) {
+      // Scenario 1: Material Amount + Premium For Oil
+      return parseFloat((materialAmount + oilPremium).toFixed(2));
+    } else if (oilRebate > 0) {
+      // Scenario 2: Material Amount - Rebate For Oil
+      return parseFloat((materialAmount - oilRebate).toFixed(2));
+    } else {
+      return materialAmount;
+    }
   };
 
   // 8. NEW: GST Calculation
   const calculateGST = () => {
     const grossAmount = calculateGrossAmount();
-    const gstType = billingForm.gst_type;
+    const gstType = billingForm.gst_type || "Intra";
 
-    let cgst = 0;
-    let sgst = 0;
-    let igst = 0;
+    let cgst = 0,
+      sgst = 0,
+      igst = 0;
 
     if (gstType === "Intra") {
-      // Intra State: 2.5% CGST + 2.5% SGST
       cgst = grossAmount * 0.025;
       sgst = grossAmount * 0.025;
-    } else if (gstType === "Inter") {
-      // Inter State: 5% IGST
+    } else {
       igst = grossAmount * 0.05;
     }
 
@@ -467,18 +464,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const calculateBilledAmount = () => {
     const grossAmount = calculateGrossAmount();
     const gst = calculateGST();
-
-    const billedAmount = grossAmount + gst.total;
-    return parseFloat(billedAmount.toFixed(2));
+    return parseFloat((grossAmount + gst.total).toFixed(2));
   };
 
   // 10. NEW: Amount Payable Calculation (Billed Amount - Invoice Amount)
   const calculateAmountPayable = () => {
     const billedAmount = calculateBilledAmount();
     const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
-
-    const amountPayable = billedAmount - invoiceAmount;
-    return parseFloat(amountPayable.toFixed(2));
+    return parseFloat((billedAmount - invoiceAmount).toFixed(2));
   };
 
   // 11. Helper function to get oil standard
@@ -1142,62 +1135,104 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         console.log("Saved lab data:", savedLabData);
 
         // Combine lab data with proper field mapping
+        // const labData = {
+        //   // FFA Analysis
+        //   obtain_ffa:
+        //     parseFloat(rawLab.obtain_ffa) ||
+        //     parseFloat(savedLabData?.obtain_ffa) ||
+        //     parseFloat(labForm.obtain_ffa) ||
+        //     0,
+
+        //   // Map backend 'rebate_rs' to frontend 'ffa_rebate_rs'
+        //   ffa_rebate_rs:
+        //     parseFloat(rawLab.rebate_rs) ||
+        //     parseFloat(savedLabData?.rebate_rs) ||
+        //     parseFloat(savedLabData?.ffa_rebate_rs) ||
+        //     parseFloat(labForm.ffa_rebate_rs) ||
+        //     0,
+
+        //   ffa_premium_rs:
+        //     parseFloat(rawLab.premium_rs) ||
+        //     parseFloat(savedLabData?.premium_rs) ||
+        //     parseFloat(savedLabData?.ffa_premium_rs) ||
+        //     parseFloat(labForm.ffa_premium_rs) ||
+        //     0,
+
+        //   // Oil Analysis
+        //   obtain_oil:
+        //     parseFloat(rawLab.obtain_oil) ||
+        //     parseFloat(savedLabData?.obtain_oil) ||
+        //     parseFloat(labForm.obtain_oil) ||
+        //     0,
+
+        //   oil_rebate_rs:
+        //     parseFloat(rawLab.oil_rebate_rs) ||
+        //     parseFloat(savedLabData?.oil_rebate_rs) ||
+        //     parseFloat(labForm.oil_rebate_rs) ||
+        //     0,
+
+        //   oil_premium_rs:
+        //     parseFloat(rawLab.oil_premium_rs) ||
+        //     parseFloat(savedLabData?.oil_premium_rs) ||
+        //     parseFloat(labForm.oil_premium_rs) ||
+        //     0,
+
+        //   // Standards
+        //   standard_ffa:
+        //     parseFloat(rawLab.standard_ffa) ||
+        //     parseFloat(savedLabData?.standard_ffa) ||
+        //     parseFloat(labForm.standard_ffa) ||
+        //     7,
+
+        //   standard_oil:
+        //     parseFloat(rawLab.standard_oil) ||
+        //     parseFloat(savedLabData?.standard_oil) ||
+        //     parseFloat(labForm.standard_oil) ||
+        //     19,
+        // };
+
+        // ✅ CORRECT: Use live calculations, fallback to saved data
+        const netWeightForInvoice = parseFloat(purchaseForm.net_weight_mt) || 0;
+        const oilCalc = calculateOilRebatePremium(
+          purchaseForm.product_name,
+          labForm.obtain_oil || rawLab.obtain_oil,
+          purchaseForm.contracted_rate || rawLab.contracted_rate,
+          netWeightForInvoice
+        );
+
         const labData = {
-          // FFA Analysis
+          // FFA Analysis - FFA uses saved backend values (ffa_premium_rs is rarely used)
           obtain_ffa:
             parseFloat(rawLab.obtain_ffa) ||
-            parseFloat(savedLabData?.obtain_ffa) ||
             parseFloat(labForm.obtain_ffa) ||
             0,
-
-          // Map backend 'rebate_rs' to frontend 'ffa_rebate_rs'
           ffa_rebate_rs:
             parseFloat(rawLab.rebate_rs) ||
-            parseFloat(savedLabData?.rebate_rs) ||
-            parseFloat(savedLabData?.ffa_rebate_rs) ||
             parseFloat(labForm.ffa_rebate_rs) ||
             0,
-
           ffa_premium_rs:
             parseFloat(rawLab.premium_rs) ||
-            parseFloat(savedLabData?.premium_rs) ||
-            parseFloat(savedLabData?.ffa_premium_rs) ||
             parseFloat(labForm.ffa_premium_rs) ||
             0,
 
-          // Oil Analysis
+          // Oil Analysis - CRITICAL: Use LIVE calculation
           obtain_oil:
-            parseFloat(rawLab.obtain_oil) ||
-            parseFloat(savedLabData?.obtain_oil) ||
             parseFloat(labForm.obtain_oil) ||
+            parseFloat(rawLab.obtain_oil) ||
             0,
-
-          oil_rebate_rs:
-            parseFloat(rawLab.oil_rebate_rs) ||
-            parseFloat(savedLabData?.oil_rebate_rs) ||
-            parseFloat(labForm.oil_rebate_rs) ||
-            0,
-
-          oil_premium_rs:
-            parseFloat(rawLab.oil_premium_rs) ||
-            parseFloat(savedLabData?.oil_premium_rs) ||
-            parseFloat(labForm.oil_premium_rs) ||
-            0,
+          oil_rebate_rs: oilCalc.rebate || 0, // ← LIVE CALCULATED
+          oil_premium_rs: oilCalc.premium || 0, // ← LIVE CALCULATED
 
           // Standards
           standard_ffa:
-            parseFloat(rawLab.standard_ffa) ||
-            parseFloat(savedLabData?.standard_ffa) ||
             parseFloat(labForm.standard_ffa) ||
+            parseFloat(rawLab.standard_ffa) ||
             7,
-
           standard_oil:
-            parseFloat(rawLab.standard_oil) ||
-            parseFloat(savedLabData?.standard_oil) ||
             parseFloat(labForm.standard_oil) ||
+            parseFloat(rawLab.standard_oil) ||
             19,
         };
-
         console.log("Combined lab data for invoice:", labData);
 
         // Get billing data
@@ -1274,19 +1309,19 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
           // Billing Details
           billing: {
-            account_rate: accountRate.toFixed(2),
-            net_rate: netRate.toFixed(2),
-            // net_amount: netAmount.toFixed(2),
-            material_amount: materialAmount.toFixed(2),
-            gross_amount: grossAmount.toFixed(2),
-            cgst: gst.cgst.toFixed(2),
-            sgst: gst.sgst.toFixed(2),
-            igst: gst.igst.toFixed(2),
-            billed_amount: billedAmount.toFixed(2),
-            amount_payable: amountPayable.toFixed(2),
-            gst_type: billingForm.gst_type || "Intra",
+            // Make sure these field names match what InvoicePreview expects
+            account_rate: calculateAccountRate().toFixed(2),
+            net_rate: calculateNetRate().toFixed(2),
+            material_amount: calculateMaterialAmount().toFixed(2),
+            gross_amount: calculateGrossAmount().toFixed(2),
+            cgst: calculateGST().cgst.toFixed(2),
+            sgst: calculateGST().sgst.toFixed(2),
+            igst: calculateGST().igst.toFixed(2),
+            billed_amount: calculateBilledAmount().toFixed(2),
+            amount_payable: calculateAmountPayable().toFixed(2),
+            revised_amount: calculateAmountPayable().toFixed(2), // Add this for InvoicePreview
             invoice_amount: parseFloat(billingForm.invoice_amount) || 0,
-            ...billingData,
+            gst_type: billingForm.gst_type || "Intra",
           },
 
           // Vehicle Details
