@@ -1209,29 +1209,42 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // In your Home.jsx file, find the handleSaveBilling function and update it:
   const handleSaveBilling = async () => {
     try {
       if (!currentPurchaseId) {
-        showError("Purchase must be saved first");
+        showError("Please save purchase details first");
         return;
       }
 
-      const billingData = { ...billingForm, purchase_id: currentPurchaseId };
+      // Calculate all values
+      const billingData = {
+        purchase_id: currentPurchaseId,
+        gst_type: billingForm.gst_type,
+        invoice_amount: parseFloat(billingForm.invoice_amount) || 0,
+        // Send ALL calculated values
+        account_rate: calculateAccountRate(),
+        net_rate: calculateNetRate(),
+        net_amount: calculateNetAmount(),
+        material_amount: calculateMaterialAmount(),
+        gross_amount: calculateGrossAmount(),
+        cgst: calculateGST().cgst,
+        sgst: calculateGST().sgst,
+        igst: calculateGST().igst,
+        billed_amount: calculateBilledAmount(),
+        amount_payable: calculateAmountPayable(),
+        revised_amount: calculateAmountPayable(),
+        ffa_rebate: parseFloat(labForm.ffa_rebate_rs) || 0,
+        oil_rebate: parseFloat(labForm.oil_rebate_rs) || 0,
+        oil_premium: parseFloat(labForm.oil_premium_rs) || 0,
+        ffa_obtained: parseFloat(labForm.obtain_ffa) || 0,
+        oil_obtained: parseFloat(labForm.obtain_oil) || 0,
+      };
 
-      if (mode === "edit") {
-        // Get existing billing ID
-        const billings = await api.getBillings();
-        const existingBilling = billings.find(
-          (b) => b.purchase_id === currentPurchaseId
-        );
-        if (existingBilling) {
-          await api.updateBilling(existingBilling._id, billingData);
-        } else {
-          await api.createBilling(billingData);
-        }
-      } else {
-        await api.createBilling(billingData);
-      }
+      console.log("Sending billing data to backend:", billingData); // For debugging
+
+      // Save to backend (will just store, no calculations)
+      await api.createBilling(billingData);
 
       setSavedSections((prev) => ({ ...prev, billing: true }));
       setModifiedSections((prev) => ({ ...prev, billing: false }));
@@ -1242,7 +1255,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         showSuccess("All changes saved successfully!");
       }
     } catch (err) {
-      showError("Failed to save Billing");
+      console.error("Billing save error:", err);
+      showError("Failed to save Billing: " + err.message);
     }
   };
 
@@ -1312,43 +1326,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           (p) => p.party_name === purchaseForm.party_name
         );
 
-        // Get lab data
-        const netWeightForInvoice = parseFloat(purchaseForm.net_weight_mt) || 0;
-        const oilCalc = calculateOilRebatePremium(
-          purchaseForm.product_name,
-          labForm.obtain_oil || raw.lab?.obtain_oil,
-          purchaseForm.contracted_rate || raw.lab?.contracted_rate,
-          netWeightForInvoice
-        );
-
-        const labData = {
-          obtain_ffa:
-            parseFloat(raw.lab?.obtain_ffa) ||
-            parseFloat(labForm.obtain_ffa) ||
-            0,
-          ffa_rebate_rs:
-            parseFloat(raw.lab?.rebate_rs) ||
-            parseFloat(labForm.ffa_rebate_rs) ||
-            0,
-          ffa_premium_rs:
-            parseFloat(raw.lab?.premium_rs) ||
-            parseFloat(labForm.ffa_premium_rs) ||
-            0,
-          obtain_oil:
-            parseFloat(labForm.obtain_oil) ||
-            parseFloat(raw.lab?.obtain_oil) ||
-            0,
-          oil_rebate_rs: oilCalc.rebate || 0,
-          oil_premium_rs: oilCalc.premium || 0,
-          standard_ffa:
-            parseFloat(labForm.standard_ffa) ||
-            parseFloat(raw.lab?.standard_ffa) ||
-            7,
-          standard_oil:
-            parseFloat(labForm.standard_oil) ||
-            parseFloat(raw.lab?.standard_oil) ||
-            19,
-        };
+        // Use the ACTUAL billing data from backend response
+        const billingData = raw.billing || {};
 
         // Transform data to match InvoicePreview format
         const transformedData = {
@@ -1369,8 +1348,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
             contact_person: "Mr. Mammath Pathnak",
           },
 
-          purchase: {
-            ...raw.purchase,
+          purchase: raw.purchase || {
             ...purchaseForm,
             product_name: purchaseForm.product_name || "Boiled Rice Bran",
             gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt) || 0,
@@ -1382,7 +1360,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               0,
           },
 
-          quantity: {
+          quantity: raw.quantity || {
             no_of_bags: parseInt(purchaseForm.no_of_bags) || 0,
             gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt) || 0,
             net_weight_mt: parseFloat(purchaseForm.net_weight_mt) || 0,
@@ -1390,21 +1368,53 @@ const Home = ({ userRole, onLogout, currentUser }) => {
             bag_type: purchaseForm.bag_type || "Poly",
           },
 
-          lab: labData,
+          lab: raw.lab || {
+            obtain_ffa: parseFloat(labForm.obtain_ffa) || 0,
+            ffa_rebate_rs: parseFloat(labForm.ffa_rebate_rs) || 0,
+            ffa_premium_rs: parseFloat(labForm.ffa_premium_rs) || 0,
+            obtain_oil: parseFloat(labForm.obtain_oil) || 0,
+            oil_rebate_rs: parseFloat(labForm.oil_rebate_rs) || 0,
+            oil_premium_rs: parseFloat(labForm.oil_premium_rs) || 0,
+            standard_ffa: parseFloat(labForm.standard_ffa) || 7,
+            standard_oil: parseFloat(labForm.standard_oil) || 19,
+          },
 
+          // Use the ACTUAL billing data from backend
           billing: {
-            account_rate: calculateAccountRate().toFixed(2),
-            net_rate: calculateNetRate().toFixed(2),
-            material_amount: calculateMaterialAmount().toFixed(2),
-            gross_amount: calculateGrossAmount().toFixed(2),
-            cgst: calculateGST().cgst.toFixed(2),
-            sgst: calculateGST().sgst.toFixed(2),
-            igst: calculateGST().igst.toFixed(2),
-            billed_amount: calculateBilledAmount().toFixed(2),
-            amount_payable: calculateAmountPayable().toFixed(2),
-            revised_amount: calculateAmountPayable().toFixed(2),
-            invoice_amount: parseFloat(billingForm.invoice_amount) || 0,
-            gst_type: billingForm.gst_type || "Intra",
+            account_rate:
+              billingData.account_rate || calculateAccountRate().toFixed(2),
+            net_rate: billingData.net_rate || calculateNetRate().toFixed(2),
+            material_amount:
+              billingData.material_amount ||
+              calculateMaterialAmount().toFixed(2),
+            gross_amount:
+              billingData.gross_amount || calculateGrossAmount().toFixed(2),
+            cgst: billingData.cgst || calculateGST().cgst.toFixed(2),
+            sgst: billingData.sgst || calculateGST().sgst.toFixed(2),
+            igst: billingData.igst || calculateGST().igst.toFixed(2),
+            billed_amount:
+              billingData.billed_amount || calculateBilledAmount().toFixed(2),
+            amount_payable:
+              billingData.amount_payable || calculateAmountPayable().toFixed(2),
+            revised_amount:
+              billingData.revised_amount || calculateAmountPayable().toFixed(2),
+            invoice_amount:
+              billingData.invoice_amount ||
+              parseFloat(billingForm.invoice_amount) ||
+              0,
+            gst_type: billingData.gst_type || billingForm.gst_type || "Intra",
+            // CRITICAL: Add these fields from the backend response
+            ffa_rebate: billingData.ffa_rebate || billingData.rebate_rs || 0,
+            oil_rebate:
+              billingData.oil_rebate || billingData.oil_rebate_rs || 0,
+            oil_premium:
+              billingData.oil_premium || billingData.oil_premium_rs || 0,
+            // Add rebate_rs for backward compatibility
+            rebate_rs: billingData.rebate_rs || billingData.ffa_rebate || 0,
+            oil_rebate_rs:
+              billingData.oil_rebate_rs || billingData.oil_rebate || 0,
+            oil_premium_rs:
+              billingData.oil_premium_rs || billingData.oil_premium || 0,
           },
 
           vehicle: raw.vehicle ||
@@ -1413,13 +1423,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               owner_name: "",
               mobile_no: "",
             },
-
-          debitNoteNo: `FSR-${purchaseForm.invoice_no || "7203"}`,
-          purchaseDate:
-            purchaseForm.date || new Date().toISOString().split("T")[0],
-          supplierInvNo: `MPI/20/4/5/${purchaseForm.invoice_no || "19-Jan-25"}`,
-          brokerName: purchaseForm.agent_name || "Sunil Jain",
         };
+
+        console.log("Generated invoice data:", transformedData); // For debugging
 
         setGeneratedInvoice(transformedData);
         setShowInvoice(true);
