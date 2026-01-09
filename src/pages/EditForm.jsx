@@ -230,8 +230,10 @@ const EditForm = ({ onLogout, currentUser }) => {
     standard_oil: "19",
     obtain_ffa: "",
     obtain_oil: "",
-    rebate_rs: "",
-    premium_rs: "",
+    ffa_rebate_rs: "",
+    ffa_premium_rs: "",
+    oil_rebate_rs: "",
+    oil_premium_rs: "",
   });
 
   const [billingForm, setBillingForm] = useState({
@@ -286,10 +288,10 @@ const EditForm = ({ onLogout, currentUser }) => {
           contracted_rate: formData.purchase.contracted_rate || "",
           bran_type: formData.purchase.bran_type || "Good",
           gross_weight_mt: formData.purchase.gross_weight_mt || "",
-          no_of_bags: formData.purchase.no_of_bags || "",
+          no_of_bags: formData.quantity?.no_of_bags || "",
           bag_type: "Poly",
-          bag_weight_mt: "0.000200",
-          net_weight_mt: formData.purchase.net_weight_mt || "",
+          bag_weight_mt: formData.quantity?.bag_weight_mt || "0.000200",
+          net_weight_mt: formData.quantity?.net_weight_mt || "",
         });
       }
 
@@ -324,8 +326,10 @@ const EditForm = ({ onLogout, currentUser }) => {
           standard_oil: formData.lab.standard_oil?.toString() || "19",
           obtain_ffa: formData.lab.obtain_ffa?.toString() || "",
           obtain_oil: formData.lab.obtain_oil?.toString() || "",
-          rebate_rs: formData.lab.rebate_rs?.toString() || "",
-          premium_rs: formData.lab.premium_rs?.toString() || "",
+          ffa_rebate_rs: formData.lab.rebate_rs?.toString() || "",
+          ffa_premium_rs: formData.lab.premium_rs?.toString() || "",
+          oil_rebate_rs: formData.lab.oil_rebate_rs?.toString() || "",
+          oil_premium_rs: formData.lab.oil_premium_rs?.toString() || "",
         });
       }
 
@@ -379,6 +383,9 @@ const EditForm = ({ onLogout, currentUser }) => {
           ...purchaseForm,
           contracted_rate: parseFloat(purchaseForm.contracted_rate),
           gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt),
+          no_of_bags: parseInt(purchaseForm.no_of_bags),
+          bag_weight_mt: parseFloat(purchaseForm.bag_weight_mt),
+          net_weight_mt: parseFloat(purchaseForm.net_weight_mt),
         };
         updates.push(api.updatePurchase(purchaseId, purchaseData));
       }
@@ -425,11 +432,17 @@ const EditForm = ({ onLogout, currentUser }) => {
               obtain_oil: labForm.obtain_oil
                 ? parseFloat(labForm.obtain_oil)
                 : null,
-              rebate_rs: labForm.rebate_rs
-                ? parseFloat(labForm.rebate_rs)
+              rebate_rs: labForm.ffa_rebate_rs
+                ? parseFloat(labForm.ffa_rebate_rs)
                 : null,
-              premium_rs: labForm.premium_rs
-                ? parseFloat(labForm.premium_rs)
+              premium_rs: labForm.ffa_premium_rs
+                ? parseFloat(labForm.ffa_premium_rs)
+                : null,
+              oil_rebate_rs: labForm.oil_rebate_rs
+                ? parseFloat(labForm.oil_rebate_rs)
+                : null,
+              oil_premium_rs: labForm.oil_premium_rs
+                ? parseFloat(labForm.oil_premium_rs)
                 : null,
             };
             updates.push(api.updateLabDetail(lab._id, labData));
@@ -472,6 +485,27 @@ const EditForm = ({ onLogout, currentUser }) => {
       setSaving(false);
     }
   };
+
+  // Calculate bag weight and net weight
+  useEffect(() => {
+    const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
+    const bagWeightStr = bagWeight.toFixed(6);
+
+    const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
+    const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
+    const netWeight = grossWeight - noOfBags * bagWeight;
+    const netWeightStr = netWeight >= 0 ? netWeight.toFixed(6) : "0.000000";
+
+    setPurchaseForm((prev) => ({
+      ...prev,
+      bag_weight_mt: bagWeightStr,
+      net_weight_mt: netWeightStr,
+    }));
+  }, [
+    purchaseForm.bag_type,
+    purchaseForm.gross_weight_mt,
+    purchaseForm.no_of_bags,
+  ]);
 
   if (loading) {
     return (
@@ -897,6 +931,64 @@ const EditForm = ({ onLogout, currentUser }) => {
                           fullWidth
                         />
                       </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="No. of Bags"
+                          type="number"
+                          value={purchaseForm.no_of_bags}
+                          onChange={(e) =>
+                            setPurchaseForm({
+                              ...purchaseForm,
+                              no_of_bags: e.target.value,
+                            })
+                          }
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <FormControl
+                          fullWidth
+                          size="small"
+                          sx={styles.compactSelect}
+                        >
+                          <InputLabel>Type of Bags</InputLabel>
+                          <Select
+                            value={purchaseForm.bag_type}
+                            label="Type of Bags"
+                            onChange={(e) =>
+                              setPurchaseForm({
+                                ...purchaseForm,
+                                bag_type: e.target.value,
+                              })
+                            }
+                          >
+                            <MenuItem value="Poly">Poly Bags</MenuItem>
+                            <MenuItem value="Jute">Jute Bags</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Bag Weight (MT)"
+                          value={purchaseForm.bag_weight_mt}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Net Weight (MT)"
+                          value={purchaseForm.net_weight_mt}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
                       <Grid item xs={12}>
                         <FormControl sx={styles.compactRadio}>
                           <RadioGroup
@@ -1262,11 +1354,11 @@ const EditForm = ({ onLogout, currentUser }) => {
                             sx={styles.compactField}
                             label="Rebate Amount (₹)"
                             type="number"
-                            value={labForm.rebate_rs}
+                            value={labForm.ffa_rebate_rs}
                             onChange={(e) =>
                               setLabForm({
                                 ...labForm,
-                                rebate_rs: e.target.value,
+                                ffa_rebate_rs: e.target.value,
                               })
                             }
                             InputProps={{
@@ -1315,14 +1407,35 @@ const EditForm = ({ onLogout, currentUser }) => {
                           />
                           <TextField
                             size="small"
-                            sx={styles.compactField}
-                            label="Premium Amount (₹)"
+                            sx={[styles.compactField, { mb: 1 }]}
+                            label="Oil Rebate Amount (₹)"
                             type="number"
-                            value={labForm.premium_rs}
+                            value={labForm.oil_rebate_rs}
                             onChange={(e) =>
                               setLabForm({
                                 ...labForm,
-                                premium_rs: e.target.value,
+                                oil_rebate_rs: e.target.value,
+                              })
+                            }
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  ₹
+                                </InputAdornment>
+                              ),
+                            }}
+                            fullWidth
+                          />
+                          <TextField
+                            size="small"
+                            sx={styles.compactField}
+                            label="Oil Premium Amount (₹)"
+                            type="number"
+                            value={labForm.oil_premium_rs}
+                            onChange={(e) =>
+                              setLabForm({
+                                ...labForm,
+                                oil_premium_rs: e.target.value,
                               })
                             }
                             InputProps={{

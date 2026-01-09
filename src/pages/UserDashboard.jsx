@@ -64,7 +64,8 @@ const UserDashboard = ({ currentUser }) => {
       // Enrich forms with additional data
       const enrichedForms = await Promise.all(
         purchases.map(async (purchase) => {
-          const purchaseId = purchase._id || purchase.id;
+          const purchaseId =
+            purchase._id || purchase.id || purchase.purchase_id;
           let vehicle = null;
           let lab = null;
           let billing = null;
@@ -175,8 +176,8 @@ const UserDashboard = ({ currentUser }) => {
 
     // Navigate to edit form with form data
     // You'll need to implement this navigation based on your routing
-    console.log("Edit form:", form.purchaseId);
-    navigate(`/edit-form/${form.purchaseId}`);
+
+    navigate(`/home/${form.purchaseId}`);
   };
 
   const handleViewForm = (form) => {

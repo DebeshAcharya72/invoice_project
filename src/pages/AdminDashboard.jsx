@@ -179,7 +179,7 @@ const AdminDashboard = () => {
 
   const handleEditForm = () => {
     if (selectedForm) {
-      navigate(`/edit-form/${selectedForm.purchase_id}`);
+      navigate(`/home/${selectedForm.purchase_id}`);
     }
     handleCloseFormMenu();
   };
