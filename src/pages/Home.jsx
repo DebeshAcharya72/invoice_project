@@ -186,6 +186,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
   // ============ CALCULATION FUNCTIONS ============
 
+  const validateGSTFormat = (gst) => {
+    if (!gst) return true;
+    const gstRegex =
+      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    return gstRegex.test(gst);
+  };
+
   // 1. FFA Rebate Calculation (Keeping your logic intact)
   const calculateFFARebate = (product, ffa) => {
     const ffaValue = parseFloat(ffa) || 0;
@@ -412,10 +419,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       sgst = 0,
       igst = 0;
 
+    // FIXED: Match backend logic
     if (gstType === "Intra") {
+      // Intra-state: Same state (Odisha to Odisha) → CGST 2.5% + SGST 2.5%
       cgst = grossAmount * 0.025;
       sgst = grossAmount * 0.025;
     } else {
+      // Inter-state: Different state → IGST 5%
       igst = grossAmount * 0.05;
     }
 
@@ -927,9 +937,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     if (partyForm.gst && partyForm.gst.length >= 2) {
       const stateCode = partyForm.gst.substring(0, 2);
       const isOdisha = stateCode === "21";
+      // FIXED: If state code is 21 (Odisha), it's Intra State
       setBillingForm((prev) => ({
         ...prev,
-        gst_type: isOdisha ? "Inter" : "Intra",
+        gst_type: isOdisha ? "Intra" : "Inter", // Changed from isOdisha ? "Inter" : "Intra"
       }));
     }
   }, [partyForm.gst]);
@@ -1821,15 +1832,37 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             sx={styles.compactField}
                             label="GST Number"
                             value={partyForm.gst}
-                            onChange={(e) =>
-                              updateFormWithTracking(setPartyForm, "party", {
-                                ...partyForm,
-                                gst: e.target.value,
-                              })
-                            }
+                            onChange={(e) => {
+                              const gstValue = e.target.value
+                                .toUpperCase()
+                                .replace(/[^A-Z0-9]/g, "");
+                              if (
+                                validateGSTFormat(gstValue) ||
+                                gstValue.length < 16
+                              ) {
+                                updateFormWithTracking(setPartyForm, "party", {
+                                  ...partyForm,
+                                  gst: gstValue,
+                                });
+                              }
+                            }}
+                            // helperText={
+                            //   partyForm.gst && !validateGSTFormat(partyForm.gst)
+                            //     ? "Invalid GST format"
+                            //     : partyForm.gst
+                            //     ? `State: ${partyForm.gst.substring(0, 2)}`
+                            //     : "15 characters"
+                            // }
+                            // error={
+                            //   partyForm.gst && !validateGSTFormat(partyForm.gst)
+                            // }
                             onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
                             inputRef={partyGstRef}
                             fullWidth
+                            inputProps={{
+                              style: { textTransform: "uppercase" },
+                              maxLength: 15,
+                            }}
                           />
                         </Grid>
                       )}
@@ -2057,40 +2090,46 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           value={purchaseForm.contracted_rate}
                           onChange={(e) => {
                             const newRate = e.target.value;
-                            updateFormWithTracking(
-                              setPurchaseForm,
-                              "purchase",
-                              {
-                                ...purchaseForm,
-                                contracted_rate: newRate,
-                              }
-                            );
-
-                            // Auto-calculate oil rebate/premium when rate changes
-                            if (labForm.obtain_oil) {
-                              const netWeight =
-                                parseFloat(purchaseForm.net_weight_mt) || 0;
-                              const oilCalc = calculateOilRebatePremium(
-                                purchaseForm.product_name,
-                                labForm.obtain_oil,
-                                newRate,
-                                netWeight
-                              );
+                            // Allow up to 2 decimal places
+                            if (
+                              newRate === "" ||
+                              /^\d*\.?\d{0,2}$/.test(newRate)
+                            ) {
                               updateFormWithTracking(
-                                setLabForm,
-                                "lab",
-                                (prev) => ({
-                                  ...prev,
-                                  oil_rebate_rs:
-                                    oilCalc.rebate > 0
-                                      ? oilCalc.rebate.toFixed(2)
-                                      : "",
-                                  oil_premium_rs:
-                                    oilCalc.premium > 0
-                                      ? oilCalc.premium.toFixed(2)
-                                      : "",
-                                })
+                                setPurchaseForm,
+                                "purchase",
+                                {
+                                  ...purchaseForm,
+                                  contracted_rate: newRate,
+                                }
                               );
+
+                              // Auto-calculate oil rebate/premium when rate changes
+                              if (labForm.obtain_oil) {
+                                const netWeight =
+                                  parseFloat(purchaseForm.net_weight_mt) || 0;
+                                const oilCalc = calculateOilRebatePremium(
+                                  purchaseForm.product_name,
+                                  labForm.obtain_oil,
+                                  newRate,
+                                  netWeight
+                                );
+                                updateFormWithTracking(
+                                  setLabForm,
+                                  "lab",
+                                  (prev) => ({
+                                    ...prev,
+                                    oil_rebate_rs:
+                                      oilCalc.rebate > 0
+                                        ? oilCalc.rebate.toFixed(2)
+                                        : "",
+                                    oil_premium_rs:
+                                      oilCalc.premium > 0
+                                        ? oilCalc.premium.toFixed(2)
+                                        : "",
+                                  })
+                                );
+                              }
                             }
                           }}
                           InputProps={{
@@ -2099,6 +2138,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 ₹
                               </InputAdornment>
                             ),
+                            inputProps: {
+                              min: "0",
+                              step: "0.01", // Allows 2 decimal places
+                            },
                           }}
                           onKeyDown={(e) => handleKeyDown(e, grossWeightRef)}
                           inputRef={contractedRateRef}
@@ -2115,14 +2158,20 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             value={purchaseForm.final_contracted_rate}
                             onChange={(e) => {
                               const finalRate = e.target.value;
-                              updateFormWithTracking(
-                                setPurchaseForm,
-                                "purchase",
-                                {
-                                  ...purchaseForm,
-                                  final_contracted_rate: finalRate,
-                                }
-                              );
+                              // Allow up to 2 decimal places
+                              if (
+                                finalRate === "" ||
+                                /^\d*\.?\d{0,2}$/.test(finalRate)
+                              ) {
+                                updateFormWithTracking(
+                                  setPurchaseForm,
+                                  "purchase",
+                                  {
+                                    ...purchaseForm,
+                                    final_contracted_rate: finalRate,
+                                  }
+                                );
+                              }
                             }}
                             InputProps={{
                               startAdornment: (
@@ -2130,6 +2179,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                   ₹
                                 </InputAdornment>
                               ),
+                              inputProps: {
+                                min: "0",
+                                step: "0.01",
+                              },
                             }}
                             fullWidth
                           />
@@ -2163,19 +2216,29 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="Actual Weight (MT)"
                           type="number"
                           value={purchaseForm.gross_weight_mt}
-                          onChange={(e) =>
-                            updateFormWithTracking(
-                              setPurchaseForm,
-                              "purchase",
-                              {
-                                ...purchaseForm,
-                                gross_weight_mt: e.target.value,
-                              }
-                            )
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow up to 3 decimal places
+                            if (value === "" || /^\d*\.?\d{0,3}$/.test(value)) {
+                              updateFormWithTracking(
+                                setPurchaseForm,
+                                "purchase",
+                                {
+                                  ...purchaseForm,
+                                  gross_weight_mt: value,
+                                }
+                              );
+                            }
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, noOfBagsRef)}
                           inputRef={grossWeightRef}
                           fullWidth
+                          InputProps={{
+                            inputProps: {
+                              min: "0",
+                              step: "0.001", // Allows 3 decimal places
+                            },
+                          }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2185,16 +2248,20 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="No. of Bags"
                           type="number"
                           value={purchaseForm.no_of_bags}
-                          onChange={(e) =>
-                            updateFormWithTracking(
-                              setPurchaseForm,
-                              "purchase",
-                              {
-                                ...purchaseForm,
-                                no_of_bags: e.target.value,
-                              }
-                            )
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow only integers (no decimals)
+                            if (value === "" || /^\d+$/.test(value)) {
+                              updateFormWithTracking(
+                                setPurchaseForm,
+                                "purchase",
+                                {
+                                  ...purchaseForm,
+                                  no_of_bags: value,
+                                }
+                              );
+                            }
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, vehicleNoRef)}
                           inputRef={noOfBagsRef}
                           fullWidth
@@ -2318,10 +2385,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                   "purchase",
                                   {
                                     ...purchaseForm,
-                                    agent_name: e.target.value,
+                                    agent_name: toTitleCase(e.target.value),
                                   }
                                 )
                               }
+                              onKeyDown={(e) =>
+                                handleKeyDown(e, agentMobileRef)
+                              }
+                              inputRef={agentNameRef}
                               fullWidth
                             />
                           </Grid>
@@ -2331,15 +2402,24 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               sx={styles.compactField}
                               label="Agent Mobile No"
                               value={purchaseForm.agent_number}
-                              onChange={(e) =>
-                                handleMobileChange(
-                                  e,
-                                  "purchase_agent",
-                                  setPurchaseForm
-                                )
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === "" || /^\d{0,10}$/.test(value)) {
+                                  updateFormWithTracking(
+                                    setPurchaseForm,
+                                    "purchase",
+                                    {
+                                      ...purchaseForm,
+                                      agent_number: value,
+                                    }
+                                  );
+                                }
+                              }}
                               inputProps={{ maxLength: 10 }}
                               type="tel"
+                              helperText="10 digits only"
+                              onKeyDown={(e) => handleKeyDown(e, null)}
+                              inputRef={agentMobileRef}
                               fullWidth
                             />
                           </Grid>
@@ -2442,15 +2522,20 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           sx={styles.compactField}
                           label="Vehicle No *"
                           value={vehicleForm.vehicle_no}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            // Auto capitalize all letters
+                            const value = e.target.value.toUpperCase();
                             updateFormWithTracking(setVehicleForm, "vehicle", {
                               ...vehicleForm,
-                              vehicle_no: e.target.value,
-                            })
-                          }
+                              vehicle_no: value,
+                            });
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, ownerNameRef)}
                           inputRef={vehicleNoRef}
                           fullWidth
+                          inputProps={{
+                            style: { textTransform: "uppercase" },
+                          }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2570,15 +2655,29 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="Freight/MT (₹)"
                           type="number"
                           value={vehicleForm.freight_per_mt}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              freight_per_mt: e.target.value,
-                            })
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow up to 2 decimal places
+                            if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                              updateFormWithTracking(
+                                setVehicleForm,
+                                "vehicle",
+                                {
+                                  ...vehicleForm,
+                                  freight_per_mt: value,
+                                }
+                              );
+                            }
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, advanceAmtRef)}
                           inputRef={freightMtRef}
                           fullWidth
+                          InputProps={{
+                            inputProps: {
+                              min: "0",
+                              step: "0.01",
+                            },
+                          }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2588,15 +2687,29 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           label="Advance Amount (₹)"
                           type="number"
                           value={vehicleForm.advance_amount}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              advance_amount: e.target.value,
-                            })
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow up to 2 decimal places
+                            if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                              updateFormWithTracking(
+                                setVehicleForm,
+                                "vehicle",
+                                {
+                                  ...vehicleForm,
+                                  advance_amount: value,
+                                }
+                              );
+                            }
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, bankAccRef)}
                           inputRef={advanceAmtRef}
                           fullWidth
+                          InputProps={{
+                            inputProps: {
+                              min: "0",
+                              step: "0.01",
+                            },
+                          }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2649,18 +2762,27 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           sx={styles.compactField}
                           label="IFSC Code"
                           value={vehicleForm.ifsc}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            // Auto capitalize and allow only alphanumeric
+                            const value = e.target.value
+                              .toUpperCase()
+                              .replace(/[^A-Z0-9]/g, "");
                             updateFormWithTracking(setVehicleForm, "vehicle", {
                               ...vehicleForm,
-                              ifsc: e.target.value,
-                            })
-                          }
+                              ifsc: value,
+                            });
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, ownerAddrRef)}
                           inputRef={ifscRef}
                           fullWidth
+                          inputProps={{
+                            style: { textTransform: "uppercase" },
+                            maxLength: 11, // IFSC codes are typically 11 characters
+                          }}
+                          helperText="e.g., SBIN0001234"
                         />
                       </Grid>
-                      <Grid size={{ xs: 12 }}>
+                      {/* <Grid size={{ xs: 12 }}>
                         <TextField
                           size="small"
                           sx={styles.compactField}
@@ -2728,7 +2850,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           inputRef={ownerPinRef}
                           fullWidth
                         />
-                      </Grid>
+                      </Grid> */}
                       <Grid size={{ xs: 12 }}>
                         <FormControl sx={styles.compactRadio}>
                           <RadioGroup
@@ -3122,7 +3244,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -3133,7 +3254,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -3144,7 +3264,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -3155,7 +3274,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
+                  // In the billing section where GST type is shown:
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <FormControl sx={styles.compactRadio}>
@@ -3184,15 +3303,18 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       {partyForm.gst && (
                         <Chip
                           label={
-                            billingForm.gst_type === "Inter"
-                              ? "OD GST"
-                              : "Other State"
+                            billingForm.gst_type === "Intra"
+                              ? `State ${partyForm.gst.substring(
+                                  0,
+                                  2
+                                )} (CGST+SGST)`
+                              : "IGST"
                           }
                           size="small"
                           color={
-                            billingForm.gst_type === "Inter"
-                              ? "warning"
-                              : "info"
+                            billingForm.gst_type === "Intra"
+                              ? "success"
+                              : "warning"
                           }
                           variant="outlined"
                         />
@@ -3204,11 +3326,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       sx={{ fontSize: "11px" }}
                     >
                       {partyForm.gst
-                        ? `GST: ${partyForm.gst}`
+                        ? `GST: ${partyForm.gst.substring(0, 2)} = ${
+                            billingForm.gst_type === "Intra"
+                              ? "Intra-State (2.5%+2.5%)"
+                              : "Inter-State (5%)"
+                          }`
                         : "Enter GST to auto-select"}
                     </Typography>
                   </Grid>
-
                   {/* GST Fields */}
                   {billingForm.gst_type === "Intra" && (
                     <>
@@ -3234,7 +3359,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       </Grid>
                     </>
                   )}
-
                   {billingForm.gst_type === "Inter" && (
                     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <TextField
@@ -3247,7 +3371,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       />
                     </Grid>
                   )}
-
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -3258,7 +3381,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -3279,7 +3401,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <TextField
                       size="small"
@@ -3290,7 +3411,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-
                   <Grid size={{ xs: 12 }} sx={{ textAlign: "right", mt: 1 }}>
                     <Button
                       variant="contained"
@@ -3402,7 +3522,21 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         open={showSMSDialog}
         onClose={() => setShowSMSDialog(false)}
         labData={savedLabData || labForm}
-        purchaseData={savedPurchaseData || purchaseForm}
+        purchaseData={{
+          // Merge saved purchase data with current form data
+          ...(savedPurchaseData || {}),
+          // Ensure these specific fields are included
+          invoice_no: purchaseForm.invoice_no,
+          date: purchaseForm.date,
+          gross_weight_mt: purchaseForm.gross_weight_mt,
+          contracted_rate: purchaseForm.contracted_rate,
+          // THESE ARE THE CRITICAL FIELDS:
+          no_of_bags: purchaseForm.no_of_bags, // Make sure this exists
+          bag_type: purchaseForm.bag_type, // Make sure this exists
+          product_name: purchaseForm.product_name,
+          // Also include net weight if available
+          net_weight_mt: purchaseForm.net_weight_mt,
+        }}
         partyData={parties.find(
           (p) =>
             p.party_name ===

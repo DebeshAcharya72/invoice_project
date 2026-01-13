@@ -67,7 +67,7 @@ const SMSDialog = ({
   const vehicleNo = vehicleData?.vehicle_no || "N/A";
 
   // Company data
-  const companyName = companyData?.company_name || "MANMATH PATTANAIK & CO";
+  const companyName = companyData?.company_name || "N/A";
 
   // Format date to DD-MM-YYYY
   const formatDate = (dateString) => {

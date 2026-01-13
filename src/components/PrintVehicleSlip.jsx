@@ -1,5 +1,5 @@
 // src/components/PrintVehicleSlip.jsx
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,8 +8,16 @@ import {
   Button,
   Box,
   Typography,
+  IconButton,
+  Alert,
+  Snackbar,
 } from "@mui/material";
-import { Print as PrintIcon, Close as CloseIcon } from "@mui/icons-material";
+import {
+  Print as PrintIcon,
+  Close as CloseIcon,
+  Sms as SmsIcon,
+} from "@mui/icons-material";
+import { api } from "../services/api";
 
 const PrintVehicleSlip = ({
   open,
@@ -18,6 +26,16 @@ const PrintVehicleSlip = ({
   purchaseData = {},
   companyData = {},
 }) => {
+  const [advanceDate, setAdvanceDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   console.log("Vehicle slip received data:", {
     vehicleData,
     hasBankName: !!vehicleData.bank_name,
@@ -25,7 +43,8 @@ const PrintVehicleSlip = ({
     hasIfsc: !!vehicleData.ifsc,
     allFields: Object.keys(vehicleData),
   });
-  // Extract ALL data from vehicleData - THIS IS WHERE BANK DATA COMES FROM
+
+  // Extract ALL data from vehicleData
   const {
     vehicle_no = "",
     rice_mill_name = "",
@@ -34,12 +53,12 @@ const PrintVehicleSlip = ({
     quantity_mt = "0",
     freight_per_mt = "0",
     advance_amount = "0",
-    bank_name = "", // <-- This should come from vehicleData
-    bank_account = "", // <-- This should come from vehicleData
-    ifsc = "", // <-- This should come from vehicleData
+    bank_name = "",
+    bank_account = "",
+    ifsc = "",
     owner_name = "",
     mobile_no = "",
-    bank_details = "", // Also check for this field
+    paid_by = "Buyer",
   } = vehicleData;
 
   const totalFreight =
@@ -138,6 +157,18 @@ const PrintVehicleSlip = ({
             padding: 20px;
             margin-top: 20px;
           }
+          
+          .paid-by {
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #d32f2f;
+          }
+          
+          .advance-details {
+            font-size: 11px;
+            margin-top: 3px;
+          }
         </style>
       </head>
       <body>
@@ -212,12 +243,18 @@ const PrintVehicleSlip = ({
           
           <table>
             <tr>
-              <td style="width: 50%;"><strong>Advance Date</strong></td>
-              <td style="width: 50%;"><strong>Topay</strong></td>
+              <td style="width: 25%;"><strong>Advance Date</strong></td>
+              <td style="width: 25%;"><strong>Advance Amount</strong></td>
+              <td style="width: 25%;"><strong>Paid By</strong></td>
+              <td style="width: 25%;"><strong>To Pay</strong></td>
             </tr>
             <tr>
-              <td style="height: 35px;">_______________</td>
-              <td style="height: 35px; font-weight: bold;">₹${toPay.toFixed(
+              <td style="height: 35px; text-align: center;">${advanceDate}</td>
+              <td style="height: 35px; text-align: center; font-weight: bold;">₹${
+                advance_amount || "0"
+              }</td>
+              <td style="height: 35px; text-align: center; color: #d32f2f; font-weight: bold;">${paid_by}</td>
+              <td style="height: 35px; text-align: center; font-weight: bold;">₹${toPay.toFixed(
                 2
               )}</td>
             </tr>
@@ -267,12 +304,96 @@ const PrintVehicleSlip = ({
     printWindow.focus();
   };
 
+  const handleSendSMS = async () => {
+    try {
+      setLoading(true);
+
+      if (!mobile_no || mobile_no.length < 10) {
+        showError("Valid mobile number is required to send SMS");
+        return;
+      }
+
+      // Create the SMS message with all challan details
+      const message =
+        `Vehicle Challan Details:\n\n` +
+        `Vehicle No: ${vehicle_no}\n` +
+        `Rice Mill: ${rice_mill_name}\n` +
+        `From: ${destination_from}\n` +
+        `To: ${destination_to}\n` +
+        `Quantity: ${quantity_mt} MT\n` +
+        `Freight/MT: ₹${freight_per_mt}\n` +
+        `Total Freight: ₹${totalFreight.toFixed(2)}\n` +
+        `Advance Date: ${advanceDate}\n` +
+        `Advance Amount: ₹${advance_amount}\n` +
+        `Paid By: ${paid_by}\n` +
+        `Balance to Pay: ₹${toPay.toFixed(2)}\n\n` +
+        `Bank Details:\n` +
+        `${bank_name ? `Bank: ${bank_name}\n` : ""}` +
+        `${bank_account ? `A/C: ${bank_account}\n` : ""}` +
+        `${ifsc ? `IFSC: ${ifsc}\n` : ""}\n` +
+        `Thank you for your service. Have a nice day.`;
+
+      const smsData = {
+        phone_numbers: [mobile_no],
+        message: message,
+        invoice_no: purchaseData?.invoice_no || "N/A",
+        recipients: ["Vehicle Owner"],
+        purchase_id: purchaseData?._id || null,
+      };
+
+      await api.sendSMS(smsData);
+
+      showSuccess("SMS sent successfully to vehicle owner!");
+    } catch (error) {
+      console.error("SMS sending error:", error);
+      showError("Failed to send SMS: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showError = (msg) =>
+    setSnackbar({ open: true, message: msg, severity: "error" });
+  const showSuccess = (msg) =>
+    setSnackbar({ open: true, message: msg, severity: "success" });
+  const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <PrintIcon color="primary" />
-          <Typography variant="h6">Vehicle Transportation Slip</Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <PrintIcon color="primary" />
+            <Typography variant="h6">Vehicle Transportation Slip</Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <IconButton
+              onClick={handleSendSMS}
+              disabled={loading || !mobile_no}
+              color="info"
+              size="small"
+              title="Send SMS to Vehicle Owner"
+            >
+              <SmsIcon />
+            </IconButton>
+          </Box>
         </Box>
       </DialogTitle>
 
@@ -280,6 +401,27 @@ const PrintVehicleSlip = ({
         {/* Hidden div for printing */}
         <Box id="print-vehicle-slip" sx={{ display: "none" }}>
           Printing content
+        </Box>
+
+        {/* Advance Date Selection */}
+        <Box sx={{ mb: 2, p: 1, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Advance Date Selection
+          </Typography>
+          <input
+            type="date"
+            value={advanceDate}
+            onChange={(e) => setAdvanceDate(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              fontSize: "14px",
+            }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+            (Date when advance was given)
+          </Typography>
         </Box>
 
         {/* Preview in dialog */}
@@ -329,7 +471,7 @@ const PrintVehicleSlip = ({
                   Date of Loading
                 </Typography>
                 <Typography sx={{ fontSize: "12px", mt: 0.5 }}>
-                  {new Date().toLocaleDateString()}
+                  {formatDate(new Date())}
                 </Typography>
               </Box>
               <Box>
@@ -421,7 +563,7 @@ const PrintVehicleSlip = ({
                 {rice_mill_name || "_______________"}
               </Box>
 
-              {/* BANK DETAILS CELL - This is what you want */}
+              {/* BANK DETAILS CELL */}
               <Box
                 sx={{
                   width: "25%",
@@ -539,7 +681,7 @@ const PrintVehicleSlip = ({
             </Box>
           </Box>
 
-          {/* Advance Date/Topay Section */}
+          {/* Advance Details Section */}
           <Box
             sx={{
               display: "flex",
@@ -547,38 +689,100 @@ const PrintVehicleSlip = ({
               borderTop: "none",
             }}
           >
-            <Box sx={{ width: "50%", borderRight: "1px solid black" }}>
+            <Box sx={{ width: "25%", borderRight: "1px solid black" }}>
               <Box
                 sx={{
                   p: 1,
                   borderBottom: "1px solid black",
                   fontWeight: "bold",
                   fontSize: "11px",
+                  textAlign: "center",
                 }}
               >
                 Advance Date
-              </Box>
-              <Box sx={{ p: 1.5, minHeight: "35px", fontSize: "11px" }}>
-                _______________
-              </Box>
-            </Box>
-            <Box sx={{ width: "50%" }}>
-              <Box
-                sx={{
-                  p: 1,
-                  borderBottom: "1px solid black",
-                  fontWeight: "bold",
-                  fontSize: "11px",
-                }}
-              >
-                Topay
               </Box>
               <Box
                 sx={{
                   p: 1.5,
                   minHeight: "35px",
                   fontSize: "11px",
+                  textAlign: "center",
+                }}
+              >
+                {formatDate(advanceDate)}
+              </Box>
+            </Box>
+            <Box sx={{ width: "25%", borderRight: "1px solid black" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
                   fontWeight: "bold",
+                  fontSize: "11px",
+                  textAlign: "center",
+                }}
+              >
+                Advance Amount
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  minHeight: "35px",
+                  fontSize: "11px",
+                  textAlign: "center",
+                  fontWeight: "bold",
+                  color: "#d32f2f",
+                }}
+              >
+                ₹{advance_amount || "0"}
+              </Box>
+            </Box>
+            <Box sx={{ width: "25%", borderRight: "1px solid black" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  textAlign: "center",
+                }}
+              >
+                Paid By
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  minHeight: "35px",
+                  fontSize: "11px",
+                  textAlign: "center",
+                  fontWeight: "bold",
+                  color: "#1976d2",
+                  textTransform: "uppercase",
+                }}
+              >
+                {paid_by || "Buyer"}
+              </Box>
+            </Box>
+            <Box sx={{ width: "25%" }}>
+              <Box
+                sx={{
+                  p: 1,
+                  borderBottom: "1px solid black",
+                  fontWeight: "bold",
+                  fontSize: "11px",
+                  textAlign: "center",
+                }}
+              >
+                To Pay
+              </Box>
+              <Box
+                sx={{
+                  p: 1.5,
+                  minHeight: "35px",
+                  fontSize: "11px",
+                  textAlign: "center",
+                  fontWeight: "bold",
+                  color: "#388e3c",
                 }}
               >
                 ₹{toPay.toFixed(2)}
@@ -592,7 +796,7 @@ const PrintVehicleSlip = ({
               Date of Submission
             </Typography>
             <Typography sx={{ fontSize: "11px", mb: 3 }}>
-              {new Date().toLocaleDateString()}
+              {formatDate(new Date())}
             </Typography>
 
             <Box sx={{ fontSize: "10px" }}>
@@ -626,18 +830,43 @@ const PrintVehicleSlip = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} startIcon={<CloseIcon />}>
+        <Button onClick={onClose} startIcon={<CloseIcon />} disabled={loading}>
           Close
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<SmsIcon />}
+          onClick={handleSendSMS}
+          disabled={loading || !mobile_no}
+          color="info"
+        >
+          {loading ? "Sending..." : "Send SMS"}
         </Button>
         <Button
           variant="contained"
           startIcon={<PrintIcon />}
           onClick={handlePrint}
+          disabled={loading}
           color="primary"
         >
           Open for Printing
         </Button>
       </DialogActions>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%", fontSize: "13px" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };

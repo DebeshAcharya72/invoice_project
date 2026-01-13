@@ -84,7 +84,7 @@ const Login = ({ onLogin }) => {
             <LockOutlinedIcon />
           </Avatar>
           <Typography variant="h4" gutterBottom>
-            Rice Bran System Login
+            Rice Bran Remittance Login
           </Typography>
           <Typography color="textSecondary">
             Sign in to access the invoice system

@@ -791,6 +791,51 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 <div>{formatCurrency(totalGST)}</div>
               </div>
 
+              {/* Add breakdown for Intra-state GST */}
+              {billing.gst_type === "Intra" && (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "2px",
+                      fontSize: "10px",
+                      paddingLeft: "20px",
+                    }}
+                  >
+                    <div>CGST (2.5%):</div>
+                    <div>{formatCurrency(billing.cgst || 0)}</div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "4px",
+                      fontSize: "10px",
+                      paddingLeft: "20px",
+                    }}
+                  >
+                    <div>SGST (2.5%):</div>
+                    <div>{formatCurrency(billing.sgst || 0)}</div>
+                  </div>
+                </>
+              )}
+
+              {billing.gst_type === "Inter" && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "4px",
+                    fontSize: "10px",
+                    paddingLeft: "20px",
+                  }}
+                >
+                  <div>IGST (5%):</div>
+                  <div>{formatCurrency(billing.igst || 0)}</div>
+                </div>
+              )}
+
               <div
                 style={{
                   display: "flex",
