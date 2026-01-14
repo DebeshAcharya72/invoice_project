@@ -3274,7 +3274,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                       fullWidth
                     />
                   </Grid>
-                  // In the billing section where GST type is shown:
+                  {/* // In the billing section where GST type is shown: */}
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <FormControl sx={styles.compactRadio}>

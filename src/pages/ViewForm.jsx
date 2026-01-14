@@ -1,4 +1,5 @@
-// src/pages/ViewForm.jsx
+// src/pages/ViewForm.jsx - UPDATED VERSION
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -22,6 +23,7 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  TextField,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -35,6 +37,8 @@ import {
   Person as PersonIcon,
   Business as BusinessIcon,
   AccessTime as TimeIcon,
+  Inventory as InventoryIcon,
+  Scale as ScaleIcon,
 } from "@mui/icons-material";
 import { api } from "../services/api";
 import InvoicePreview from "../components/InvoicePreview";
@@ -49,6 +53,16 @@ const ViewForm = () => {
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
 
+  // State for calculated values (like in Home.jsx)
+  const [calculatedValues, setCalculatedValues] = useState({
+    accountRate: 0,
+    netRate: 0,
+    materialAmount: 0,
+    grossAmount: 0,
+    billedAmount: 0,
+    amountPayable: 0,
+  });
+
   useEffect(() => {
     loadFormData();
   }, [purchaseId]);
@@ -58,9 +72,15 @@ const ViewForm = () => {
       setLoading(true);
       setError("");
 
-      // Use the new endpoint to get complete form data
       const data = await api.getFormComplete(purchaseId);
+      console.log("Form Data Received:", data);
+
       setFormData(data);
+
+      // Calculate values like in Home.jsx
+      if (data) {
+        calculateValues(data);
+      }
     } catch (err) {
       console.error("Failed to load form data:", err);
       setError("Failed to load form data. Please try again.");
@@ -69,23 +89,147 @@ const ViewForm = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+  // Calculate values like in Home.jsx
+  const calculateValues = (data) => {
+    const { purchase, lab, quantity, billing } = data;
+
+    if (!purchase) return;
+
+    // Calculate account rate (same as Home.jsx)
+    const calculateAccountRate = () => {
+      const contractedRate = parseFloat(purchase.contracted_rate) || 0;
+      const ffaRebate =
+        parseFloat(lab?.ffa_rebate_rs || lab?.rebate_rs || 0) || 0;
+      return parseFloat((contractedRate - ffaRebate).toFixed(2));
+    };
+
+    // Calculate net rate (same as Home.jsx)
+    const calculateNetRate = () => {
+      const accountRate = calculateAccountRate();
+      const oilStandard = parseFloat(lab?.standard_oil) || 19;
+      const oilObtained = parseFloat(lab?.obtain_oil) || oilStandard;
+      const oilDifference = oilObtained - oilStandard;
+
+      if (oilStandard === 0) return 0;
+      const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
+      return parseFloat(netRate.toFixed(2));
+    };
+
+    // Calculate material amount
+    const calculateMaterialAmount = () => {
+      const accountRate = calculateAccountRate();
+      const netWeight =
+        parseFloat(quantity?.net_weight_mt || purchase.net_weight_mt) || 0;
+      return parseFloat((accountRate * netWeight).toFixed(2));
+    };
+
+    // Calculate gross amount
+    const calculateGrossAmount = () => {
+      const materialAmount = calculateMaterialAmount();
+      const oilPremium = parseFloat(lab?.oil_premium_rs || 0) || 0;
+      const oilRebate = parseFloat(lab?.oil_rebate_rs || 0) || 0;
+
+      if (oilPremium > 0) {
+        return parseFloat((materialAmount + oilPremium).toFixed(2));
+      } else if (oilRebate > 0) {
+        return parseFloat((materialAmount - oilRebate).toFixed(2));
+      } else {
+        return materialAmount;
+      }
+    };
+
+    // Calculate GST
+    const calculateGST = () => {
+      const grossAmount = calculateGrossAmount();
+      const gstType = billing?.gst_type || "Intra";
+
+      let cgst = 0,
+        sgst = 0,
+        igst = 0;
+
+      if (gstType === "Intra") {
+        cgst = grossAmount * 0.025;
+        sgst = grossAmount * 0.025;
+      } else {
+        igst = grossAmount * 0.05;
+      }
+
+      return {
+        cgst: parseFloat(cgst.toFixed(2)),
+        sgst: parseFloat(sgst.toFixed(2)),
+        igst: parseFloat(igst.toFixed(2)),
+        total: parseFloat((cgst + sgst + igst).toFixed(2)),
+      };
+    };
+
+    // Calculate billed amount
+    const calculateBilledAmount = () => {
+      const grossAmount = calculateGrossAmount();
+      const gst = calculateGST();
+      return parseFloat((grossAmount + gst.total).toFixed(2));
+    };
+
+    // Calculate amount payable
+    const calculateAmountPayable = () => {
+      const billedAmount = calculateBilledAmount();
+      const invoiceAmount = parseFloat(billing?.invoice_amount) || 0;
+      return parseFloat((billedAmount - invoiceAmount).toFixed(2));
+    };
+
+    setCalculatedValues({
+      accountRate: calculateAccountRate(),
+      netRate: calculateNetRate(),
+      materialAmount: calculateMaterialAmount(),
+      grossAmount: calculateGrossAmount(),
+      billedAmount: calculateBilledAmount(),
+      amountPayable: calculateAmountPayable(),
     });
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   const formatCurrency = (amount) => {
-    if (!amount && amount !== 0) return "N/A";
+    if (amount === undefined || amount === null || isNaN(amount)) return "N/A";
     return `₹${parseFloat(amount).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+  };
+
+  const formatWeight = (weight) => {
+    if (weight === undefined || weight === null || isNaN(weight)) return "N/A";
+    return `${parseFloat(weight).toLocaleString("en-IN", {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    })} MT`;
   };
 
   const calculateIsEditable = () => {
@@ -106,90 +250,17 @@ const ViewForm = () => {
     navigate(`/edit-form/${purchaseId}`);
   };
 
-  const handleGenerateInvoice = () => {
-    if (!formData) return;
-
-    // Prepare invoice data from form data
-    const invoice = {
-      reportType: formData.purchase?.report_type || "Purchase",
-      serialNo: `SRM/G-${new Date().getFullYear()}${(new Date().getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}/${Math.floor(Math.random() * 1000)}`,
-      companyName: formData.company?.company_name || "MANMATH PATTANAIK & CO",
-      companyAddress:
-        formData.company?.address_line1 || "16- MAHANADI VIHAR CUTTACK-4",
-      companyMobile: formData.company?.mobile_no || "9437025723 / 9178314411",
-      partyName:
-        formData.party?.party_name || formData.purchase?.party_name || "N/A",
-      address: formData.party
-        ? `${formData.party.address_line1 || ""}, ${
-            formData.party.city || ""
-          }, ${formData.party.state || ""}`.trim()
-        : "N/A",
-      gstNumber: formData.party?.gst || "N/A",
-      productName: formData.purchase?.product_name || "N/A",
-      contractedRate: parseFloat(
-        formData.purchase?.contracted_rate || 0
-      ).toFixed(2),
-      accountRate: parseFloat(formData.billing?.account_rate || 0).toFixed(2),
-      invoiceNo: formData.purchase?.invoice_no || "N/A",
-      invoiceDate:
-        formData.purchase?.date || new Date().toISOString().split("T")[0],
-      vehicleNo: formData.vehicle?.vehicle_no || "N/A",
-      grossWeight: parseFloat(
-        formData.quantity?.gross_weight_mt ||
-          formData.purchase?.gross_weight_mt ||
-          0
-      ).toFixed(3),
-      plasticBags: formData.quantity?.no_of_bags || 0,
-      bagWeight: parseFloat(formData.quantity?.bag_weight_mt || 0.0002).toFixed(
-        6
-      ),
-      netWeight: parseFloat(formData.quantity?.net_weight_mt || 0).toFixed(3),
-      ffaStandard: parseFloat(formData.lab?.standard_ffa || 7).toFixed(2),
-      ffaResult: parseFloat(formData.lab?.obtain_ffa || 0).toFixed(2),
-      ffaDifference: (
-        parseFloat(formData.lab?.obtain_ffa || 0) -
-        parseFloat(formData.lab?.standard_ffa || 7)
-      ).toFixed(2),
-      oilStandard: parseFloat(formData.lab?.standard_oil || 19).toFixed(2),
-      oilResult: parseFloat(formData.lab?.obtain_oil || 19).toFixed(2),
-      oilDifference: (
-        parseFloat(formData.lab?.obtain_oil || 19) -
-        parseFloat(formData.lab?.standard_oil || 19)
-      ).toFixed(2),
-      netRate: parseFloat(formData.billing?.net_rate || 0).toFixed(2),
-      netAmount: parseFloat(formData.billing?.net_amount || 0).toFixed(2),
-      materialAmount: parseFloat(
-        formData.billing?.material_amount || 0
-      ).toFixed(2),
-      grossAmount: parseFloat(formData.billing?.gross_amount || 0).toFixed(2),
-      sgstAmount: parseFloat(formData.billing?.sgst || 0).toFixed(2),
-      cgstAmount: parseFloat(formData.billing?.cgst || 0).toFixed(2),
-      igstAmount: parseFloat(formData.billing?.igst || 0).toFixed(2),
-      billedAmount: parseFloat(formData.billing?.billed_amount || 0).toFixed(2),
-      invoiceAmount: parseFloat(formData.billing?.invoice_amount || 0).toFixed(
-        2
-      ),
-      amountPayable: parseFloat(formData.billing?.amount_payable || 0).toFixed(
-        2
-      ),
-      amountPayableAbs: Math.abs(
-        parseFloat(formData.billing?.amount_payable || 0)
-      ).toFixed(2),
-      noteType:
-        parseFloat(formData.billing?.amount_payable || 0) > 0
-          ? "DEBIT_NOTE"
-          : parseFloat(formData.billing?.amount_payable || 0) < 0
-          ? "CREDIT_NOTE"
-          : "NO_NOTE",
-      inWords: "Zero ONLY", // You can add number-to-words conversion here
-      purchaseId: purchaseId,
-      company_id: formData.purchase?.company_id,
-    };
-
-    setInvoiceData(invoice);
-    setShowInvoice(true);
+  const handleGenerateInvoice = async () => {
+    try {
+      const response = await api.generateInvoice(purchaseId);
+      if (response && response.data) {
+        setInvoiceData(response.data);
+        setShowInvoice(true);
+      }
+    } catch (error) {
+      console.error("Invoice generation error:", error);
+      alert("Failed to generate invoice");
+    }
   };
 
   if (loading) {
@@ -240,14 +311,14 @@ const ViewForm = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header */}
+      {/* Header with Invoice Info */}
       <Box sx={{ mb: 4 }}>
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            mb: 2,
+            mb: 3,
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -260,562 +331,557 @@ const ViewForm = () => {
               Back
             </Button>
             <Typography variant="h4" component="h1">
-              Form Details
+              Invoice Details: {purchase?.invoice_no || "N/A"}
             </Typography>
-            <Chip
-              label={isEditable ? "Editable" : "Locked"}
-              color={isEditable ? "success" : "error"}
-              icon={isEditable ? null : <TimeIcon />}
-            />
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Tooltip title="Edit Form">
-              <span>
-                <IconButton
-                  onClick={handleEdit}
-                  color="primary"
-                  disabled={!isEditable}
-                  sx={{ border: "1px solid", borderColor: "primary.main" }}
-                >
-                  <EditIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-            {/* {billing && (
-              <Tooltip title="Generate Invoice">
-                <IconButton
-                  onClick={handleGenerateInvoice}
-                  color="success"
-                  sx={{ border: "1px solid", borderColor: "success.main" }}
-                >
-                  <ReceiptIcon />
-                </IconButton>
-              </Tooltip>
-            )} */}
+            <Chip
+              label={isEditable ? "Editable" : "View Only"}
+              color={isEditable ? "success" : "default"}
+              icon={isEditable ? <EditIcon /> : <TimeIcon />}
+            />
+            {billing && (
+              <Button
+                variant="contained"
+                startIcon={<ReceiptIcon />}
+                onClick={handleGenerateInvoice}
+                color="success"
+                size="small"
+              >
+                View Invoice
+              </Button>
+            )}
           </Box>
         </Box>
 
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 6 }}>
+        {/* Summary Cards */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <PersonIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Invoice Information</Typography>
-                </Box>
-                <Grid container spacing={1}>
-                  <Grid size={{ xs: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Invoice No:
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {purchase?.invoice_no || "N/A"}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Date:
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatDate(purchase?.date)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Created:
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatDate(purchase?.created_at)}
-                    </Typography>
-                  </Grid>
-                </Grid>
+              <CardContent sx={{ textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary">
+                  Invoice Date
+                </Typography>
+                <Typography variant="h6">
+                  {formatDate(purchase?.date)}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <BusinessIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Product Details</Typography>
-                </Box>
-                <Grid container spacing={1}>
-                  <Grid size={{ xs: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Product:
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {purchase?.product_name || "N/A"}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Bran Type:
-                    </Typography>
-                    <Chip
-                      label={purchase?.bran_type || "Good"}
-                      size="small"
-                      color={
-                        purchase?.bran_type === "Red" ? "error" : "success"
-                      }
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Contracted Rate:
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatCurrency(purchase?.contracted_rate)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Final Rate:
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {formatCurrency(purchase?.final_contracted_rate)}
-                    </Typography>
-                  </Grid>
-                </Grid>
+              <CardContent sx={{ textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary">
+                  Vehicle No
+                </Typography>
+                <Typography variant="h6">
+                  {vehicle?.vehicle_no || "N/A"}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card variant="outlined">
+              <CardContent sx={{ textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary">
+                  Product
+                </Typography>
+                <Typography variant="h6">
+                  {purchase?.product_name || "N/A"}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card variant="outlined">
+              <CardContent sx={{ textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary">
+                  Total Amount
+                </Typography>
+                <Typography variant="h6" color="primary">
+                  {formatCurrency(
+                    billing?.billed_amount || calculatedValues.billedAmount
+                  )}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
       </Box>
 
-      {/* Party Details */}
-      <Card variant="outlined" sx={{ mb: 4 }}>
+      {/* Party Details - Fixed to show all fields */}
+      <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <PersonIcon color="primary" sx={{ mr: 1 }} />
-            <Typography variant="h6">Party Information</Typography>
+            <Typography variant="h6">Party Details</Typography>
           </Box>
-          {party ? (
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Party Name:
-                </Typography>
-                <Typography variant="body1" fontWeight="medium">
-                  {party.party_name}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Contact Person:
-                </Typography>
-                <Typography variant="body1">
-                  {party.contact_person || "N/A"}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Mobile No:
-                </Typography>
-                <Typography variant="body1">
-                  {party.mobile_no || "N/A"}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  GST Number:
-                </Typography>
-                <Typography variant="body1">{party.gst || "N/A"}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Address:
-                </Typography>
-                <Typography variant="body1">
-                  {[party.address_line1, party.city, party.state, party.pin]
-                    .filter(Boolean)
-                    .join(", ") || "N/A"}
-                </Typography>
-              </Grid>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Party Name"
+                value={party?.party_name || purchase?.party_name || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
             </Grid>
-          ) : (
-            <Alert severity="info">No party information available</Alert>
-          )}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Contact Person"
+                value={party?.contact_person || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Mobile No"
+                value={party?.mobile_no || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="GST Number"
+                value={party?.gst || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="Address"
+                value={
+                  [party?.address_line1, party?.city, party?.state, party?.pin]
+                    .filter(Boolean)
+                    .join(", ") || "N/A"
+                }
+                fullWidth
+                multiline
+                rows={2}
+                size="small"
+                InputProps={{ readOnly: true }}
+              />
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
-      {/* Two Column Layout for Vehicle and Quantity */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Vehicle Details */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card variant="outlined" sx={{ height: "100%" }}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <VehicleIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6">Vehicle Details</Typography>
-              </Box>
-              {vehicle ? (
-                <Grid container spacing={1}>
-                  <Grid size={{ xs: 12 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Vehicle No:
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {vehicle.vehicle_no}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Owner Name:
-                    </Typography>
-                    <Typography variant="body1">
-                      {vehicle.owner_name || "N/A"}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Mobile No:
-                    </Typography>
-                    <Typography variant="body1">
-                      {vehicle.mobile_no || "N/A"}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      From:
-                    </Typography>
-                    <Typography variant="body1">
-                      {vehicle.destination_from || "N/A"}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      To:
-                    </Typography>
-                    <Typography variant="body1">
-                      {vehicle.destination_to || "N/A"}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Quantity:
-                    </Typography>
-                    <Typography variant="body1">
-                      {vehicle.quantity_mt || "0"} MT
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Rice Mill:
-                    </Typography>
-                    <Typography variant="body1">
-                      {vehicle.rice_mill_name || "N/A"}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              ) : (
-                <Alert severity="info">No vehicle information available</Alert>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* Purchase Details - Fixed to show all fields */}
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <InventoryIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="h6">Purchase Details</Typography>
+          </Box>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Invoice No"
+                value={purchase?.invoice_no || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Product Name"
+                value={purchase?.product_name || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Contracted Rate (₹)"
+                value={formatCurrency(purchase?.contracted_rate)}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Bran Type"
+                value={purchase?.bran_type || "Good"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            {purchase?.bran_type === "Red" && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  label="Final Contracted Rate (₹)"
+                  value={formatCurrency(purchase?.final_contracted_rate)}
+                  fullWidth
+                  size="small"
+                  InputProps={{ readOnly: true }}
+                  sx={{ mb: 2 }}
+                />
+              </Grid>
+            )}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Gross Weight (MT)"
+                value={formatWeight(purchase?.gross_weight_mt)}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="No. of Bags"
+                value={purchase?.no_of_bags || quantity?.no_of_bags || "0"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Bag Type"
+                value={purchase?.bag_type || "Poly"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Net Weight (MT)"
+                value={formatWeight(
+                  purchase?.net_weight_mt || quantity?.net_weight_mt
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
-        {/* Quantity Details */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card variant="outlined" sx={{ height: "100%" }}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <AttachMoneyIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6">Quantity Details</Typography>
-              </Box>
-              {quantity ? (
-                <Grid container spacing={1}>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Gross Weight:
-                    </Typography>
-                    <Typography variant="body1">
-                      {quantity.gross_weight_mt} MT
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No. of Bags:
-                    </Typography>
-                    <Typography variant="body1">
-                      {quantity.no_of_bags}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Bag Type:
-                    </Typography>
-                    <Chip label={quantity.bag_type} size="small" />
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Bag Weight:
-                    </Typography>
-                    <Typography variant="body1">
-                      {quantity.bag_weight_mt} MT
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Divider sx={{ my: 1 }} />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Net Weight:
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      fontWeight="medium"
-                      fontSize="1.2rem"
-                    >
-                      {quantity.net_weight_mt} MT
-                    </Typography>
-                  </Grid>
-                </Grid>
-              ) : (
-                <Alert severity="info">No quantity information available</Alert>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {/* Vehicle Details */}
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <VehicleIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="h6">Vehicle Details</Typography>
+          </Box>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Vehicle No"
+                value={vehicle?.vehicle_no || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Owner Name"
+                value={vehicle?.owner_name || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Owner Mobile"
+                value={vehicle?.mobile_no || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Rice Mill Name"
+                value={vehicle?.rice_mill_name || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="From"
+                value={vehicle?.destination_from || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="To"
+                value={vehicle?.destination_to || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       {/* Lab Details */}
-      <Card variant="outlined" sx={{ mb: 4 }}>
+      <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <LabIcon color="primary" sx={{ mr: 1 }} />
             <Typography variant="h6">Laboratory Analysis</Typography>
           </Box>
-          {lab ? (
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  FFA Analysis
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Parameter</TableCell>
-                        <TableCell>Standard</TableCell>
-                        <TableCell>Obtained</TableCell>
-                        <TableCell>Difference</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>FFA</TableCell>
-                        <TableCell>{lab.standard_ffa}</TableCell>
-                        <TableCell>{lab.obtain_ffa}</TableCell>
-                        <TableCell>
-                          {(
-                            parseFloat(lab.obtain_ffa || 0) -
-                            parseFloat(lab.standard_ffa || 0)
-                          ).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {lab.rebate_rs && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Rebate Amount:
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatCurrency(lab.rebate_rs)}
-                    </Typography>
-                  </Box>
-                )}
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  Oil Analysis
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Parameter</TableCell>
-                        <TableCell>Standard</TableCell>
-                        <TableCell>Obtained</TableCell>
-                        <TableCell>Difference</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Oil</TableCell>
-                        <TableCell>{lab.standard_oil}</TableCell>
-                        <TableCell>{lab.obtain_oil}</TableCell>
-                        <TableCell>
-                          {(
-                            parseFloat(lab.obtain_oil || 0) -
-                            parseFloat(lab.standard_oil || 0)
-                          ).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                {lab.premium_rs && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Premium Amount:
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatCurrency(lab.premium_rs)}
-                    </Typography>
-                  </Box>
-                )}
-              </Grid>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Standard FFA"
+                value={lab?.standard_ffa || "7"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
             </Grid>
-          ) : (
-            <Alert severity="info">No laboratory analysis available</Alert>
-          )}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Obtained FFA"
+                value={lab?.obtain_ffa || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="FFA Rebate (₹)"
+                value={formatCurrency(lab?.ffa_rebate_rs || lab?.rebate_rs)}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Standard Oil"
+                value={lab?.standard_oil || "19"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Obtained Oil"
+                value={lab?.obtain_oil || "N/A"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Oil Rebate (₹)"
+                value={formatCurrency(lab?.oil_rebate_rs)}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Oil Premium (₹)"
+                value={formatCurrency(lab?.oil_premium_rs)}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
       {/* Billing Details */}
-      <Card variant="outlined">
+      <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <BillingIcon color="primary" sx={{ mr: 1 }} />
             <Typography variant="h6">Billing Details</Typography>
           </Box>
-          {billing ? (
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Account Rate:
-                </Typography>
-                <Typography variant="body1" fontWeight="medium">
-                  {formatCurrency(billing.account_rate)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Net Rate:
-                </Typography>
-                <Typography variant="body1">
-                  {formatCurrency(billing.net_rate)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Material Amount:
-                </Typography>
-                <Typography variant="body1">
-                  {formatCurrency(billing.material_amount)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Net Amount:
-                </Typography>
-                <Typography variant="body1">
-                  {formatCurrency(billing.net_amount)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <Divider sx={{ my: 2 }} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Gross Amount:
-                </Typography>
-                <Typography
-                  variant="body1"
-                  fontWeight="medium"
-                  fontSize="1.1rem"
-                >
-                  {formatCurrency(billing.gross_amount)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  GST Type:
-                </Typography>
-                <Chip label={billing.gst_type} size="small" color="info" />
-              </Grid>
-              {billing.gst_type === "Intra" && (
-                <>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      CGST (2.5%):
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatCurrency(billing.cgst)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      SGST (2.5%):
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatCurrency(billing.sgst)}
-                    </Typography>
-                  </Grid>
-                </>
-              )}
-              {billing.gst_type === "Inter" && (
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    IGST (5%):
-                  </Typography>
-                  <Typography variant="body1">
-                    {formatCurrency(billing.igst)}
-                  </Typography>
-                </Grid>
-              )}
-              <Grid size={{ xs: 12 }}>
-                <Divider sx={{ my: 2 }} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Billed Amount:
-                </Typography>
-                <Typography
-                  variant="body1"
-                  fontWeight="medium"
-                  fontSize="1.2rem"
-                >
-                  {formatCurrency(billing.billed_amount)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Invoice Amount:
-                </Typography>
-                <Typography variant="body1">
-                  {formatCurrency(billing.invoice_amount)}
-                </Typography>
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <Divider sx={{ my: 2 }} />
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Amount Payable:
-                </Typography>
-                <Typography
-                  variant="h6"
-                  color={
-                    billing.amount_payable > 0
-                      ? "error"
-                      : billing.amount_payable < 0
-                      ? "success"
-                      : "text.primary"
-                  }
-                >
-                  {formatCurrency(billing.amount_payable)}
-                  {billing.amount_payable > 0 && " (Debit)"}
-                  {billing.amount_payable < 0 && " (Credit)"}
-                </Typography>
-              </Grid>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Account Rate (₹)"
+                value={formatCurrency(
+                  billing?.account_rate || calculatedValues.accountRate
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
             </Grid>
-          ) : (
-            <Alert severity="warning">Billing details not completed yet</Alert>
-          )}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Net Rate (₹)"
+                value={formatCurrency(
+                  billing?.net_rate || calculatedValues.netRate
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Material Amount (₹)"
+                value={formatCurrency(
+                  billing?.material_amount || calculatedValues.materialAmount
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Gross Amount (₹)"
+                value={formatCurrency(
+                  billing?.gross_amount || calculatedValues.grossAmount
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="GST Type"
+                value={billing?.gst_type || "Intra"}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            {billing?.gst_type === "Intra" ? (
+              <>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="CGST (2.5%)"
+                    value={formatCurrency(billing?.cgst)}
+                    fullWidth
+                    size="small"
+                    InputProps={{ readOnly: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="SGST (2.5%)"
+                    value={formatCurrency(billing?.sgst)}
+                    fullWidth
+                    size="small"
+                    InputProps={{ readOnly: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+              </>
+            ) : (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  label="IGST (5%)"
+                  value={formatCurrency(billing?.igst)}
+                  fullWidth
+                  size="small"
+                  InputProps={{ readOnly: true }}
+                  sx={{ mb: 2 }}
+                />
+              </Grid>
+            )}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Billed Amount (₹)"
+                value={formatCurrency(
+                  billing?.billed_amount || calculatedValues.billedAmount
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                label="Invoice Amount (₹)"
+                value={formatCurrency(billing?.invoice_amount)}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                label="Amount Payable (₹)"
+                value={formatCurrency(
+                  billing?.amount_payable || calculatedValues.amountPayable
+                )}
+                fullWidth
+                size="small"
+                InputProps={{ readOnly: true }}
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+                color={
+                  (billing?.amount_payable || calculatedValues.amountPayable) >
+                  0
+                    ? "error"
+                    : (billing?.amount_payable ||
+                        calculatedValues.amountPayable) < 0
+                    ? "success"
+                    : "primary"
+                }
+              />
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
@@ -838,7 +904,7 @@ const ViewForm = () => {
           >
             Edit Form
           </Button>
-          {/* {billing && (
+          {billing && (
             <Button
               startIcon={<ReceiptIcon />}
               onClick={handleGenerateInvoice}
@@ -847,7 +913,7 @@ const ViewForm = () => {
             >
               Generate Invoice
             </Button>
-          )} */}
+          )}
         </Box>
       </Box>
 

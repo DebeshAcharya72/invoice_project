@@ -676,105 +676,6 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
               </div>
             </div>
 
-            {/* Add the dynamic note section in its place */}
-            {(() => {
-              const billedAmount = parseFloat(billing.billed_amount) || 0;
-              const invoiceAmount = parseFloat(billing.invoice_amount) || 0;
-              const noteAmount = Math.abs(billedAmount - invoiceAmount);
-              const isCreditNote = billedAmount > invoiceAmount;
-              const revisedAmount = parseFloat(
-                billing.revised_amount || billing.amount_payable || 0
-              );
-
-              if (noteAmount > 0) {
-                return (
-                  <div style={{ margin: "25px 0 15px 0" }}>
-                    <div
-                      style={{
-                        textAlign: "center",
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        marginBottom: "15px",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      {isCreditNote ? "CREDIT NOTE" : "DEBIT NOTE"}
-                    </div>
-
-                    <div
-                      style={{
-                        margin: "10px 0",
-                        padding: "15px",
-                        border: "1px solid #000",
-                        backgroundColor: "#f9f9f9",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          lineHeight: "1.5",
-                        }}
-                      >
-                        {isCreditNote
-                          ? `As per our calculation billed amount is ₹${formatCurrency(
-                              billedAmount
-                            )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
-                              noteAmount
-                            )}, a credit note of ₹${formatCurrency(
-                              noteAmount
-                            )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
-                              revisedAmount
-                            )}.`
-                          : `As per our calculation billed amount is ₹${formatCurrency(
-                              billedAmount
-                            )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
-                              noteAmount
-                            )}, a debit note of ₹${formatCurrency(
-                              noteAmount
-                            )} will be raised. Revised amount after debit note is ₹${formatCurrency(
-                              revisedAmount
-                            )}.`}
-                      </div>
-
-                      <div
-                        style={{
-                          marginTop: "10px",
-                          padding: "8px",
-                          backgroundColor: isCreditNote ? "#e8f5e9" : "#ffebee",
-                          borderLeft: `4px solid ${
-                            isCreditNote ? "#4caf50" : "#f44336"
-                          }`,
-                          fontWeight: "bold",
-                          fontSize: "12px",
-                          textAlign: "center",
-                        }}
-                      >
-                        {isCreditNote
-                          ? "Credit Note Amount"
-                          : "Debit Note Amount"}
-                        : ₹{formatCurrency(noteAmount)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                // If no note, show regular "Note" title
-                return (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      fontSize: "16px",
-                      fontWeight: "bold",
-                      marginBottom: "20px",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Note
-                  </div>
-                );
-              }
-            })()}
-
             {/* GST and Final Amounts */}
             <div style={{ margin: "20px 0" }}>
               <div
@@ -895,6 +796,105 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 billing.revised_amount || billing.amount_payable || 0
               )}
             </div>
+
+            {/* Add the dynamic note section in its place */}
+            {(() => {
+              const billedAmount = parseFloat(billing.billed_amount) || 0;
+              const invoiceAmount = parseFloat(billing.invoice_amount) || 0;
+              const noteAmount = Math.abs(billedAmount - invoiceAmount);
+              const isCreditNote = billedAmount > invoiceAmount;
+              const revisedAmount = parseFloat(
+                billing.revised_amount || billing.amount_payable || 0
+              );
+
+              if (noteAmount > 0) {
+                return (
+                  <div style={{ margin: "25px 0 15px 0" }}>
+                    <div
+                      style={{
+                        textAlign: "center",
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        marginBottom: "15px",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      {isCreditNote ? "CREDIT NOTE" : "DEBIT NOTE"}
+                    </div>
+
+                    <div
+                      style={{
+                        margin: "10px 0",
+                        padding: "15px",
+                        border: "1px solid #000",
+                        backgroundColor: "#f9f9f9",
+                      }}
+                    >
+                      {/* <div
+                        style={{
+                          fontSize: "12px",
+                          lineHeight: "1.5",
+                        }}
+                      >
+                        {isCreditNote
+                          ? `As per our calculation billed amount is ₹${formatCurrency(
+                              billedAmount
+                            )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
+                              noteAmount
+                            )}, a credit note of ₹${formatCurrency(
+                              noteAmount
+                            )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
+                              revisedAmount
+                            )}.`
+                          : `As per our calculation billed amount is ₹${formatCurrency(
+                              billedAmount
+                            )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
+                              noteAmount
+                            )}, a debit note of ₹${formatCurrency(
+                              noteAmount
+                            )} will be raised. Revised amount after debit note is ₹${formatCurrency(
+                              revisedAmount
+                            )}.`}
+                      </div> */}
+
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          padding: "8px",
+                          backgroundColor: isCreditNote ? "#e8f5e9" : "#ffebee",
+                          borderLeft: `4px solid ${
+                            isCreditNote ? "#4caf50" : "#f44336"
+                          }`,
+                          fontWeight: "bold",
+                          fontSize: "12px",
+                          textAlign: "center",
+                        }}
+                      >
+                        {isCreditNote
+                          ? "Credit Note Amount"
+                          : "Debit Note Amount"}
+                        : ₹{formatCurrency(noteAmount)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                // If no note, show regular "Note" title
+                return (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      marginBottom: "20px",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Note
+                  </div>
+                );
+              }
+            })()}
 
             {/* Signatures */}
             <div
