@@ -383,6 +383,14 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
     (parseFloat(billing.sgst) || 0) +
     (parseFloat(billing.igst) || 0);
 
+  const billedAmount = parseFloat(billing.billed_amount) || 0;
+  const invoiceAmount = parseFloat(billing.invoice_amount) || 0;
+  const noteAmount = Math.abs(billedAmount - invoiceAmount);
+  const isCreditNote = billedAmount > invoiceAmount;
+  const revisedAmount = parseFloat(
+    billing.revised_amount || billing.amount_payable || 0
+  );
+
   return (
     <Dialog
       open={open}
@@ -661,240 +669,237 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 </div>
               </div>
 
+              {/* Show CREDIT/DEBIT NOTE header ONLY when noteAmount > 0 */}
+              {noteAmount > 0 && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    marginBottom: "15px",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {isCreditNote ? "CREDIT NOTE" : "DEBIT NOTE"}
+                </div>
+              )}
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "4px",
-                  fontWeight: "bold",
-                  paddingTop: "5px",
-                  borderTop: "1px solid #000",
-                }}
-              >
-                <div>Gross Amount (₹):</div>
-                <div>{formatCurrency(billing.gross_amount || 0)}</div>
-              </div>
-            </div>
-
-            {/* GST and Final Amounts */}
-            <div style={{ margin: "20px 0" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "4px",
+                  border: "1px solid #000",
+                  padding: "5px",
                 }}
               >
                 <div>
-                  GST (
-                  {billing.gst_type === "Intra" ? "CGST+SGST 5%" : "IGST 5%"}):
-                </div>
-                <div>{formatCurrency(totalGST)}</div>
-              </div>
-
-              {/* Add breakdown for Intra-state GST */}
-              {billing.gst_type === "Intra" && (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "2px",
-                      fontSize: "10px",
-                      paddingLeft: "20px",
-                    }}
-                  >
-                    <div>CGST (2.5%):</div>
-                    <div>{formatCurrency(billing.cgst || 0)}</div>
-                  </div>
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
                       marginBottom: "4px",
-                      fontSize: "10px",
-                      paddingLeft: "20px",
+                      fontWeight: "bold",
+                      paddingTop: "5px",
+                      // borderTop: "1px solid #000",
                     }}
                   >
-                    <div>SGST (2.5%):</div>
-                    <div>{formatCurrency(billing.sgst || 0)}</div>
+                    <div>Gross Amount (₹):</div>
+                    <div>{formatCurrency(billing.gross_amount || 0)}</div>
                   </div>
-                </>
-              )}
+                </div>
 
-              {billing.gst_type === "Inter" && (
+                {/* GST and Final Amounts */}
+                <div style={{ margin: "20px 0" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    <div>
+                      GST (
+                      {billing.gst_type === "Intra"
+                        ? "CGST+SGST 5%"
+                        : "IGST 5%"}
+                      ):
+                    </div>
+                    <div>{formatCurrency(totalGST)}</div>
+                  </div>
+
+                  {/* Add breakdown for Intra-state GST */}
+                  {billing.gst_type === "Intra" && (
+                    <>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "2px",
+                          fontSize: "10px",
+                          paddingLeft: "20px",
+                        }}
+                      >
+                        <div>CGST (2.5%):</div>
+                        <div>{formatCurrency(billing.cgst || 0)}</div>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "4px",
+                          fontSize: "10px",
+                          paddingLeft: "20px",
+                        }}
+                      >
+                        <div>SGST (2.5%):</div>
+                        <div>{formatCurrency(billing.sgst || 0)}</div>
+                      </div>
+                    </>
+                  )}
+
+                  {billing.gst_type === "Inter" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "4px",
+                        fontSize: "10px",
+                        paddingLeft: "20px",
+                      }}
+                    >
+                      <div>IGST (5%):</div>
+                      <div>{formatCurrency(billing.igst || 0)}</div>
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "4px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    <div>Billed Amount (₹):</div>
+                    <div>{formatCurrency(billing.billed_amount || 0)}</div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    <div>Invoice Amount (₹):</div>
+                    <div>{formatCurrency(billing.invoice_amount || 0)}</div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "4px",
+                      fontWeight: "bold",
+                      paddingTop: "5px",
+                      borderTop: "1px solid #000",
+                    }}
+                  >
+                    <div>Revised Amount Against Bill (₹):</div>
+                    <div>
+                      {formatCurrency(
+                        billing.revised_amount || billing.amount_payable || 0
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amount in Words */}
                 <div
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "4px",
-                    fontSize: "10px",
-                    paddingLeft: "20px",
+                    textAlign: "center",
+                    margin: "20px 0",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    padding: "8px 0",
+                    borderTop: "1px solid #000",
+                    // borderBottom: "1px solid #000",
                   }}
                 >
-                  <div>IGST (5%):</div>
-                  <div>{formatCurrency(billing.igst || 0)}</div>
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "4px",
-                  fontWeight: "bold",
-                }}
-              >
-                <div>Billed Amount (₹):</div>
-                <div>{formatCurrency(billing.billed_amount || 0)}</div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "4px",
-                }}
-              >
-                <div>Invoice Amount (₹):</div>
-                <div>{formatCurrency(billing.invoice_amount || 0)}</div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "4px",
-                  fontWeight: "bold",
-                  paddingTop: "5px",
-                  borderTop: "1px solid #000",
-                }}
-              >
-                <div>Revised Amount Against Bill (₹):</div>
-                <div>
-                  {formatCurrency(
+                  Amount In Words : INR{" "}
+                  {numberToWords(
                     billing.revised_amount || billing.amount_payable || 0
                   )}
                 </div>
               </div>
             </div>
-
-            {/* Amount in Words */}
-            <div
-              style={{
-                textAlign: "center",
-                margin: "20px 0",
-                fontSize: "11px",
-                fontWeight: "bold",
-                padding: "8px 0",
-                borderTop: "1px solid #000",
-                borderBottom: "1px solid #000",
-              }}
-            >
-              Amount In Words : INR{" "}
-              {numberToWords(
-                billing.revised_amount || billing.amount_payable || 0
-              )}
-            </div>
-
-            {/* Add the dynamic note section in its place */}
-            {(() => {
-              const billedAmount = parseFloat(billing.billed_amount) || 0;
-              const invoiceAmount = parseFloat(billing.invoice_amount) || 0;
-              const noteAmount = Math.abs(billedAmount - invoiceAmount);
-              const isCreditNote = billedAmount > invoiceAmount;
-              const revisedAmount = parseFloat(
-                billing.revised_amount || billing.amount_payable || 0
-              );
-
-              if (noteAmount > 0) {
-                return (
-                  <div style={{ margin: "25px 0 15px 0" }}>
-                    <div
-                      style={{
-                        textAlign: "center",
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        marginBottom: "15px",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      {isCreditNote ? "CREDIT NOTE" : "DEBIT NOTE"}
-                    </div>
-
-                    <div
-                      style={{
-                        margin: "10px 0",
-                        padding: "15px",
-                        border: "1px solid #000",
-                        backgroundColor: "#f9f9f9",
-                      }}
-                    >
-                      {/* <div
-                        style={{
-                          fontSize: "12px",
-                          lineHeight: "1.5",
-                        }}
-                      >
-                        {isCreditNote
-                          ? `As per our calculation billed amount is ₹${formatCurrency(
-                              billedAmount
-                            )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
-                              noteAmount
-                            )}, a credit note of ₹${formatCurrency(
-                              noteAmount
-                            )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
-                              revisedAmount
-                            )}.`
-                          : `As per our calculation billed amount is ₹${formatCurrency(
-                              billedAmount
-                            )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
-                              noteAmount
-                            )}, a debit note of ₹${formatCurrency(
-                              noteAmount
-                            )} will be raised. Revised amount after debit note is ₹${formatCurrency(
-                              revisedAmount
-                            )}.`}
-                      </div> */}
-
-                      <div
-                        style={{
-                          marginTop: "10px",
-                          padding: "8px",
-                          backgroundColor: isCreditNote ? "#e8f5e9" : "#ffebee",
-                          borderLeft: `4px solid ${
-                            isCreditNote ? "#4caf50" : "#f44336"
-                          }`,
-                          fontWeight: "bold",
-                          fontSize: "12px",
-                          textAlign: "center",
-                        }}
-                      >
-                        {isCreditNote
-                          ? "Credit Note Amount"
-                          : "Debit Note Amount"}
-                        : ₹{formatCurrency(noteAmount)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                // If no note, show regular "Note" title
-                return (
+            {/* Dynamic Note Section */}
+            {noteAmount > 0 ? (
+              <div style={{ margin: "25px 0 15px 0" }}>
+                <div
+                  style={{
+                    margin: "10px 0",
+                    padding: "15px",
+                    border: "1px solid #000",
+                    backgroundColor: "#f9f9f9",
+                  }}
+                >
                   <div
                     style={{
-                      textAlign: "center",
-                      fontSize: "16px",
-                      fontWeight: "bold",
-                      marginBottom: "20px",
-                      textDecoration: "underline",
+                      fontSize: "12px",
+                      lineHeight: "1.5",
                     }}
                   >
-                    Note
+                    {isCreditNote
+                      ? `As per our calculation billed amount is ₹${formatCurrency(
+                          billedAmount
+                        )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
+                          noteAmount
+                        )}, a credit note of ₹${formatCurrency(
+                          noteAmount
+                        )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
+                          revisedAmount
+                        )}.`
+                      : `As per our calculation billed amount is ₹${formatCurrency(
+                          billedAmount
+                        )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
+                          noteAmount
+                        )}, a debit note of ₹${formatCurrency(
+                          noteAmount
+                        )} will be raised. Revised amount after debit note is ₹${formatCurrency(
+                          revisedAmount
+                        )}.`}
                   </div>
-                );
-              }
-            })()}
+
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      padding: "8px",
+                      backgroundColor: isCreditNote ? "#e8f5e9" : "#ffebee",
+                      borderLeft: `4px solid ${
+                        isCreditNote ? "#4caf50" : "#f44336"
+                      }`,
+                      fontWeight: "bold",
+                      fontSize: "12px",
+                      textAlign: "center",
+                    }}
+                  >
+                    {isCreditNote ? "Credit Note Amount" : "Debit Note Amount"}:
+                    ₹{formatCurrency(noteAmount)}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // If no note, show regular "Note" title
+              <div
+                style={{
+                  textAlign: "center",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  marginBottom: "20px",
+                  textDecoration: "underline",
+                }}
+              >
+                Note
+              </div>
+            )}
 
             {/* Signatures */}
             <div

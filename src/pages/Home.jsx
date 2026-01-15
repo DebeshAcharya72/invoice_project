@@ -184,6 +184,39 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     severity: "success",
   });
 
+  // Add these helper functions after your calculation functions
+
+  // Helper function to round to 2 decimal places (for prices)
+  const roundToTwoDecimals = (num) => {
+    return Math.round(parseFloat(num || 0) * 100) / 100;
+  };
+
+  // Helper function to round to 3 decimal places (for weights)
+  const roundToThreeDecimals = (num) => {
+    return Math.round(parseFloat(num || 0) * 1000) / 1000;
+  };
+
+  // Helper function to format currency for display
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null || isNaN(amount)) return "0.00";
+    const rounded = roundToTwoDecimals(amount);
+    return rounded.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  // Helper function to format weight for display
+  const formatWeight = (weight) => {
+    if (weight === undefined || weight === null || isNaN(weight))
+      return "0.000";
+    const rounded = roundToThreeDecimals(weight);
+    return rounded.toLocaleString("en-IN", {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    });
+  };
+
   // ============ CALCULATION FUNCTIONS ============
 
   const validateGSTFormat = (gst) => {
@@ -354,6 +387,101 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     };
   };
 
+  // const calculateAccountRate = () => {
+  //   const contractedRate =
+  //     parseFloat(
+  //       purchaseForm.bran_type === "Red"
+  //         ? purchaseForm.final_contracted_rate || purchaseForm.contracted_rate
+  //         : purchaseForm.contracted_rate
+  //     ) || 0;
+
+  //   const ffaRebate =
+  //     parseFloat(
+  //       savedLabData?.ffa_rebate_rs ||
+  //         savedLabData?.rebate_rs ||
+  //         labForm.ffa_rebate_rs
+  //     ) || 0;
+
+  //   return parseFloat((contractedRate - ffaRebate).toFixed(2));
+  // };
+
+  // const calculateNetRate = () => {
+  //   const accountRate = calculateAccountRate();
+  //   const oilStandard = parseFloat(labForm.standard_oil) || 19;
+  //   const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
+  //   const oilDifference = oilObtained - oilStandard;
+
+  //   if (oilStandard === 0) return 0;
+
+  //   const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
+  //   return parseFloat(netRate.toFixed(2));
+  // };
+
+  // const calculateNetAmount = () => {
+  //   const netRate = calculateNetRate();
+  //   const accountRate = calculateAccountRate();
+  //   const netAmount = netRate * accountRate;
+  //   return parseFloat(netAmount.toFixed(2));
+  // };
+
+  // const calculateMaterialAmount = () => {
+  //   const accountRate = calculateAccountRate();
+  //   const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+  //   return parseFloat((accountRate * netWeight).toFixed(2));
+  // };
+
+  // const calculateGrossAmount = () => {
+  //   const materialAmount = calculateMaterialAmount();
+  //   const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
+  //   const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
+
+  //   if (oilPremium > 0) {
+  //     return parseFloat((materialAmount + oilPremium).toFixed(2));
+  //   } else if (oilRebate > 0) {
+  //     return parseFloat((materialAmount - oilRebate).toFixed(2));
+  //   } else {
+  //     return materialAmount;
+  //   }
+  // };
+
+  // const calculateGST = () => {
+  //   const grossAmount = calculateGrossAmount();
+  //   const gstType = billingForm.gst_type || "Intra";
+
+  //   let cgst = 0,
+  //     sgst = 0,
+  //     igst = 0;
+
+  //   // FIXED: Match backend logic
+  //   if (gstType === "Intra") {
+  //     // Intra-state: Same state (Odisha to Odisha) → CGST 2.5% + SGST 2.5%
+  //     cgst = grossAmount * 0.025;
+  //     sgst = grossAmount * 0.025;
+  //   } else {
+  //     // Inter-state: Different state → IGST 5%
+  //     igst = grossAmount * 0.05;
+  //   }
+
+  //   return {
+  //     cgst: parseFloat(cgst.toFixed(2)),
+  //     sgst: parseFloat(sgst.toFixed(2)),
+  //     igst: parseFloat(igst.toFixed(2)),
+  //     total: parseFloat((cgst + sgst + igst).toFixed(2)),
+  //   };
+  // };
+
+  // const calculateBilledAmount = () => {
+  //   const grossAmount = calculateGrossAmount();
+  //   const gst = calculateGST();
+  //   return parseFloat((grossAmount + gst.total).toFixed(2));
+  // };
+
+  // const calculateAmountPayable = () => {
+  //   const billedAmount = calculateBilledAmount();
+  //   const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
+  //   return parseFloat((billedAmount - invoiceAmount).toFixed(2));
+  // };
+
   const calculateAccountRate = () => {
     const contractedRate =
       parseFloat(
@@ -369,7 +497,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           labForm.ffa_rebate_rs
       ) || 0;
 
-    return parseFloat((contractedRate - ffaRebate).toFixed(2));
+    return roundToTwoDecimals(contractedRate - ffaRebate);
   };
 
   const calculateNetRate = () => {
@@ -381,20 +509,20 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     if (oilStandard === 0) return 0;
 
     const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
-    return parseFloat(netRate.toFixed(2));
+    return roundToTwoDecimals(netRate);
   };
 
   const calculateNetAmount = () => {
     const netRate = calculateNetRate();
     const accountRate = calculateAccountRate();
     const netAmount = netRate * accountRate;
-    return parseFloat(netAmount.toFixed(2));
+    return roundToTwoDecimals(netAmount);
   };
 
   const calculateMaterialAmount = () => {
     const accountRate = calculateAccountRate();
     const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
-    return parseFloat((accountRate * netWeight).toFixed(2));
+    return roundToTwoDecimals(accountRate * netWeight);
   };
 
   const calculateGrossAmount = () => {
@@ -403,11 +531,11 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
 
     if (oilPremium > 0) {
-      return parseFloat((materialAmount + oilPremium).toFixed(2));
+      return roundToTwoDecimals(materialAmount + oilPremium);
     } else if (oilRebate > 0) {
-      return parseFloat((materialAmount - oilRebate).toFixed(2));
+      return roundToTwoDecimals(materialAmount - oilRebate);
     } else {
-      return materialAmount;
+      return roundToTwoDecimals(materialAmount);
     }
   };
 
@@ -430,25 +558,24 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
 
     return {
-      cgst: parseFloat(cgst.toFixed(2)),
-      sgst: parseFloat(sgst.toFixed(2)),
-      igst: parseFloat(igst.toFixed(2)),
-      total: parseFloat((cgst + sgst + igst).toFixed(2)),
+      cgst: roundToTwoDecimals(cgst),
+      sgst: roundToTwoDecimals(sgst),
+      igst: roundToTwoDecimals(igst),
+      total: roundToTwoDecimals(cgst + sgst + igst),
     };
   };
 
   const calculateBilledAmount = () => {
     const grossAmount = calculateGrossAmount();
     const gst = calculateGST();
-    return parseFloat((grossAmount + gst.total).toFixed(2));
+    return roundToTwoDecimals(grossAmount + gst.total);
   };
 
   const calculateAmountPayable = () => {
     const billedAmount = calculateBilledAmount();
     const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
-    return parseFloat((billedAmount - invoiceAmount).toFixed(2));
+    return roundToTwoDecimals(billedAmount - invoiceAmount);
   };
-
   const getOilStandard = (product) => {
     const mapping = {
       "Boiled Rice Bran": 19.0,
@@ -919,7 +1046,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
     const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
     const netWeight = grossWeight - noOfBags * bagWeight;
-    const netWeightStr = netWeight >= 0 ? netWeight.toFixed(6) : "0.000000";
+    const netWeightStr = netWeight >= 0 ? netWeight.toFixed(3) : "0.000";
 
     setPurchaseForm((prev) => ({
       ...prev,
@@ -1838,7 +1965,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 .replace(/[^A-Z0-9]/g, "");
                               if (
                                 validateGSTFormat(gstValue) ||
-                                gstValue.length < 16
+                                gstValue.length < 50
                               ) {
                                 updateFormWithTracking(setPartyForm, "party", {
                                   ...partyForm,
@@ -2777,7 +2904,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           fullWidth
                           inputProps={{
                             style: { textTransform: "uppercase" },
-                            maxLength: 11, // IFSC codes are typically 11 characters
+                            maxLength: 50, // IFSC codes are typically 11 characters
                           }}
                           helperText="e.g., SBIN0001234"
                         />
