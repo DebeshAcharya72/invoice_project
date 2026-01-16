@@ -627,6 +627,26 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                   </div>
                   <div>{vehicle.vehicle_no || "OD15F 6232"}</div>
                 </div>
+                {/* CONDITIONAL: Show Agent Name only if data exists */}
+
+                {purchase.agent_name && (
+                  <div style={{ display: "flex", marginBottom: "4px" }}>
+                    <div style={{ fontWeight: "bold", width: "100px" }}>
+                      Agent Name:
+                    </div>
+                    <div>{purchase.agent_name}</div>
+                  </div>
+                )}
+
+                {/* CONDITIONAL: Show Agent Number only if data exists */}
+                {purchase.agent_number && (
+                  <div style={{ display: "flex", marginBottom: "4px" }}>
+                    <div style={{ fontWeight: "bold", width: "100px" }}>
+                      Agent Number:
+                    </div>
+                    <div>{purchase.agent_number}</div>
+                  </div>
+                )}
               </div>
             </div>
 

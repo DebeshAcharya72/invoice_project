@@ -1488,6 +1488,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
           purchase: raw.purchase || {
             ...purchaseForm,
+            agent_name: purchaseForm.agent_name || "",
+            agent_number: purchaseForm.agent_number || "",
             product_name: purchaseForm.product_name || "Boiled Rice Bran",
             gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt) || 0,
             contracted_rate: parseFloat(purchaseForm.contracted_rate) || 0,
