@@ -127,6 +127,56 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 font-size: 11px;
               }
               
+              .weight-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+              }
+              
+              .weight-table th,
+              .weight-table td {
+                border: 1px solid #000;
+                padding: 6px;
+                text-align: center;
+                font-size: 11px;
+              }
+              
+              .laboratory-analysis {
+                margin: 20px 0;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background: #f9f9f9;
+              }
+              
+              .lab-section {
+                margin-bottom: 15px;
+              }
+              
+              .lab-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: #1976d2;
+              }
+              
+              .lab-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 3px;
+                font-size: 11px;
+              }
+              
+              .lab-label {
+                font-weight: 500;
+                min-width: 120px;
+              }
+              
+              .lab-value {
+                font-weight: normal;
+                text-align: right;
+              }
+              
               .billing-description {
                 margin: 20px 0;
               }
@@ -264,6 +314,15 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
     });
   };
 
+  const formatWeight = (weight) => {
+    if (weight === undefined || weight === null || isNaN(weight))
+      return "0.000";
+    return parseFloat(weight).toLocaleString("en-IN", {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    });
+  };
+
   const numberToWords = (num) => {
     const a = [
       "",
@@ -344,7 +403,6 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
     if (!dateStr) return "";
     try {
       const date = new Date(dateStr);
-      // Format as DD-MM-YYYY
       const day = String(date.getDate()).padStart(2, "0");
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
@@ -390,6 +448,28 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
   const revisedAmount = parseFloat(
     billing.revised_amount || billing.amount_payable || 0
   );
+
+  // Get weight data
+  const grossWeight =
+    quantity?.gross_weight_mt || purchase?.gross_weight_mt || 0;
+  const netWeight = quantity?.net_weight_mt || 0;
+  const noOfBags = quantity?.no_of_bags || purchase?.no_of_bags || 0;
+  const bagType = quantity?.bag_type || purchase?.bag_type || "Poly";
+
+  // Get bag weight (Poly = 0.0002 MT, Jute = 0.0005 MT)
+  const bagWeight = bagType === "Poly" ? 0.0002 : 0.0005;
+  const totalBagWeight = noOfBags * bagWeight;
+
+  // Get lab data with defaults
+  const standardFFA = lab?.standard_ffa || 7;
+  const obtainedFFA = lab?.obtain_ffa || 0;
+  const ffaRebate = lab?.rebate_rs || lab?.ffa_rebate_rs || 0;
+  const ffaPremium = lab?.premium_rs || lab?.ffa_premium_rs || 0;
+
+  const standardOil = lab?.standard_oil || 19;
+  const obtainedOil = lab?.obtain_oil || 0;
+  const oilRebate = lab?.oil_rebate_rs || 0;
+  const oilPremium = lab?.oil_premium_rs || 0;
 
   return (
     <Dialog
@@ -515,7 +595,14 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
               </div>
 
               {/* Right Column */}
-              <div style={{ width: "45%" }}>
+              <div
+                style={{
+                  width: "45%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                }}
+              >
                 <div style={{ display: "flex", marginBottom: "4px" }}>
                   <div style={{ fontWeight: "bold", width: "100px" }}>
                     Serial No:
@@ -548,7 +635,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                margin: "15px 0",
+                margin: "0px 0",
                 fontSize: "11px",
               }}
             >
@@ -591,14 +678,266 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 </tr>
               </tbody>
             </table>
+            <div style={{ display: "flex", width: "100%" }}>
+              {/* Weight Details Table - UPDATED SECTION */}
+              <div style={{ margin: "2px 0", width: "50vw" }}>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    marginBottom: "2px",
+                  }}
+                >
+                  Weight Details
+                </div>
 
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    margin: "2px 0",
+                    fontSize: "11px",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        style={{
+                          border: "1px solid #000",
+                          padding: "6px",
+                          // backgroundColor: "#f0f0f0",
+                        }}
+                      >
+                        Particulars
+                      </th>
+                      <th
+                        style={{
+                          border: "1px solid #000",
+                          padding: "6px",
+                          // backgroundColor: "#f0f0f0",
+                        }}
+                      >
+                        Weight (MT)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td
+                        style={{
+                          border: "1px solid #000",
+                          padding: "6px",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Gross Weight
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid #000",
+                          padding: "6px",
+                          textAlign: "right",
+                        }}
+                      >
+                        {formatWeight(grossWeight)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        style={{
+                          border: "1px solid #000",
+                          padding: "6px",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Net Weight
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid #000",
+                          padding: "6px",
+                          textAlign: "right",
+                        }}
+                      >
+                        {formatWeight(netWeight)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Laboratory Analysis Section - UPDATED SECTION */}
+              <div style={{ margin: "2px 0" }}>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    marginBottom: "2px",
+                  }}
+                >
+                  Laboratory Analysis
+                </div>
+
+                <div
+                  style={{
+                    // border: "1px solid #ddd",
+                    borderRadius: "4px",
+
+                    // backgroundColor: "#f9f9f9",
+                    width: "50vw",
+                  }}
+                >
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "11px",
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{ border: "1px solid #000", padding: "6px" }}
+                        ></th>
+                        <th
+                          style={{ border: "1px solid #000", padding: "6px" }}
+                        >
+                          Standards
+                        </th>
+                        <th
+                          style={{ border: "1px solid #000", padding: "6px" }}
+                        >
+                          Result
+                        </th>
+                        <th
+                          style={{ border: "1px solid #000", padding: "6px" }}
+                        >
+                          Account
+                        </th>
+                        <th
+                          style={{ border: "1px solid #000", padding: "6px" }}
+                        >
+                          Differences
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          FFA
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {standardFFA}%
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {obtainedFFA}%
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {/* Account: 0.00 if FFA < 7, otherwise show obtained FFA */}
+                          {obtainedFFA < standardFFA
+                            ? "0.00"
+                            : obtainedFFA + "%"}
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                            color:
+                              obtainedFFA > standardFFA ? "#f44336" : "#4caf50",
+                          }}
+                        >
+                          {/* Differences: 0.00 if FFA < 7, otherwise calculate (Account - Standard) */}
+                          {obtainedFFA < standardFFA
+                            ? "0.00"
+                            : (obtainedFFA - standardFFA).toFixed(2) + "%"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          OIL
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {standardOil}%
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {obtainedOil}%
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {obtainedOil}%
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                            color:
+                              obtainedOil > standardOil ? "#4caf50" : "#f44336",
+                          }}
+                        >
+                          {(obtainedOil - standardOil).toFixed(2)}%
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
             {/* Billing Description */}
-            <div style={{ margin: "20px 0" }}>
+            <div style={{ margin: "5px 0" }}>
               <div
                 style={{
                   fontSize: "12px",
                   fontWeight: "bold",
-                  marginBottom: "10px",
+                  marginBottom: "2px",
                 }}
               >
                 Billing Description
@@ -676,7 +1015,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     textAlign: "center",
                     fontSize: "16px",
                     fontWeight: "bold",
-                    marginBottom: "15px",
+                    marginBottom: "2px",
                     textDecoration: "underline",
                   }}
                 >
@@ -697,7 +1036,6 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                       marginBottom: "4px",
                       fontWeight: "bold",
                       paddingTop: "5px",
-                      // borderTop: "1px solid #000",
                     }}
                   >
                     <div>Gross Amount (₹):</div>
@@ -707,24 +1045,6 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
 
                 {/* GST and Final Amounts */}
                 <div style={{ margin: "20px 0" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <div>
-                      GST (
-                      {billing.gst_type === "Intra"
-                        ? "CGST+SGST 5%"
-                        : "IGST 5%"}
-                      ):
-                    </div>
-                    <div>{formatCurrency(totalGST)}</div>
-                  </div>
-
-                  {/* Add breakdown for Intra-state GST */}
                   {billing.gst_type === "Intra" && (
                     <>
                       <div
@@ -796,7 +1116,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      marginBottom: "4px",
+                      // marginBottom: "4px",
                       fontWeight: "bold",
                       paddingTop: "5px",
                       borderTop: "1px solid #000",
@@ -815,12 +1135,11 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 <div
                   style={{
                     textAlign: "center",
-                    margin: "20px 0",
+                    margin: "0px 0",
                     fontSize: "11px",
                     fontWeight: "bold",
-                    padding: "8px 0",
+                    padding: "2px 0",
                     borderTop: "1px solid #000",
-                    // borderBottom: "1px solid #000",
                   }}
                 >
                   Amount In Words : INR{" "}
@@ -887,7 +1206,6 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 </div>
               </div>
             ) : (
-              // If no note, show regular "Note" title
               <div
                 style={{
                   textAlign: "center",
