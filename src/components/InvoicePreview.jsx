@@ -291,12 +291,12 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
         imgX,
         imgY,
         imgWidth * ratio,
-        imgHeight * ratio
+        imgHeight * ratio,
       );
       pdf.save(
         `Invoice_${invoiceData?.purchase?.invoice_no || "Unknown"}_${
           new Date().toISOString().split("T")[0]
-        }.pdf`
+        }.pdf`,
       );
       setPrintLoading(false);
     } catch (error) {
@@ -446,7 +446,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
   const noteAmount = Math.abs(billedAmount - invoiceAmount);
   const isCreditNote = billedAmount > invoiceAmount;
   const revisedAmount = parseFloat(
-    billing.revised_amount || billing.amount_payable || 0
+    billing.revised_amount || billing.amount_payable || 0,
   );
 
   // Get weight data
@@ -603,25 +603,53 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                   alignItems: "flex-end",
                 }}
               >
-                <div style={{ display: "flex", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    marginBottom: "4px",
+                    textAlign: "left",
+                    width: "200px",
+                  }}
+                >
                   <div style={{ fontWeight: "bold", width: "100px" }}>
                     Serial No:
                   </div>
                   <div>{purchase.invoice_no || "FSR-7203"}</div>
                 </div>
-                <div style={{ display: "flex", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    marginBottom: "4px",
+                    textAlign: "left",
+                    width: "200px",
+                  }}
+                >
                   <div style={{ fontWeight: "bold", width: "100px" }}>
                     Invoice No:
                   </div>
                   <div>{purchase.invoice_no || "FSR-7203"}</div>
                 </div>
-                <div style={{ display: "flex", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    marginBottom: "4px",
+                    textAlign: "left",
+                    width: "200px",
+                  }}
+                >
                   <div style={{ fontWeight: "bold", width: "100px" }}>
                     Invoice Date:
                   </div>
                   <div>{formatDate(purchase.date) || "04-01-2026"}</div>
                 </div>
-                <div style={{ display: "flex", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    marginBottom: "4px",
+                    textAlign: "left",
+                    width: "200px",
+                  }}
+                >
                   <div style={{ fontWeight: "bold", width: "100px" }}>
                     Vehicle No:
                   </div>
@@ -1008,7 +1036,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 <div>Rebate For Oil (₹):</div>
                 <div>
                   {formatCurrency(
-                    billing.oil_rebate || billing.oil_rebate_rs || 0
+                    billing.oil_rebate || billing.oil_rebate_rs || 0,
                   )}
                 </div>
               </div>
@@ -1023,7 +1051,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 <div>Premium For Oil (₹):</div>
                 <div>
                   {formatCurrency(
-                    billing.oil_premium || billing.oil_premium_rs || 0
+                    billing.oil_premium || billing.oil_premium_rs || 0,
                   )}
                 </div>
               </div>
@@ -1145,7 +1173,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     <div>Revised Amount Against Bill (₹):</div>
                     <div>
                       {formatCurrency(
-                        billing.revised_amount || billing.amount_payable || 0
+                        billing.revised_amount || billing.amount_payable || 0,
                       )}
                     </div>
                   </div>
@@ -1164,7 +1192,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 >
                   Amount In Words : INR{" "}
                   {numberToWords(
-                    billing.revised_amount || billing.amount_payable || 0
+                    billing.revised_amount || billing.amount_payable || 0,
                   )}
                 </div>
               </div>
@@ -1188,22 +1216,22 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                   >
                     {isCreditNote
                       ? `As per our calculation billed amount is ₹${formatCurrency(
-                          billedAmount
+                          billedAmount,
                         )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
-                          noteAmount
+                          noteAmount,
                         )}, a credit note of ₹${formatCurrency(
-                          noteAmount
+                          noteAmount,
                         )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
-                          revisedAmount
+                          revisedAmount,
                         )}.`
                       : `As per our calculation billed amount is ₹${formatCurrency(
-                          billedAmount
+                          billedAmount,
                         )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
-                          noteAmount
+                          noteAmount,
                         )}, a debit note of ₹${formatCurrency(
-                          noteAmount
+                          noteAmount,
                         )} will be raised. Revised amount after debit note is ₹${formatCurrency(
-                          revisedAmount
+                          revisedAmount,
                         )}.`}
                   </div>
 
