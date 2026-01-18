@@ -580,11 +580,30 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                   </div>
                   <div>{party.party_name || ""}</div>
                 </div>
-                <div style={{ display: "flex", marginBottom: "4px" }}>
+                {/* <div style={{ display: "flex", marginBottom: "4px" }}>
                   <div style={{ fontWeight: "bold", width: "100px" }}>
                     Address:
                   </div>
                   <div>{party.address_line1 || ""}</div>
+                </div> */}
+
+                <div style={{ display: "flex", marginBottom: "4px" }}>
+                  <div style={{ fontWeight: "bold", width: "100px" }}>
+                    Address:
+                  </div>
+                  <div>
+                    {party.address_line1 || ""}
+                    {(party.city || party.state || party.pin) && (
+                      <span>
+                        {party.address_line1 ? ", " : ""}
+                        {party.city || ""}
+                        {party.city && (party.state || party.pin) ? ", " : ""}
+                        {party.state || ""}
+                        {party.state && party.pin ? " - " : ""}
+                        {party.pin || ""}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: "flex", marginBottom: "4px" }}>
                   <div style={{ fontWeight: "bold", width: "100px" }}>
@@ -658,7 +677,14 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 {/* CONDITIONAL: Show Agent Name only if data exists */}
 
                 {purchase.agent_name && (
-                  <div style={{ display: "flex", marginBottom: "4px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      marginBottom: "4px",
+                      textAlign: "left",
+                      width: "200px",
+                    }}
+                  >
                     <div style={{ fontWeight: "bold", width: "100px" }}>
                       Agent Name:
                     </div>
@@ -668,7 +694,14 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
 
                 {/* CONDITIONAL: Show Agent Number only if data exists */}
                 {purchase.agent_number && (
-                  <div style={{ display: "flex", marginBottom: "4px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      marginBottom: "4px",
+                      textAlign: "left",
+                      width: "200px",
+                    }}
+                  >
                     <div style={{ fontWeight: "bold", width: "100px" }}>
                       Agent Number:
                     </div>
@@ -734,6 +767,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     fontSize: "12px",
                     fontWeight: "bold",
                     marginBottom: "2px",
+                    textAlign: "center",
                   }}
                 >
                   Weight Details
@@ -823,6 +857,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     fontSize: "12px",
                     fontWeight: "bold",
                     marginBottom: "2px",
+                    textAlign: "center",
                   }}
                 >
                   Laboratory Analysis
