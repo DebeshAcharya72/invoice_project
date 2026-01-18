@@ -113,7 +113,8 @@ Weight.- ${(parseFloat(gross_weight_mt) || 0).toFixed(2)}
 Rate.- ${parseFloat(contracted_rate) || 0}
 Oil.- ${formatOilFFA(obtain_oil || standard_oil)}
 FFA.- ${formatOilFFA(obtain_ffa || standard_ffa)}
-${companyName}`;
+${companyName}
+Thank you for your business!`;
 
   const getRecipients = () => {
     const recipients = [];
