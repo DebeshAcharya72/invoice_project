@@ -289,7 +289,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     product,
     oilObtained,
     contractedRate,
-    netWeight
+    netWeight,
   ) => {
     const oilValue = parseFloat(oilObtained) || 0;
     const rate = parseFloat(contractedRate) || 0;
@@ -487,14 +487,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       parseFloat(
         purchaseForm.bran_type === "Red"
           ? purchaseForm.final_contracted_rate || purchaseForm.contracted_rate
-          : purchaseForm.contracted_rate
+          : purchaseForm.contracted_rate,
       ) || 0;
 
     const ffaRebate =
       parseFloat(
         savedLabData?.ffa_rebate_rs ||
           savedLabData?.rebate_rs ||
-          labForm.ffa_rebate_rs
+          labForm.ffa_rebate_rs,
       ) || 0;
 
     return roundToTwoDecimals(contractedRate - ffaRebate);
@@ -734,7 +734,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
   // Data States
   const [currentPurchaseId, setCurrentPurchaseId] = useState(
-    purchaseId || null
+    purchaseId || null,
   );
   const [parties, setParties] = useState([]);
   const [savedSections, setSavedSections] = useState({
@@ -898,7 +898,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   useEffect(() => {
     if (purchaseForm.party_name) {
       const selectedParty = parties.find(
-        (p) => p.party_name === purchaseForm.party_name
+        (p) => p.party_name === purchaseForm.party_name,
       );
       if (selectedParty) {
         const destinationFrom = [
@@ -941,7 +941,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   useEffect(() => {
     if (selectedCompany) {
       const selectedCompanyObj = companies.find(
-        (c) => (c._id || c.id) === selectedCompany
+        (c) => (c._id || c.id) === selectedCompany,
       );
       if (selectedCompanyObj) {
         const destinationTo = [
@@ -976,7 +976,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         product,
         oilValue,
         rate,
-        netWeight
+        netWeight,
       );
       setLabForm((prev) => ({
         ...prev,
@@ -1012,7 +1012,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         purchaseForm.product_name,
         labForm.obtain_oil,
         purchaseForm.contracted_rate,
-        netWeight
+        netWeight,
       );
       setLabForm((prev) => ({
         ...prev,
@@ -1087,7 +1087,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           setSelectedCompany(savedPurchaseData.company_id);
         } else if (currentUser?.company_id) {
           const userCompany = companiesData.find(
-            (c) => (c._id || c.id) === currentUser.company_id
+            (c) => (c._id || c.id) === currentUser.company_id,
           );
           if (userCompany) {
             setSelectedCompany(userCompany._id || userCompany.id);
@@ -1239,7 +1239,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         // Update existing purchase
         purchase = await api.updatePurchase(
           savedPurchaseData._id,
-          purchaseData
+          purchaseData,
         );
       } else {
         // Create new purchase
@@ -1272,7 +1272,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         // Update existing vehicle
         savedVehicle = await api.updateVehicle(
           savedVehicleData._id,
-          vehicleData
+          vehicleData,
         );
       } else {
         // Create new vehicle
@@ -1303,7 +1303,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         purchaseForm.product_name,
         labForm.obtain_oil,
         purchaseForm.contracted_rate,
-        netWeight
+        netWeight,
       );
 
       const labData = {
@@ -1456,12 +1456,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
         // Get selected company
         const selectedCompanyObj = companies.find(
-          (c) => (c._id || c.id) === selectedCompany
+          (c) => (c._id || c.id) === selectedCompany,
         );
 
         // Get party data
         const partyData = parties.find(
-          (p) => p.party_name === purchaseForm.party_name
+          (p) => p.party_name === purchaseForm.party_name,
         );
 
         // Use the ACTUAL billing data from backend response
@@ -1576,7 +1576,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     } catch (err) {
       console.error("Invoice generation error:", err);
       showError(
-        "Failed to generate invoice: " + (err.message || "Unknown error")
+        "Failed to generate invoice: " + (err.message || "Unknown error"),
       );
     }
   };
@@ -1594,7 +1594,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
     if (selectedCompany) {
       const selected = companies.find(
-        (c) => (c._id || c.id) === selectedCompany
+        (c) => (c._id || c.id) === selectedCompany,
       );
       return selected ? selected.company_name : "Select Company";
     }
@@ -2013,8 +2013,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 ? "Saved"
                                 : "Save Party"
                               : modifiedSections.party
-                              ? "Save Changes"
-                              : "Saved"}
+                                ? "Save Changes"
+                                : "Saved"}
                           </Button>
                         </Box>
                       </Grid>
@@ -2097,7 +2097,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   party_name: e.target.value,
-                                }
+                                },
                               )
                             }
                           >
@@ -2122,7 +2122,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               {
                                 ...purchaseForm,
                                 invoice_no: e.target.value,
-                              }
+                              },
                             )
                           }
                           onKeyDown={(e) => handleKeyDown(e, purchaseDateRef)}
@@ -2146,7 +2146,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               {
                                 ...purchaseForm,
                                 date: e.target.value,
-                              }
+                              },
                             )
                           }
                           onKeyDown={(e) => handleKeyDown(e, receivedDateRef)}
@@ -2169,7 +2169,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               {
                                 ...purchaseForm,
                                 received_date: e.target.value,
-                              }
+                              },
                             )
                           }
                           onKeyDown={(e) => handleKeyDown(e, contractedRateRef)}
@@ -2194,7 +2194,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   product_name: e.target.value,
-                                }
+                                },
                               )
                             }
                           >
@@ -2230,7 +2230,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   contracted_rate: newRate,
-                                }
+                                },
                               );
 
                               // Auto-calculate oil rebate/premium when rate changes
@@ -2241,7 +2241,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                   purchaseForm.product_name,
                                   labForm.obtain_oil,
                                   newRate,
-                                  netWeight
+                                  netWeight,
                                 );
                                 updateFormWithTracking(
                                   setLabForm,
@@ -2256,7 +2256,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                       oilCalc.premium > 0
                                         ? oilCalc.premium.toFixed(2)
                                         : "",
-                                  })
+                                  }),
                                 );
                               }
                             }
@@ -2298,7 +2298,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                   {
                                     ...purchaseForm,
                                     final_contracted_rate: finalRate,
-                                  }
+                                  },
                                 );
                               }
                             }}
@@ -2332,7 +2332,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               {
                                 ...purchaseForm,
                                 billed_weight_mt: billedWeight,
-                              }
+                              },
                             );
                           }}
                           fullWidth
@@ -2355,7 +2355,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   gross_weight_mt: value,
-                                }
+                                },
                               );
                             }
                           }}
@@ -2387,7 +2387,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   no_of_bags: value,
-                                }
+                                },
                               );
                             }
                           }}
@@ -2413,7 +2413,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   bag_type: e.target.value,
-                                }
+                                },
                               )
                             }
                           >
@@ -2454,7 +2454,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   bran_type: e.target.value,
-                                }
+                                },
                               )
                             }
                           >
@@ -2483,7 +2483,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...purchaseForm,
                                   purchased_from: e.target.value,
-                                }
+                                },
                               )
                             }
                           >
@@ -2515,7 +2515,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                   {
                                     ...purchaseForm,
                                     agent_name: toTitleCase(e.target.value),
-                                  }
+                                  },
                                 )
                               }
                               onKeyDown={(e) =>
@@ -2540,7 +2540,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                     {
                                       ...purchaseForm,
                                       agent_number: value,
-                                    }
+                                    },
                                   );
                                 }
                               }}
@@ -2575,8 +2575,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 ? "Saved"
                                 : "Save Purchase"
                               : modifiedSections.purchase
-                              ? "Save Changes"
-                              : "Saved"}
+                                ? "Save Changes"
+                                : "Saved"}
                           </Button>
                         </Box>
                       </Grid>
@@ -2794,7 +2794,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...vehicleForm,
                                   freight_per_mt: value,
-                                }
+                                },
                               );
                             }
                           }}
@@ -2826,7 +2826,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...vehicleForm,
                                   advance_amount: value,
-                                }
+                                },
                               );
                             }
                           }}
@@ -2992,7 +2992,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 {
                                   ...vehicleForm,
                                   paid_by: e.target.value,
-                                }
+                                },
                               )
                             }
                           >
@@ -3030,8 +3030,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 ? "Saved"
                                 : "Save Vehicle"
                               : modifiedSections.vehicle
-                              ? "Save Changes"
-                              : "Saved"}
+                                ? "Save Changes"
+                                : "Saved"}
                           </Button>
                         </Box>
                       </Grid>
@@ -3131,7 +3131,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 purchaseForm.product_name || "Boiled Rice Bran";
                               const rebate = calculateFFARebate(
                                 product,
-                                ffaValue
+                                ffaValue,
                               );
                               updateFormWithTracking(setLabForm, "lab", {
                                 ...labForm,
@@ -3217,7 +3217,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 (prev) => ({
                                   ...prev,
                                   obtain_oil: e.target.value,
-                                })
+                                }),
                               )
                             }
                             onKeyDown={(e) => handleKeyDown(e, oilRebateRef)}
@@ -3297,8 +3297,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 ? "Saved"
                                 : "Save Lab"
                               : modifiedSections.lab
-                              ? "Save Changes"
-                              : "Saved"}
+                                ? "Save Changes"
+                                : "Saved"}
                           </Button>
                         </Box>
                       </Grid>
@@ -3429,13 +3429,13 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           />
                         </RadioGroup>
                       </FormControl>
-                      {partyForm.gst && (
+                      {/* {partyForm.gst && (
                         <Chip
                           label={
                             billingForm.gst_type === "Intra"
                               ? `State ${partyForm.gst.substring(
                                   0,
-                                  2
+                                  2,
                                 )} (CGST+SGST)`
                               : "IGST"
                           }
@@ -3447,9 +3447,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           }
                           variant="outlined"
                         />
-                      )}
+                      )} */}
                     </Box>
-                    <Typography
+                    {/* <Typography
                       variant="caption"
                       color="text.secondary"
                       sx={{ fontSize: "11px" }}
@@ -3461,7 +3461,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                               : "Inter-State (5%)"
                           }`
                         : "Enter GST to auto-select"}
-                    </Typography>
+                    </Typography> */}
                   </Grid>
                   {/* GST Fields */}
                   {billingForm.gst_type === "Intra" && (
@@ -3557,8 +3557,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           ? "Saved"
                           : "Save Billing"
                         : modifiedSections.billing
-                        ? "Save Changes"
-                        : "Saved"}
+                          ? "Save Changes"
+                          : "Saved"}
                     </Button>
                   </Grid>
                 </Grid>
@@ -3669,7 +3669,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         partyData={parties.find(
           (p) =>
             p.party_name ===
-            (savedPurchaseData?.party_name || purchaseForm.party_name)
+            (savedPurchaseData?.party_name || purchaseForm.party_name),
         )}
         agentData={{
           agent_name: savedPurchaseData?.agent_name || purchaseForm.agent_name,

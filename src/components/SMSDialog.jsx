@@ -49,6 +49,16 @@ const SMSDialog = ({
     standard_oil = "",
   } = labData || {};
 
+  // Helper function to format oil/ffa values
+  const formatOilFFA = (value) => {
+    const numValue = parseFloat(value) || 0;
+
+    // Split into integer and decimal parts
+    const [integerPart, decimalPart = "00"] = numValue.toFixed(2).split(".");
+
+    return `${integerPart}.${decimalPart.padStart(2, "0")}`;
+  };
+
   const {
     invoice_no = "",
     date = "",
@@ -93,7 +103,7 @@ const SMSDialog = ({
   // Format the message as requested
   const defaultMessage = `${partyName}
 Date.- ${formatDate(date)}
-G.R.no.- ${generateGRNo()} (Auto Generated)
+G.R.no.- ${generateGRNo()}
 Tr. No.- ${vehicleNo}
 Bags.- ${no_of_bags || "0"}
 Bag Type:- ${
@@ -101,16 +111,8 @@ Bag Type:- ${
   }
 Weight.- ${(parseFloat(gross_weight_mt) || 0).toFixed(2)}
 Rate.- ${parseFloat(contracted_rate) || 0}
-Oil.- ${parseFloat(obtain_oil) || parseFloat(standard_oil) || 0}.${String(
-    Math.round(
-      (parseFloat(obtain_oil) || parseFloat(standard_oil) || 0) * 100
-    ) % 100
-  ).padStart(2, "0")}
-FFA.- ${parseFloat(obtain_ffa) || parseFloat(standard_ffa) || 0}.${String(
-    Math.round(
-      (parseFloat(obtain_ffa) || parseFloat(standard_ffa) || 0) * 100
-    ) % 100
-  ).padStart(2, "0")}
+Oil.- ${formatOilFFA(obtain_oil || standard_oil)}
+FFA.- ${formatOilFFA(obtain_ffa || standard_ffa)}
 ${companyName}`;
 
   const getRecipients = () => {
@@ -139,7 +141,7 @@ ${companyName}`;
 
       const recipients = getRecipients();
       const validRecipients = recipients.filter(
-        (r) => r.phone && r.phone.length >= 10
+        (r) => r.phone && r.phone.length >= 10,
       );
 
       if (validRecipients.length === 0) {

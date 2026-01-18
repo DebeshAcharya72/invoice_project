@@ -727,8 +727,8 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
               </tbody>
             </table>
             <div style={{ display: "flex", width: "100%" }}>
-              {/* Weight Details Table - UPDATED SECTION */}
-              <div style={{ margin: "2px 0", width: "50vw" }}>
+              {/* Weight Details Table - FIXED */}
+              <div style={{ flex: 1 }}>
                 <div
                   style={{
                     fontSize: "12px",
@@ -753,7 +753,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                         style={{
                           border: "1px solid #000",
                           padding: "6px",
-                          // backgroundColor: "#f0f0f0",
+                          textAlign: "center",
                         }}
                       >
                         Particulars
@@ -762,7 +762,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                         style={{
                           border: "1px solid #000",
                           padding: "6px",
-                          // backgroundColor: "#f0f0f0",
+                          textAlign: "center",
                         }}
                       >
                         Weight (MT)
@@ -776,6 +776,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                           border: "1px solid #000",
                           padding: "6px",
                           fontWeight: "500",
+                          textAlign: "center",
                         }}
                       >
                         Gross Weight
@@ -796,6 +797,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                           border: "1px solid #000",
                           padding: "6px",
                           fontWeight: "500",
+                          textAlign: "center",
                         }}
                       >
                         Net Weight
@@ -814,8 +816,8 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 </table>
               </div>
 
-              {/* Laboratory Analysis Section - UPDATED SECTION */}
-              <div style={{ margin: "2px 0" }}>
+              {/* Laboratory Analysis Section - FIXED */}
+              <div style={{ flex: 2 }}>
                 <div
                   style={{
                     fontSize: "12px",
@@ -826,15 +828,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                   Laboratory Analysis
                 </div>
 
-                <div
-                  style={{
-                    // border: "1px solid #ddd",
-                    borderRadius: "4px",
-
-                    // backgroundColor: "#f9f9f9",
-                    width: "50vw",
-                  }}
-                >
+                <div style={{ width: "100%" }}>
                   <table
                     style={{
                       width: "100%",
@@ -845,25 +839,47 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     <thead>
                       <tr>
                         <th
-                          style={{ border: "1px solid #000", padding: "6px" }}
-                        ></th>
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          Particulars
+                        </th>
                         <th
-                          style={{ border: "1px solid #000", padding: "6px" }}
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
                         >
                           Standards
                         </th>
                         <th
-                          style={{ border: "1px solid #000", padding: "6px" }}
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
                         >
                           Result
                         </th>
                         <th
-                          style={{ border: "1px solid #000", padding: "6px" }}
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
                         >
                           Account
                         </th>
                         <th
-                          style={{ border: "1px solid #000", padding: "6px" }}
+                          style={{
+                            border: "1px solid #000",
+                            padding: "6px",
+                            textAlign: "center",
+                          }}
                         >
                           Differences
                         </th>
@@ -876,6 +892,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                             border: "1px solid #000",
                             padding: "6px",
                             fontWeight: "500",
+                            textAlign: "center",
                           }}
                         >
                           FFA
@@ -905,10 +922,9 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                             textAlign: "center",
                           }}
                         >
-                          {/* Account: 0.00 if FFA < 7, otherwise show obtained FFA */}
                           {obtainedFFA < standardFFA
                             ? "0.00"
-                            : obtainedFFA + "%"}
+                            : `${obtainedFFA}%`}
                         </td>
                         <td
                           style={{
@@ -919,10 +935,9 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                               obtainedFFA > standardFFA ? "#f44336" : "#4caf50",
                           }}
                         >
-                          {/* Differences: 0.00 if FFA < 7, otherwise calculate (Account - Standard) */}
                           {obtainedFFA < standardFFA
                             ? "0.00"
-                            : (obtainedFFA - standardFFA).toFixed(2) + "%"}
+                            : `${(obtainedFFA - standardFFA).toFixed(2)}%`}
                         </td>
                       </tr>
                       <tr>
@@ -931,6 +946,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                             border: "1px solid #000",
                             padding: "6px",
                             fontWeight: "500",
+                            textAlign: "center",
                           }}
                         >
                           OIL
