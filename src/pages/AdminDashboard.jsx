@@ -65,6 +65,8 @@ const AdminDashboard = () => {
     company_name: "",
     address_line1: "",
     mobile_no: "",
+    gst_number: "", // Add this
+    email: "", // Add this
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -133,19 +135,19 @@ const AdminDashboard = () => {
   const handleDeleteCompany = async (companyId, companyName) => {
     if (
       !window.confirm(
-        `Are you sure you want to delete "${companyName}"? This will also delete all associated forms.`
+        `Are you sure you want to delete "${companyName}"? This will also delete all associated forms.`,
       )
     ) {
       return;
     }
     try {
       const companyForms = allForms.filter(
-        (form) => form.company === companyName
+        (form) => form.company === companyName,
       );
       if (companyForms.length > 0) {
         if (
           !window.confirm(
-            `This company has ${companyForms.length} forms. Deleting will remove all of them. Continue?`
+            `This company has ${companyForms.length} forms. Deleting will remove all of them. Continue?`,
           )
         ) {
           return;
@@ -188,7 +190,7 @@ const AdminDashboard = () => {
     if (!selectedForm) return;
     if (
       !window.confirm(
-        `Are you sure you want to delete invoice ${selectedForm.invoice_no}? This action cannot be undone.`
+        `Are you sure you want to delete invoice ${selectedForm.invoice_no}? This action cannot be undone.`,
       )
     ) {
       handleCloseFormMenu();
@@ -199,7 +201,7 @@ const AdminDashboard = () => {
       await loadData();
       showSnackbar(
         `Form ${selectedForm.invoice_no} deleted successfully`,
-        "success"
+        "success",
       );
     } catch (error) {
       showSnackbar(`Failed to delete form: ${error.message}`, "error");
@@ -258,7 +260,7 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (userId, username) => {
     if (
       !window.confirm(
-        `Are you sure you want to delete user "${username}"? This action cannot be undone.`
+        `Are you sure you want to delete user "${username}"? This action cannot be undone.`,
       )
     ) {
       return;
@@ -283,7 +285,7 @@ const AdminDashboard = () => {
         `User ${user.username} ${
           user.is_active ? "deactivated" : "activated"
         } successfully`,
-        "success"
+        "success",
       );
     } catch (error) {
       showSnackbar("Failed to update user status", "error");
@@ -308,7 +310,7 @@ const AdminDashboard = () => {
     (company) =>
       matchesSearch(company.company_name, searchTerm) ||
       matchesSearch(company.address_line1, searchTerm) ||
-      matchesSearch(company.mobile_no, searchTerm)
+      matchesSearch(company.mobile_no, searchTerm),
   );
 
   const filteredForms = allForms.filter(
@@ -318,7 +320,7 @@ const AdminDashboard = () => {
       matchesSearch(form.company, searchTerm) ||
       matchesSearch(form.created_by_user, searchTerm) ||
       matchesSearch(form.vehicle_no, searchTerm) ||
-      matchesSearch(form.product, searchTerm)
+      matchesSearch(form.product, searchTerm),
   );
 
   const filteredUsers = allUsers.filter(
@@ -326,7 +328,7 @@ const AdminDashboard = () => {
       matchesSearch(user.username, searchTerm) ||
       matchesSearch(user.full_name, searchTerm) ||
       matchesSearch(user.email, searchTerm) ||
-      matchesSearch(user.role, searchTerm)
+      matchesSearch(user.role, searchTerm),
   );
 
   return (
@@ -429,6 +431,39 @@ const AdminDashboard = () => {
                     }
                   />
                 </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="GST Number (Optional)"
+                    value={newCompany.gst_number}
+                    onChange={(e) =>
+                      setNewCompany({
+                        ...newCompany,
+                        gst_number: e.target.value,
+                      })
+                    }
+                    inputProps={{
+                      style: { textTransform: "uppercase" },
+                      maxLength: 50,
+                    }}
+                    helperText="e.g. 27AABCU9603R1ZX"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email (Optional)"
+                    type="email"
+                    value={newCompany.email}
+                    onChange={(e) =>
+                      setNewCompany({
+                        ...newCompany,
+                        email: e.target.value,
+                      })
+                    }
+                    helperText="Company email address"
+                  />
+                </Grid>
                 <Grid item xs={12}>
                   <Button
                     variant="contained"
@@ -473,7 +508,7 @@ const AdminDashboard = () => {
                   {filteredCompanies.map((company) => {
                     const companyUsers = getUsersByCompany(company._id);
                     const companyForms = getFormsByCompany(
-                      company.company_name
+                      company.company_name,
                     );
                     return (
                       <Grid item xs={12} md={6} lg={4} key={company._id}>
@@ -493,7 +528,7 @@ const AdminDashboard = () => {
                               onClick={() =>
                                 handleDeleteCompany(
                                   company._id,
-                                  company.company_name
+                                  company.company_name,
                                 )
                               }
                               title="Delete Company"
@@ -641,7 +676,7 @@ const AdminDashboard = () => {
                       .slice()
                       .sort(
                         (a, b) =>
-                          new Date(b.created_at) - new Date(a.created_at)
+                          new Date(b.created_at) - new Date(a.created_at),
                       )
                       .map((form) => (
                         <TableRow key={form.purchase_id} hover>
@@ -711,7 +746,7 @@ const AdminDashboard = () => {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
-                              }
+                              },
                             )}
                           </TableCell>
                           <TableCell>

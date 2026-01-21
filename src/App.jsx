@@ -64,7 +64,7 @@ function AppContent() {
 
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/user" element={<UserDashboard userRole={userRole} />} />
-          <Route path="/edit-form/:purchaseId" element={<EditForm />} />
+          {/* <Route path="/edit-form/:purchaseId" element={<EditForm />} /> */}
           <Route path="/view-form/:purchaseId" element={<ViewForm />} />
 
           {/* Catch-all redirect to home for unmatched routes */}

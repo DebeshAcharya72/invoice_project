@@ -184,6 +184,36 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     severity: "success",
   });
 
+  // Add this state to track if we're using existing party
+  const [usingExistingParty, setUsingExistingParty] = useState(false);
+  const [selectedExistingParty, setSelectedExistingParty] = useState(null);
+
+  // Add this function to handle party dropdown selection
+  const handlePartySelectFromDropdown = (partyName) => {
+    const selectedParty = parties.find((p) => p.party_name === partyName);
+    if (selectedParty) {
+      setSelectedExistingParty(selectedParty);
+      setUsingExistingParty(true);
+
+      // Auto-fill party form with selected party data
+      setPartyForm({
+        party_name: selectedParty.party_name,
+        address_line1: selectedParty.address_line1 || "",
+        city: selectedParty.city || "",
+        state: selectedParty.state || "",
+        pin: selectedParty.pin || "",
+        contact_person: selectedParty.contact_person || "",
+        mobile_no: selectedParty.mobile_no || "",
+        gst: selectedParty.gst || "",
+        customer_type: selectedParty.customer_type || "Registered",
+      });
+
+      // Mark party section as saved (since we're using existing)
+      setSavedSections((prev) => ({ ...prev, party: true }));
+      setModifiedSections((prev) => ({ ...prev, party: false }));
+    }
+  };
+
   // Add these helper functions after your calculation functions
 
   // Helper function to round to 2 decimal places (for prices)
@@ -539,6 +569,27 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  const canGenerateInvoice = () => {
+    // Minimum requirements for invoice:
+    // 1. Purchase must be saved (mandatory)
+    // 2. Billing should be saved for calculations
+    // Party, Vehicle, Lab are optional
+
+    if (!savedSections.purchase) {
+      return false; // Purchase is mandatory
+    }
+
+    // Optional: Check if billing is saved (recommended but not mandatory)
+    if (!savedSections.billing) {
+      console.warn(
+        "Billing not saved - invoice may have incomplete calculations",
+      );
+      // You can still allow generation but show warning
+    }
+
+    return true;
+  };
+
   const calculateGST = () => {
     const grossAmount = calculateGrossAmount();
     const gstType = billingForm.gst_type || "Intra";
@@ -762,6 +813,32 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const [savedBillingData, setSavedBillingData] = useState(null);
 
   // ============ USE EFFECTS ============
+
+  // Add this useEffect to auto-fill party when party name changes
+  useEffect(() => {
+    if (purchaseForm.party_name && parties.length > 0) {
+      const selectedParty = parties.find(
+        (p) => p.party_name === purchaseForm.party_name,
+      );
+      if (selectedParty && !usingExistingParty) {
+        // Only auto-fill if not already using an existing party
+        setPartyForm({
+          party_name: selectedParty.party_name,
+          address_line1: selectedParty.address_line1 || "",
+          city: selectedParty.city || "",
+          state: selectedParty.state || "",
+          pin: selectedParty.pin || "",
+          contact_person: selectedParty.contact_person || "",
+          mobile_no: selectedParty.mobile_no || "",
+          gst: selectedParty.gst || "",
+          customer_type: selectedParty.customer_type || "Registered",
+        });
+
+        setUsingExistingParty(true);
+        setSelectedExistingParty(selectedParty);
+      }
+    }
+  }, [purchaseForm.party_name, parties, usingExistingParty]);
 
   // Load companies and parties on mount
   useEffect(() => {
@@ -1186,8 +1263,44 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // const handleSaveParty = async () => {
+  //   try {
+  //     const partyData = {
+  //       ...partyForm,
+  //       company_id: selectedCompany,
+  //     };
+
+  //     let savedParty;
+  //     if (mode === "edit" && savedPartyData) {
+  //       // Update existing party
+  //       savedParty = await api.updateParty(savedPartyData._id, partyData);
+  //     } else {
+  //       // Create new party
+  //       savedParty = await api.createParty(partyData);
+  //     }
+
+  //     setSavedPartyData(savedParty);
+  //     setPurchaseForm((prev) => ({
+  //       ...prev,
+  //       party_name: savedParty.party_name,
+  //     }));
+  //     await loadParties();
+  //     setSavedSections((prev) => ({ ...prev, party: true }));
+  //     setModifiedSections((prev) => ({ ...prev, party: false }));
+  //     showSuccess("Party details saved!");
+  //   } catch (err) {
+  //     showError("Failed to save Party");
+  //   }
+  // };
+
   const handleSaveParty = async () => {
     try {
+      // If using existing party, don't save again
+      if (usingExistingParty && selectedExistingParty) {
+        showSuccess("Using existing party details!");
+        return;
+      }
+
       const partyData = {
         ...partyForm,
         company_id: selectedCompany,
@@ -1195,10 +1308,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
       let savedParty;
       if (mode === "edit" && savedPartyData) {
-        // Update existing party
         savedParty = await api.updateParty(savedPartyData._id, partyData);
       } else {
-        // Create new party
         savedParty = await api.createParty(partyData);
       }
 
@@ -1213,6 +1324,42 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       showSuccess("Party details saved!");
     } catch (err) {
       showError("Failed to save Party");
+    }
+  };
+
+  // Add this to reset party form when user wants to add new party
+
+  const handleAddNewParty = () => {
+    // Reset all party-related states
+    setUsingExistingParty(false);
+    setSelectedExistingParty(null);
+
+    // Clear the party form
+    setPartyForm({
+      party_name: "",
+      address_line1: "",
+      city: "",
+      state: "",
+      pin: "",
+      contact_person: "",
+      mobile_no: "",
+      gst: "",
+      customer_type: "Registered",
+    });
+
+    // Also clear the party in purchase form if it was selected
+    setPurchaseForm((prev) => ({
+      ...prev,
+      party_name: "",
+    }));
+
+    // Reset saved state
+    setSavedSections((prev) => ({ ...prev, party: false }));
+    setModifiedSections((prev) => ({ ...prev, party: false }));
+
+    // Focus on the party name field
+    if (partyNameRef.current) {
+      setTimeout(() => partyNameRef.current.focus(), 100);
     }
   };
 
@@ -1403,11 +1550,11 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       setSaving(true);
 
       // Save all sections in sequence
-      if (
-        (mode === "create" && !savedSections.party) ||
-        (mode === "edit" && modifiedSections.party)
-      )
-        await handleSaveParty();
+      // if (
+      //   (mode === "create" && !savedSections.party) ||
+      //   (mode === "edit" && modifiedSections.party)
+      // )
+      //   await handleSaveParty();
       if (
         (mode === "create" && !savedSections.purchase) ||
         (mode === "edit" && modifiedSections.purchase)
@@ -1585,7 +1732,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     navigate(-1); // Go back to previous page
   };
 
-  const allSectionsSaved = Object.values(savedSections).every(Boolean);
+  // const allSectionsSaved = Object.values(savedSections).every(Boolean);
+  const allSectionsSaved = savedSections.purchase && savedSections.billing;
 
   const getUserCompanyName = () => {
     if (!currentUser || companies.length === 0) {
@@ -1809,6 +1957,31 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
                   <Collapse in={expandedSections.party}>
                     <Divider sx={{ my: 1 }} />
+
+                    {/* Add this button to switch between new/existing party */}
+                    <Box sx={{ mb: 2, display: "flex", gap: 1 }}>
+                      <Button
+                        variant={!usingExistingParty ? "contained" : "outlined"}
+                        size="small"
+                        onClick={handleAddNewParty}
+                        sx={{ fontSize: "11px", padding: "4px 8px" }}
+                      >
+                        Add New Party
+                      </Button>
+                      {/* <Button
+                        variant={usingExistingParty ? "contained" : "outlined"}
+                        size="small"
+                        onClick={() => {
+                          // This will be triggered when user selects from dropdown
+                          // The dropdown is in Purchase Details
+                        }}
+                        sx={{ fontSize: "11px", padding: "4px 8px" }}
+                        disabled
+                      >
+                        Select Existing
+                      </Button> */}
+                    </Box>
+
                     <Grid container spacing={1} sx={styles.compactGrid}>
                       <Grid size={{ xs: 12 }}>
                         <TextField
@@ -1825,6 +1998,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, contactPersonRef)}
                           inputRef={partyNameRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1842,6 +2016,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, partyMobileRef)}
                           inputRef={contactPersonRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1859,6 +2034,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, partyAddressRef)}
                           inputRef={partyMobileRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
@@ -1876,6 +2052,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, partyCityRef)}
                           inputRef={partyAddressRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1893,6 +2070,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, partyStateRef)}
                           inputRef={partyCityRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1910,6 +2088,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, partyPinRef)}
                           inputRef={partyStateRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1928,6 +2107,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           onKeyDown={(e) => handleKeyDown(e, partyGstRef)}
                           inputRef={partyPinRef}
                           fullWidth
+                          // disabled={usingExistingParty}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -2003,18 +2183,32 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             onClick={handleSaveParty}
                             disabled={
                               mode === "create"
-                                ? savedSections.party
+                                ? // ? savedSections.party
+                                  // : !modifiedSections.party
+                                  (usingExistingParty && savedSections.party) ||
+                                  (!usingExistingParty &&
+                                    !partyForm.party_name?.trim())
                                 : !modifiedSections.party
                             }
                             sx={styles.compactButton}
                           >
-                            {mode === "create"
+                            {/* {mode === "create"
                               ? savedSections.party
                                 ? "Saved"
                                 : "Save Party"
                               : modifiedSections.party
                                 ? "Save Changes"
-                                : "Saved"}
+                                : "Saved"} */}
+
+                            {usingExistingParty && selectedExistingParty
+                              ? "Using Existing Party"
+                              : mode === "create"
+                                ? savedSections.party
+                                  ? "Saved"
+                                  : "Save Party"
+                                : modifiedSections.party
+                                  ? "Save Changes"
+                                  : "Saved"}
                           </Button>
                         </Box>
                       </Grid>
@@ -2087,7 +2281,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           sx={styles.compactSelect}
                         >
                           <InputLabel>Party Name</InputLabel>
-                          <Select
+                          {/* <Select
                             value={purchaseForm.party_name}
                             label="Party Name"
                             onChange={(e) =>
@@ -2100,6 +2294,58 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                                 },
                               )
                             }
+                          > */}
+                          <Select
+                            value={purchaseForm.party_name}
+                            label="Party Name"
+                            onChange={(e) => {
+                              const selectedPartyName = e.target.value;
+
+                              // Update purchase form
+                              updateFormWithTracking(
+                                setPurchaseForm,
+                                "purchase",
+                                {
+                                  ...purchaseForm,
+                                  party_name: selectedPartyName,
+                                },
+                              );
+
+                              // Find and auto-fill party details
+                              const selectedParty = parties.find(
+                                (p) => p.party_name === selectedPartyName,
+                              );
+                              if (selectedParty) {
+                                setUsingExistingParty(true);
+                                setSelectedExistingParty(selectedParty);
+
+                                // Auto-fill party form
+                                setPartyForm({
+                                  party_name: selectedParty.party_name,
+                                  address_line1:
+                                    selectedParty.address_line1 || "",
+                                  city: selectedParty.city || "",
+                                  state: selectedParty.state || "",
+                                  pin: selectedParty.pin || "",
+                                  contact_person:
+                                    selectedParty.contact_person || "",
+                                  mobile_no: selectedParty.mobile_no || "",
+                                  gst: selectedParty.gst || "",
+                                  customer_type:
+                                    selectedParty.customer_type || "Registered",
+                                });
+
+                                // Mark party as saved
+                                setSavedSections((prev) => ({
+                                  ...prev,
+                                  party: true,
+                                }));
+                                setModifiedSections((prev) => ({
+                                  ...prev,
+                                  party: false,
+                                }));
+                              }
+                            }}
                           >
                             {parties.map((p) => (
                               <MenuItem key={p.id} value={p.party_name}>
@@ -3605,7 +3851,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
             )}
 
             {/* Generate Invoice Button */}
-            {allSectionsSaved && (
+            {/* {allSectionsSaved && ( */}
+            {canGenerateInvoice() && (
               <Button
                 variant="contained"
                 startIcon={<ReceiptIcon />}

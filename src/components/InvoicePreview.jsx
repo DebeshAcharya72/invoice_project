@@ -68,8 +68,12 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
 
   const handlePrint = () => {
     setPrintLoading(true);
+    // Prevent any state changes that might cause re-render
+    const printContent = document.getElementById(
+      "invoice-print-content",
+    ).innerHTML;
     setTimeout(() => {
-      const printContent = document.getElementById("invoice-print-content");
+      // const printContent = document.getElementById("invoice-print-content");
       const printWindow = window.open("", "_blank");
 
       printWindow.document.write(`
@@ -234,8 +238,12 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
         </html>
       `);
       printWindow.document.close();
-      printWindow.focus();
-      setPrintLoading(false);
+      // printWindow.focus();
+      // setPrintLoading(false);
+      setTimeout(() => {
+        printWindow.print();
+        printLoading && setPrintLoading(false);
+      }, 500);
     }, 500);
   };
 
@@ -506,6 +514,18 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
               >
                 {company.company_name || "MANMATH PATTANAIK & CO"}
               </div>
+              {/* Company GST Number - Add this */}
+              {company.gst && (
+                <div
+                  style={{
+                    fontSize: "10px",
+                    marginBottom: "2px",
+                    fontWeight: "500",
+                  }}
+                >
+                  GST: {company.gst}
+                </div>
+              )}
               <div
                 style={{
                   fontSize: "10px",
@@ -514,6 +534,18 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
               >
                 {company.address_line1 || "bantila, Charampa, Bhadrak"}
               </div>
+              {/* Company Email - Add this */}
+              {company.email && (
+                <div
+                  style={{
+                    fontSize: "10px",
+                    marginBottom: "2px",
+                    fontWeight: "500",
+                  }}
+                >
+                  Email: {company.email}
+                </div>
+              )}
               <div
                 style={{
                   fontSize: "10px",
@@ -1371,53 +1403,6 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                     fontSize: "10px",
                   }}
                 >
-                  <div>
-                    <div
-                      style={{
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      {isCreditNote
-                        ? `As per our calculation billed amount is ₹${formatCurrency(
-                            billedAmount,
-                          )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
-                            noteAmount,
-                          )}, a credit note of ₹${formatCurrency(
-                            noteAmount,
-                          )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
-                            revisedAmount,
-                          )}.`
-                        : `As per our calculation billed amount is ₹${formatCurrency(
-                            billedAmount,
-                          )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
-                            noteAmount,
-                          )}, a debit note of ₹${formatCurrency(
-                            noteAmount,
-                          )} will be raised. Revised amount after debit note is ₹${formatCurrency(
-                            revisedAmount,
-                          )}.`}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: "5px",
-                        padding: "5px",
-                        backgroundColor: isCreditNote ? "#e8f5e9" : "#ffebee",
-                        borderLeft: `3px solid ${
-                          isCreditNote ? "#4caf50" : "#f44336"
-                        }`,
-                        fontWeight: "bold",
-                        fontSize: "10px",
-                        textAlign: "center",
-                      }}
-                    >
-                      {isCreditNote
-                        ? "Credit Note Amount"
-                        : "Debit Note Amount"}
-                      : ₹{formatCurrency(noteAmount)}
-                    </div>
-                  </div>
-
                   {/* GST Breakdown Table - Compact */}
                   <div style={{ marginTop: "2px" }}>
                     <table
@@ -1570,10 +1555,56 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                         fontWeight: "bold",
                         // padding: "4px 0",
                         // borderTop: "1px solid #000",
-                        // borderBottom: "1px solid #000",
+                        borderBottom: "1px solid #000",
                       }}
                     >
                       Amount In Words: INR {numberToWords(revisedAmount)}
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        lineHeight: "1.4",
+                      }}
+                    >
+                      {isCreditNote
+                        ? `As per our calculation billed amount is ₹${formatCurrency(
+                            billedAmount,
+                          )}. Since billed amount is greater than invoice amount by ₹${formatCurrency(
+                            noteAmount,
+                          )}, a credit note of ₹${formatCurrency(
+                            noteAmount,
+                          )} is applicable which will be adjusted in future invoice. Revised amount after credit note is ₹${formatCurrency(
+                            revisedAmount,
+                          )}.`
+                        : `As per our calculation billed amount is ₹${formatCurrency(
+                            billedAmount,
+                          )}. Since invoice amount is greater than billed amount by ₹${formatCurrency(
+                            noteAmount,
+                          )}, a debit note of ₹${formatCurrency(
+                            noteAmount,
+                          )} will be raised. Revised amount after debit note is ₹${formatCurrency(
+                            revisedAmount,
+                          )}.`}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "5px",
+                        padding: "5px",
+                        backgroundColor: isCreditNote ? "#e8f5e9" : "#ffebee",
+                        borderLeft: `3px solid ${
+                          isCreditNote ? "#4caf50" : "#f44336"
+                        }`,
+                        fontWeight: "bold",
+                        fontSize: "10px",
+                        textAlign: "center",
+                      }}
+                    >
+                      {isCreditNote
+                        ? "Credit Note Amount"
+                        : "Debit Note Amount"}
+                      : ₹{formatCurrency(noteAmount)}
                     </div>
                   </div>
                 </div>
