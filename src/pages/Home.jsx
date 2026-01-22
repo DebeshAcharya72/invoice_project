@@ -1,6 +1,7 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import useFormReset from "../hooks/useFormReset";
 import {
   Container,
   Box,
@@ -417,100 +418,37 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     };
   };
 
-  // const calculateAccountRate = () => {
-  //   const contractedRate =
-  //     parseFloat(
-  //       purchaseForm.bran_type === "Red"
-  //         ? purchaseForm.final_contracted_rate || purchaseForm.contracted_rate
-  //         : purchaseForm.contracted_rate
-  //     ) || 0;
+  // Initialize the form reset hook
+  const formReset = useFormReset();
 
-  //   const ffaRebate =
-  //     parseFloat(
-  //       savedLabData?.ffa_rebate_rs ||
-  //         savedLabData?.rebate_rs ||
-  //         labForm.ffa_rebate_rs
-  //     ) || 0;
-
-  //   return parseFloat((contractedRate - ffaRebate).toFixed(2));
-  // };
-
-  // const calculateNetRate = () => {
-  //   const accountRate = calculateAccountRate();
-  //   const oilStandard = parseFloat(labForm.standard_oil) || 19;
-  //   const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
-  //   const oilDifference = oilObtained - oilStandard;
-
-  //   if (oilStandard === 0) return 0;
-
-  //   const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
-  //   return parseFloat(netRate.toFixed(2));
-  // };
-
-  // const calculateNetAmount = () => {
-  //   const netRate = calculateNetRate();
-  //   const accountRate = calculateAccountRate();
-  //   const netAmount = netRate * accountRate;
-  //   return parseFloat(netAmount.toFixed(2));
-  // };
-
-  // const calculateMaterialAmount = () => {
-  //   const accountRate = calculateAccountRate();
-  //   const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
-  //   return parseFloat((accountRate * netWeight).toFixed(2));
-  // };
-
-  // const calculateGrossAmount = () => {
-  //   const materialAmount = calculateMaterialAmount();
-  //   const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
-  //   const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
-
-  //   if (oilPremium > 0) {
-  //     return parseFloat((materialAmount + oilPremium).toFixed(2));
-  //   } else if (oilRebate > 0) {
-  //     return parseFloat((materialAmount - oilRebate).toFixed(2));
-  //   } else {
-  //     return materialAmount;
-  //   }
-  // };
-
-  // const calculateGST = () => {
-  //   const grossAmount = calculateGrossAmount();
-  //   const gstType = billingForm.gst_type || "Intra";
-
-  //   let cgst = 0,
-  //     sgst = 0,
-  //     igst = 0;
-
-  //   // FIXED: Match backend logic
-  //   if (gstType === "Intra") {
-  //     // Intra-state: Same state (Odisha to Odisha) → CGST 2.5% + SGST 2.5%
-  //     cgst = grossAmount * 0.025;
-  //     sgst = grossAmount * 0.025;
-  //   } else {
-  //     // Inter-state: Different state → IGST 5%
-  //     igst = grossAmount * 0.05;
-  //   }
-
-  //   return {
-  //     cgst: parseFloat(cgst.toFixed(2)),
-  //     sgst: parseFloat(sgst.toFixed(2)),
-  //     igst: parseFloat(igst.toFixed(2)),
-  //     total: parseFloat((cgst + sgst + igst).toFixed(2)),
-  //   };
-  // };
-
-  // const calculateBilledAmount = () => {
-  //   const grossAmount = calculateGrossAmount();
-  //   const gst = calculateGST();
-  //   return parseFloat((grossAmount + gst.total).toFixed(2));
-  // };
-
-  // const calculateAmountPayable = () => {
-  //   const billedAmount = calculateBilledAmount();
-  //   const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
-  //   return parseFloat((billedAmount - invoiceAmount).toFixed(2));
-  // };
+  // Create resetForm function using the hook
+  const resetForm = () => {
+    formReset.resetForm({
+      setPartyForm,
+      setPurchaseForm,
+      setVehicleForm,
+      setLabForm,
+      setBillingForm,
+      setSavedSections,
+      setModifiedSections,
+      setSavedVehicleData,
+      setSavedLabData,
+      setSavedPurchaseData,
+      setSavedPartyData,
+      setSavedBillingData,
+      setCurrentPurchaseId,
+      setUsingExistingParty,
+      setSelectedExistingParty,
+      mode,
+      loadParties,
+      showSuccess,
+      partyNameRef,
+      currentUser,
+      companies,
+      setSelectedCompany,
+      navigate, // Add this since your hook uses navigate
+    });
+  };
 
   const calculateAccountRate = () => {
     const contractedRate =
@@ -3930,6 +3868,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       <InvoicePreview
         open={showInvoice}
         onClose={() => setShowInvoice(false)}
+        onAfterPrint={resetForm}
         invoiceData={generatedInvoice}
       />
 

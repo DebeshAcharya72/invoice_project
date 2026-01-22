@@ -19,7 +19,7 @@ import {
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const InvoicePreview = ({ open, onClose, invoiceData }) => {
+const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
   const [printLoading, setPrintLoading] = useState(false);
   const [gstBreakdown, setGstBreakdown] = useState({
     baseAmount: 0,
@@ -72,9 +72,16 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
     const printContent = document.getElementById(
       "invoice-print-content",
     ).innerHTML;
+    //  const invoiceNo = invoiceData?.purchase?.invoice_no || "N/A";
     setTimeout(() => {
       // const printContent = document.getElementById("invoice-print-content");
       const printWindow = window.open("", "_blank");
+
+      if (!printWindow) {
+        alert("Please allow popups for this site to print the invoice.");
+        setPrintLoading(false);
+        return;
+      }
 
       printWindow.document.write(`
         <html>
@@ -224,7 +231,7 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
           </head>
           <body>
             <div class="invoice-container">
-              ${printContent.innerHTML}
+             ${printContent}
             </div>
             <div class="no-print" style="margin-top:20px;text-align:center;padding:20px;">
               <button onclick="window.print()" style="padding:10px 20px;background:#4CAF50;color:white;border:none;cursor:pointer;border-radius:4px;font-size:14px;">
@@ -234,18 +241,78 @@ const InvoicePreview = ({ open, onClose, invoiceData }) => {
                 ✕ Close Window
               </button>
             </div>
+
+            <script>
+              // Function to notify parent window
+              function notifyParent() {
+                try {
+                  if (window.opener) {
+                    window.opener.postMessage('invoicePrinted', '*');
+                  }
+                } catch(e) {
+                  console.log('Notification failed:', e);
+                }
+              }
+              
+              // Auto-print after short delay
+              setTimeout(() => {
+                window.print();
+                
+                // Set up afterprint event listener
+                window.onafterprint = function() {
+                  notifyParent();
+                  setTimeout(() => {
+                    window.close();
+                  }, 500);
+                };
+                
+                // Also notify if user manually prints
+                window.matchMedia('print').addListener(function(mql) {
+                  if (!mql.matches) {
+                    // Print dialog closed
+                    setTimeout(() => {
+                      notifyParent();
+                      setTimeout(() => {
+                        window.close();
+                      }, 500);
+                    }, 1000);
+                  }
+                });
+                
+              }, 500);
+            </script>
           </body>
         </html>
       `);
       printWindow.document.close();
-      // printWindow.focus();
+      printWindow.focus();
       // setPrintLoading(false);
-      setTimeout(() => {
-        printWindow.print();
-        printLoading && setPrintLoading(false);
-      }, 500);
+      // setTimeout(() => {
+      //   printWindow.print();
+      //   printLoading && setPrintLoading(false);
+      // }, 500);
     }, 500);
   };
+
+  // Add event listener for print completion message
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data === "invoicePrinted") {
+        setPrintLoading(false);
+        if (onAfterPrint) {
+          onAfterPrint(); // Call the callback
+        }
+        // Optionally close the dialog
+        onClose();
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [onAfterPrint, onClose]);
 
   const handleDownloadPDF = async () => {
     try {
