@@ -582,7 +582,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                 {company.company_name || "MANMATH PATTANAIK & CO"}
               </div>
               {/* Company GST Number - Add this */}
-              {company.gst && (
+              {(company.gst_number || company.gst) && (
                 <div
                   style={{
                     fontSize: "10px",
@@ -590,7 +590,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                     fontWeight: "500",
                   }}
                 >
-                  GST: {company.gst}
+                  GST: {company.gst_number || company.gst}
                 </div>
               )}
               <div

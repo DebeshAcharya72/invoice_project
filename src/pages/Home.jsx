@@ -1558,6 +1558,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
             company_name: "Sriyansh Solvent Solutions Pvt Ltd",
             address_line1: "At-Kamira, Po-Singhijuba, Via-Binka",
             mobile_no: "6371195818",
+            gst_number: selectedCompanyObj?.gst_number || "",
+            email: selectedCompanyObj?.email || "",
           },
 
           party: partyData || {
@@ -3787,38 +3789,60 @@ const Home = ({ userRole, onLogout, currentUser }) => {
             ) : (
               <Box sx={{ flex: 1 }} />
             )}
-
-            {/* Generate Invoice Button */}
-            {/* {allSectionsSaved && ( */}
-            {canGenerateInvoice() && (
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <Button
-                variant="contained"
-                startIcon={<ReceiptIcon />}
-                onClick={handleGenerateInvoice}
+                variant="outlined"
+                onClick={resetForm}
                 sx={{
-                  padding: "6px 20px",
+                  padding: "6px 16px",
                   fontSize: "13px",
-                  fontWeight: "600",
+                  fontWeight: "500",
                   textTransform: "none",
                   borderRadius: "4px",
                   height: "36px",
-                  minWidth: "180px",
-                  bgcolor: "#ff6b6b",
-                  background:
-                    "linear-gradient(45deg, #ff6b6b 30%, #ff8e53 90%)",
-                  "&:hover": { bgcolor: "#ff5252" },
-                  boxShadow: "0 2px 4px 1px rgba(255, 105, 135, .2)",
-                  "& .MuiButton-startIcon": {
-                    marginRight: "6px",
-                    "& > *:first-of-type": {
-                      fontSize: "18px",
-                    },
+                  minWidth: "120px",
+                  borderColor: "#95a5a6",
+                  color: "#7f8c8d",
+                  "&:hover": {
+                    borderColor: "#7f8c8d",
+                    backgroundColor: "rgba(127, 140, 141, 0.04)",
                   },
                 }}
               >
-                Generate Final Invoice
+                Reset Form
               </Button>
-            )}
+              {/* Generate Invoice Button */}
+              {/* {allSectionsSaved && ( */}
+              {canGenerateInvoice() && (
+                <Button
+                  variant="contained"
+                  startIcon={<ReceiptIcon />}
+                  onClick={handleGenerateInvoice}
+                  sx={{
+                    padding: "6px 20px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    textTransform: "none",
+                    borderRadius: "4px",
+                    height: "36px",
+                    minWidth: "180px",
+                    bgcolor: "#ff6b6b",
+                    background:
+                      "linear-gradient(45deg, #ff6b6b 30%, #ff8e53 90%)",
+                    "&:hover": { bgcolor: "#ff5252" },
+                    boxShadow: "0 2px 4px 1px rgba(255, 105, 135, .2)",
+                    "& .MuiButton-startIcon": {
+                      marginRight: "6px",
+                      "& > *:first-of-type": {
+                        fontSize: "18px",
+                      },
+                    },
+                  }}
+                >
+                  Generate Final Invoice
+                </Button>
+              )}
+            </Box>
           </Box>
         </Paper>
       </Box>

@@ -391,7 +391,7 @@ const AdminDashboard = () => {
                 Register New Company
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Company Name *"
@@ -405,7 +405,7 @@ const AdminDashboard = () => {
                     helperText="This will appear in all users' dropdown"
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Company Address"
@@ -418,7 +418,7 @@ const AdminDashboard = () => {
                     }
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label="Mobile Number"
@@ -431,7 +431,7 @@ const AdminDashboard = () => {
                     }
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
                     label="GST Number (Optional)"
@@ -449,7 +449,7 @@ const AdminDashboard = () => {
                     helperText="e.g. 27AABCU9603R1ZX"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
                     label="Email (Optional)"
@@ -464,7 +464,7 @@ const AdminDashboard = () => {
                     helperText="Company email address"
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
@@ -511,7 +511,7 @@ const AdminDashboard = () => {
                       company.company_name,
                     );
                     return (
-                      <Grid item xs={12} md={6} lg={4} key={company._id}>
+                      <Grid size={{ xs: 12, md: 6, lg: 4 }} key={company._id}>
                         <Paper variant="outlined" sx={{ p: 2, height: "100%" }}>
                           <Box
                             display="flex"
@@ -565,6 +565,41 @@ const AdminDashboard = () => {
                                 {company.mobile_no}
                               </Typography>
                             )}
+                            {company.gst_number && (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mb: 0.5,
+                                }}
+                              >
+                                <Typography
+                                  component="span"
+                                  sx={{
+                                    fontWeight: "bold",
+                                    mr: 0.5,
+                                    fontSize: "11px",
+                                    color: "text.secondary",
+                                  }}
+                                >
+                                  GST:
+                                </Typography>
+                                {company.gst_number}
+                              </Typography>
+                            )}
+                            {company.email && (
+                              <Typography
+                                variant="body2"
+                                sx={{ display: "flex", alignItems: "center" }}
+                              >
+                                <EmailIcon
+                                  fontSize="small"
+                                  sx={{ mr: 0.5, color: "text.secondary" }}
+                                />
+                                {company.email}
+                              </Typography>
+                            )}
                           </Box>
                           <Divider sx={{ my: 1 }} />
                           <Box>
@@ -573,13 +608,13 @@ const AdminDashboard = () => {
                               justifyContent="space-between"
                               mb={1}
                             >
-                              <Chip
+                              {/* <Chip
                                 icon={<PeopleIcon />}
                                 label={`${companyUsers.length} users`}
                                 size="small"
                                 color="primary"
                                 variant="outlined"
-                              />
+                              /> */}
                               <Chip
                                 icon={<ReceiptIcon />}
                                 label={`${companyForms.length} forms`}
