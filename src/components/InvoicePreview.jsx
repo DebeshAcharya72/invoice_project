@@ -581,18 +581,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
               >
                 {company.company_name || "MANMATH PATTANAIK & CO"}
               </div>
-              {/* Company GST Number - Add this */}
-              {(company.gst_number || company.gst) && (
-                <div
-                  style={{
-                    fontSize: "10px",
-                    marginBottom: "2px",
-                    fontWeight: "500",
-                  }}
-                >
-                  GST: {company.gst_number || company.gst}
-                </div>
-              )}
+
               <div
                 style={{
                   fontSize: "10px",
@@ -621,6 +610,19 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
               >
                 Mobile: {company.mobile_no || "6371195818"}
               </div>
+              {/* Company GST Number - Add this */}
+              {(company.gst_number || company.gst) && (
+                <div
+                  style={{
+                    fontSize: "10px",
+                    marginBottom: "2px",
+                    fontWeight: "500",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  GST: {(company.gst_number || company.gst).toUpperCase()}
+                </div>
+              )}
             </div>
 
             {/* Final Remittance Title - Compact */}

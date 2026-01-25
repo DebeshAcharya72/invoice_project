@@ -572,6 +572,7 @@ const AdminDashboard = () => {
                                   display: "flex",
                                   alignItems: "center",
                                   mb: 0.5,
+                                  textTransform: "uppercase",
                                 }}
                               >
                                 <Typography
@@ -585,7 +586,7 @@ const AdminDashboard = () => {
                                 >
                                   GST:
                                 </Typography>
-                                {company.gst_number}
+                                {company.gst_number.toUpperCase()}
                               </Typography>
                             )}
                             {company.email && (
