@@ -96,13 +96,35 @@ const AdminDashboard = () => {
     loadData();
   }, []);
 
+  // const loadData = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const companiesData = await api.getCompaniesSimple();
+  //     setCompanies(companiesData);
+  //     const formsData = await api.getAllFormsEnhanced();
+  //     setAllForms(formsData);
+  //     const usersData = await api.getUsers();
+  //     setAllUsers(usersData);
+  //     showSnackbar("Data loaded successfully", "success");
+  //   } catch (error) {
+  //     showSnackbar("Failed to load data: " + error.message, "error");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const loadData = async () => {
     setLoading(true);
     try {
       const companiesData = await api.getCompaniesSimple();
       setCompanies(companiesData);
+
       const formsData = await api.getAllFormsEnhanced();
-      setAllForms(formsData);
+      // The backend returns {forms: [], pagination: {}}
+      // Extract the forms array from the response
+      const formsArray = formsData.forms || formsData || [];
+      setAllForms(formsArray);
+
       const usersData = await api.getUsers();
       setAllUsers(usersData);
       showSnackbar("Data loaded successfully", "success");
