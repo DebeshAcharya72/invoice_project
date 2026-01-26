@@ -56,56 +56,138 @@ const UserDashboard = ({ currentUser }) => {
   });
 
   // Load user's forms
+  // const loadForms = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const purchases = await api.getPurchases();
+
+  //     // Enrich forms with additional data
+  //     const enrichedForms = await Promise.all(
+  //       purchases.map(async (purchase) => {
+  //         const purchaseId =
+  //           purchase._id || purchase.id || purchase.purchase_id;
+  //         let vehicle = null;
+  //         let lab = null;
+  //         let billing = null;
+
+  //         try {
+  //           const vehicles = await api.getVehicles();
+  //           vehicle = vehicles.find((v) => v.purchase_id === purchaseId);
+  //         } catch (err) {}
+
+  //         try {
+  //           const labs = await api.getLabDetails();
+  //           lab = labs.find((l) => l.purchase_id === purchaseId);
+  //         } catch (err) {}
+
+  //         try {
+  //           const billings = await api.getBillings();
+  //           billing = billings.find((b) => b.purchase_id === purchaseId);
+  //         } catch (err) {}
+
+  //         // Calculate status and editable status
+  //         const createdAt = new Date(purchase.created_at);
+  //         const now = new Date();
+  //         const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
+  //         const isEditable = hoursDiff < 24;
+  //         const status = billing ? "Completed" : "In Progress";
+
+  //         return {
+  //           ...purchase,
+  //           purchaseId,
+  //           vehicle,
+  //           lab,
+  //           billing,
+  //           createdAt,
+  //           isEditable,
+  //           status,
+  //           hoursDiff,
+  //           isLocked: !isEditable,
+  //         };
+  //       })
+  //     );
+
+  //     setForms(enrichedForms);
+
+  //     // Calculate stats
+  //     const totalForms = enrichedForms.length;
+  //     const completedForms = enrichedForms.filter((f) => f.billing).length;
+  //     const pendingForms = totalForms - completedForms;
+  //     const recentActivity =
+  //       enrichedForms.length > 0 ? enrichedForms[0].createdAt : null;
+
+  //     setStats({
+  //       totalForms,
+  //       pendingForms,
+  //       completedForms,
+  //       recentActivity,
+  //     });
+  //   } catch (err) {
+  //     console.error("Failed to load forms:", err);
+  //     showError("Failed to load your forms");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const loadForms = async () => {
     try {
       setLoading(true);
-      const purchases = await api.getPurchases();
 
-      // Enrich forms with additional data
-      const enrichedForms = await Promise.all(
-        purchases.map(async (purchase) => {
-          const purchaseId =
-            purchase._id || purchase.id || purchase.purchase_id;
-          let vehicle = null;
-          let lab = null;
-          let billing = null;
+      // ✅ Fetch all data in parallel (only 4 calls total)
+      const [purchases, vehicles, labs, billings] = await Promise.all([
+        api.getPurchases(),
+        api.getVehicles(),
+        api.getLabDetails(),
+        api.getBillings(),
+      ]);
 
-          try {
-            const vehicles = await api.getVehicles();
-            vehicle = vehicles.find((v) => v.purchase_id === purchaseId);
-          } catch (err) {}
+      // ✅ Create lookup maps for O(1) access
+      const vehicleMap = new Map();
+      const labMap = new Map();
+      const billingMap = new Map();
 
-          try {
-            const labs = await api.getLabDetails();
-            lab = labs.find((l) => l.purchase_id === purchaseId);
-          } catch (err) {}
+      vehicles.forEach((v) => {
+        const pid = v.purchase_id || v._id;
+        if (pid) vehicleMap.set(pid, v);
+      });
 
-          try {
-            const billings = await api.getBillings();
-            billing = billings.find((b) => b.purchase_id === purchaseId);
-          } catch (err) {}
+      labs.forEach((l) => {
+        const pid = l.purchase_id || l._id;
+        if (pid) labMap.set(pid, l);
+      });
 
-          // Calculate status and editable status
-          const createdAt = new Date(purchase.created_at);
-          const now = new Date();
-          const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
-          const isEditable = hoursDiff < 24;
-          const status = billing ? "Completed" : "In Progress";
+      billings.forEach((b) => {
+        const pid = b.purchase_id || b._id;
+        if (pid) billingMap.set(pid, b);
+      });
 
-          return {
-            ...purchase,
-            purchaseId,
-            vehicle,
-            lab,
-            billing,
-            createdAt,
-            isEditable,
-            status,
-            hoursDiff,
-            isLocked: !isEditable,
-          };
-        })
-      );
+      // ✅ Enrich purchases in a single pass
+      const enrichedForms = purchases.map((purchase) => {
+        const purchaseId = purchase._id || purchase.id || purchase.purchase_id;
+        const vehicle = vehicleMap.get(purchaseId) || null;
+        const lab = labMap.get(purchaseId) || null;
+        const billing = billingMap.get(purchaseId) || null;
+
+        const createdAt = new Date(purchase.created_at);
+        const now = new Date();
+        const hoursDiff = (now - createdAt) / (1000 * 60 * 60);
+        const isEditable = hoursDiff < 24;
+        const status = billing ? "Completed" : "In Progress";
+
+        return {
+          ...purchase,
+          purchaseId,
+          vehicle,
+          lab,
+          billing,
+          createdAt,
+          isEditable,
+          status,
+          hoursDiff,
+          isLocked: !isEditable,
+        };
+      });
 
       setForms(enrichedForms);
 

@@ -120,15 +120,39 @@ const AdminDashboard = () => {
       setCompanies(companiesData);
 
       const formsData = await api.getAllFormsEnhanced();
-      // The backend returns {forms: [], pagination: {}}
-      // Extract the forms array from the response
-      const formsArray = formsData.forms || formsData || [];
-      setAllForms(formsArray);
+      console.log("DEBUG: Full forms data from API:", formsData); // Debug log
+
+      // Check if formsData has the expected structure
+      if (formsData && Array.isArray(formsData.forms)) {
+        console.log("DEBUG: Found forms array in forms.forms");
+        setAllForms(formsData.forms);
+
+        // Log a sample form to see the structure
+        if (formsData.forms.length > 0) {
+          console.log("DEBUG: Sample form structure:", formsData.forms[0]);
+          console.log(
+            "DEBUG: Created by user:",
+            formsData.forms[0].created_by_user,
+          );
+          console.log("DEBUG: Vehicle no:", formsData.forms[0].vehicle_no);
+        }
+      } else if (Array.isArray(formsData)) {
+        console.log("DEBUG: formsData is already an array");
+        setAllForms(formsData);
+
+        if (formsData.length > 0) {
+          console.log("DEBUG: Sample form structure:", formsData[0]);
+        }
+      } else {
+        console.error("DEBUG: Invalid forms data format:", formsData);
+        setAllForms([]);
+      }
 
       const usersData = await api.getUsers();
       setAllUsers(usersData);
       showSnackbar("Data loaded successfully", "success");
     } catch (error) {
+      console.error("Error loading data:", error);
       showSnackbar("Failed to load data: " + error.message, "error");
     } finally {
       setLoading(false);
@@ -718,7 +742,7 @@ const AdminDashboard = () => {
                     <TableRow>
                       <TableCell>Invoice #</TableCell>
                       <TableCell>Party Name</TableCell>
-                      <TableCell>Company</TableCell>
+                      {/* <TableCell>Company</TableCell> */}
                       <TableCell>Created By</TableCell>
                       <TableCell>Vehicle No</TableCell>
                       <TableCell>Product</TableCell>
@@ -744,14 +768,14 @@ const AdminDashboard = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>{form.party_name}</TableCell>
-                          <TableCell>
+                          {/* <TableCell>
                             <Chip
                               label={form.company}
                               size="small"
                               color="primary"
                               variant="outlined"
                             />
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell>
                             <Box display="flex" alignItems="center">
                               <Avatar

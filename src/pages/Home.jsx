@@ -1536,8 +1536,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       // Get complete form data from backend
       const response = await api.generateInvoice(currentPurchaseId);
 
-      if (response && response.data) {
-        const raw = response.data;
+      // if (response && response.data) {
+      //   const raw = response.data;
+      if (response && typeof response === "object") {
+        const raw = response;
 
         // Get selected company
         const selectedCompanyObj = companies.find(

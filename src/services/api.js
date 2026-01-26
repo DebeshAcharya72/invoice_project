@@ -116,10 +116,38 @@ export const api = {
       body: JSON.stringify(userData),
     }).then(handleResponse),
 
-  getAllFormsEnhanced: () =>
-    fetch(`${API_BASE}/admin/all-forms-enhanced/`, {
-      headers: getHeaders(),
-    }).then(handleResponse),
+  // getAllFormsEnhanced: () =>
+  //   fetch(`${API_BASE}/admin/all-forms-enhanced/`, {
+  //     headers: getHeaders(),
+  //   }).then(handleResponse),
+
+  getAllFormsEnhanced: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/admin/all-forms-enhanced/`, {
+        headers: getHeaders(),
+      });
+
+      const data = await handleResponse(response);
+
+      console.log("API Response for getAllFormsEnhanced:", data); // Debug log
+
+      // Handle the response structure properly
+      if (data && Array.isArray(data.forms)) {
+        return data.forms;
+      } else if (Array.isArray(data)) {
+        return data; // Backward compatibility if API returns array directly
+      } else if (data && data.error) {
+        console.error("API Error:", data.error);
+        throw new Error(data.error);
+      } else {
+        console.error("Unexpected response format:", data);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error in getAllFormsEnhanced:", error);
+      throw error;
+    }
+  },
 
   // GET COMPLETE FORM DATA
   getFormComplete: (purchaseId) =>
