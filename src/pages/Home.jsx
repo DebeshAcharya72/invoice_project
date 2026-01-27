@@ -1150,10 +1150,26 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const toPay = totalFreight - (parseFloat(vehicleForm.advance_amount) || 0);
 
   // Load parties
+  // const loadParties = async () => {
+  //   try {
+  //     const data = await api.getParties();
+  //     setParties(data);
+  //     if (data.length > 0 && !purchaseForm.party_name && mode === "create") {
+  //       setPurchaseForm((prev) => ({
+  //         ...prev,
+  //         party_name: data[0].party_name,
+  //       }));
+  //     }
+  //   } catch (err) {
+  //     showError("Failed to load parties");
+  //   }
+  // };
+
   const loadParties = async () => {
     try {
       const data = await api.getParties();
       setParties(data);
+      // Optional: If no party is selected and it's create mode, auto-select first
       if (data.length > 0 && !purchaseForm.party_name && mode === "create") {
         setPurchaseForm((prev) => ({
           ...prev,
@@ -1231,9 +1247,42 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   //   }
   // };
 
+  // const handleSaveParty = async () => {
+  //   try {
+  //     // If using existing party, don't save again
+  //     if (usingExistingParty && selectedExistingParty) {
+  //       showSuccess("Using existing party details!");
+  //       return;
+  //     }
+
+  //     const partyData = {
+  //       ...partyForm,
+  //       company_id: selectedCompany,
+  //     };
+
+  //     let savedParty;
+  //     if (mode === "edit" && savedPartyData) {
+  //       savedParty = await api.updateParty(savedPartyData._id, partyData);
+  //     } else {
+  //       savedParty = await api.createParty(partyData);
+  //     }
+
+  //     setSavedPartyData(savedParty);
+  //     setPurchaseForm((prev) => ({
+  //       ...prev,
+  //       party_name: savedParty.party_name,
+  //     }));
+  //     await loadParties();
+  //     setSavedSections((prev) => ({ ...prev, party: true }));
+  //     setModifiedSections((prev) => ({ ...prev, party: false }));
+  //     showSuccess("Party details saved!");
+  //   } catch (err) {
+  //     showError("Failed to save Party");
+  //   }
+  // };
+
   const handleSaveParty = async () => {
     try {
-      // If using existing party, don't save again
       if (usingExistingParty && selectedExistingParty) {
         showSuccess("Using existing party details!");
         return;
@@ -1246,22 +1295,31 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
       let savedParty;
       if (mode === "edit" && savedPartyData) {
+        // Update existing party
         savedParty = await api.updateParty(savedPartyData._id, partyData);
       } else {
+        // Create new party
         savedParty = await api.createParty(partyData);
       }
 
-      setSavedPartyData(savedParty);
+      // ✅ CRITICAL: Reload parties so the new one appears in dropdown
+      await loadParties();
+
+      // ✅ CRITICAL: Auto-select the newly created/updated party
       setPurchaseForm((prev) => ({
         ...prev,
-        party_name: savedParty.party_name,
+        party_name: savedParty.party_name, // ← This ensures it shows in the dropdown
       }));
-      await loadParties();
+
+      // Update local state
+      setSavedPartyData(savedParty);
       setSavedSections((prev) => ({ ...prev, party: true }));
       setModifiedSections((prev) => ({ ...prev, party: false }));
+
       showSuccess("Party details saved!");
     } catch (err) {
-      showError("Failed to save Party");
+      console.error("Failed to save Party:", err);
+      showError("Failed to save Party: " + (err.message || "Unknown error"));
     }
   };
 
