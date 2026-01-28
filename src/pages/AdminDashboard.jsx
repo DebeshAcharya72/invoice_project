@@ -130,10 +130,6 @@ const AdminDashboard = () => {
         // Log a sample form to see the structure
         if (formsData.forms.length > 0) {
           console.log("DEBUG: Sample form structure:", formsData.forms[0]);
-          console.log(
-            "DEBUG: Created by user:",
-            formsData.forms[0].created_by_user,
-          );
           console.log("DEBUG: Vehicle no:", formsData.forms[0].vehicle_no);
         }
       } else if (Array.isArray(formsData)) {
@@ -805,7 +801,28 @@ const AdminDashboard = () => {
                           <TableCell>{form.product}</TableCell>
                           <TableCell>{form.weight_mt}</TableCell>
                           <TableCell>
-                            ₹{form.amount ? form.amount.toFixed(2) : "0.00"}
+                            <Typography
+                              variant="body2"
+                              fontWeight="bold"
+                              color={
+                                form.amount_payable > 0
+                                  ? "error.main"
+                                  : "success.main"
+                              }
+                            >
+                              ₹
+                              {form.amount_payable
+                                ? form.amount_payable.toFixed(2)
+                                : "0.00"}
+                            </Typography>
+                            {form.amount_payable > 0 && (
+                              <Typography
+                                variant="caption"
+                                color="textSecondary"
+                              >
+                                Pending
+                              </Typography>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -821,6 +838,23 @@ const AdminDashboard = () => {
                               }
                             />
                           </TableCell>
+                          {/* <TableCell>
+                            ₹{form.amount ? form.amount.toFixed(2) : "0.00"}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={form.status}
+                              size="small"
+                              color={
+                                form.status === "Paid" ? "success" : "warning"
+                              }
+                              icon={
+                                form.status === "Paid" ? (
+                                  <CheckCircleIcon />
+                                ) : null
+                              }
+                            />
+                          </TableCell> */}
                           <TableCell>
                             {new Date(form.created_at).toLocaleDateString(
                               "en-IN",
