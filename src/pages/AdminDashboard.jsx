@@ -36,6 +36,7 @@ import {
   InputLabel,
   Select,
   Badge,
+  InputAdornment, // ✅ Required
 } from "@mui/material";
 import {
   Business as BusinessIcon,
@@ -53,8 +54,127 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
 import { api } from "../services/api";
+
+const styles = {
+  compactField: {
+    "& .MuiOutlinedInput-root": {
+      height: "32px",
+      backgroundColor: "#fff",
+      borderRadius: "6px",
+      "&:hover": {
+        "& .MuiOutlinedInput-notchedOutline": {
+          borderColor: "#1976d2",
+        },
+      },
+      "&.Mui-focused": {
+        "& .MuiOutlinedInput-notchedOutline": {
+          borderWidth: "1px",
+          borderColor: "#1976d2",
+        },
+      },
+    },
+    "& .MuiOutlinedInput-input": {
+      padding: "6px 12px",
+      fontSize: "13px",
+      fontWeight: "400",
+      color: "#2c3e50",
+      "&::placeholder": {
+        color: "#95a5a6",
+        opacity: 1,
+      },
+    },
+    "& .MuiInputLabel-root": {
+      fontSize: "13px",
+      fontWeight: "500",
+      color: "#34495e",
+      transform: "translate(14px, 10px) scale(1)",
+      "&.Mui-focused": {
+        color: "#1976d2",
+      },
+    },
+    "& .MuiInputLabel-shrink": {
+      transform: "translate(14px, -6px) scale(0.85)",
+      backgroundColor: "#ffffff02",
+      padding: "0 4px",
+    },
+    "& .MuiFormHelperText-root": {
+      fontSize: "11px",
+      marginTop: "3px",
+      marginLeft: "0",
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#dfe6e9",
+      borderWidth: "1px",
+    },
+  },
+  compactSelect: {
+    "& .MuiOutlinedInput-root": {
+      height: "36px",
+      backgroundColor: "#fff",
+      borderRadius: "6px",
+    },
+    "& .MuiSelect-select": {
+      padding: "6px 12px",
+      paddingRight: "32px !important",
+      fontSize: "13px",
+      minHeight: "unset !important",
+      lineHeight: "1.5",
+    },
+    "& .MuiInputLabel-root": {
+      fontSize: "13px",
+      transform: "translate(14px, 10px) scale(1)",
+    },
+    "& .MuiInputLabel-shrink": {
+      transform: "translate(14px, -6px) scale(0.85)",
+      backgroundColor: "#fff",
+      padding: "0 4px",
+    },
+  },
+  compactGrid: {
+    "& > .MuiGrid-item": {
+      paddingTop: "4px !important",
+    },
+  },
+  compactButton: {
+    padding: "4px 12px",
+    fontSize: "12px",
+    fontWeight: "500",
+    textTransform: "none",
+    borderRadius: "4px",
+    height: "32px",
+    minWidth: "100px",
+    "& .MuiButton-startIcon": {
+      marginRight: "4px",
+      "& > *:first-of-type": {
+        fontSize: "16px",
+      },
+    },
+  },
+  compactRadio: {
+    "& .MuiRadio-root": {
+      padding: "4px",
+      "& .MuiSvgIcon-root": {
+        fontSize: "18px",
+      },
+    },
+    "& .MuiFormControlLabel-label": {
+      fontSize: "13px",
+      fontWeight: "400",
+    },
+  },
+  compactCard: {
+    marginBottom: "6px",
+    "& .MuiCardContent-root": {
+      padding: "8px",
+      "&:last-child": {
+        paddingBottom: "12px",
+      },
+    },
+  },
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -75,6 +195,8 @@ const AdminDashboard = () => {
   });
   const [selectedTab, setSelectedTab] = useState(0);
   const [userManagementDialog, setUserManagementDialog] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -274,8 +396,16 @@ const AdminDashboard = () => {
     }
   };
 
+  // const handleEditUser = (user) => {
+  //   setUserToEdit(user);
+  //   setEditUserDialog(true);
+  // };
   const handleEditUser = (user) => {
-    setUserToEdit(user);
+    // Initialize password as empty string explicitly
+    setUserToEdit({
+      ...user,
+      password: "", // 👈 critical: ensures controlled input
+    });
     setEditUserDialog(true);
   };
 
@@ -289,13 +419,38 @@ const AdminDashboard = () => {
         company_id: userToEdit.company_id || "",
         is_active: userToEdit.is_active,
       };
+      if (userToEdit.password) {
+        updateData.password = userToEdit.password;
+      }
       await api.updateUser(userToEdit._id, updateData);
       await loadData();
       setEditUserDialog(false);
       setUserToEdit(null);
+      setShowEditPassword(false);
       showSnackbar("User updated successfully", "success");
     } catch (error) {
       showSnackbar("Failed to update user: " + error.message, "error");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!userToEdit?._id) return;
+
+    // Generate a strong, random temp password (10 chars, alphanumeric)
+    const tempPass = Math.random().toString(36).slice(-10).toUpperCase();
+
+    try {
+      await api.updateUser(userToEdit._id, { password: tempPass });
+      await loadData(); // refresh user list
+      showSnackbar(
+        `✅ Temporary password generated: ${tempPass}\n→ Share securely with user.`,
+        "info",
+      );
+      setEditUserDialog(false);
+      setUserToEdit(null);
+      setShowEditPassword(false);
+    } catch (error) {
+      showSnackbar("Failed to reset password: " + error.message, "error");
     }
   };
 
@@ -438,6 +593,7 @@ const AdminDashboard = () => {
                     fullWidth
                     label="Company Name *"
                     value={newCompany.company_name}
+                    sx={styles.compactField}
                     onChange={(e) =>
                       setNewCompany({
                         ...newCompany,
@@ -452,6 +608,7 @@ const AdminDashboard = () => {
                     fullWidth
                     label="Company Address"
                     value={newCompany.address_line1}
+                    sx={styles.compactField}
                     onChange={(e) =>
                       setNewCompany({
                         ...newCompany,
@@ -465,6 +622,7 @@ const AdminDashboard = () => {
                     fullWidth
                     label="Mobile Number"
                     value={newCompany.mobile_no}
+                    sx={styles.compactField}
                     onChange={(e) =>
                       setNewCompany({
                         ...newCompany,
@@ -478,6 +636,7 @@ const AdminDashboard = () => {
                     fullWidth
                     label="GST Number (Optional)"
                     value={newCompany.gst_number}
+                    sx={styles.compactField}
                     onChange={(e) =>
                       setNewCompany({
                         ...newCompany,
@@ -497,6 +656,7 @@ const AdminDashboard = () => {
                     label="Email (Optional)"
                     type="email"
                     value={newCompany.email}
+                    sx={styles.compactField}
                     onChange={(e) =>
                       setNewCompany({
                         ...newCompany,
@@ -666,7 +826,7 @@ const AdminDashboard = () => {
                                 variant="outlined"
                               />
                             </Box>
-                            <Typography
+                            {/* <Typography
                               variant="caption"
                               color="textSecondary"
                               display="block"
@@ -687,7 +847,7 @@ const AdminDashboard = () => {
                               >
                                 No forms yet
                               </Typography>
-                            )}
+                            )} */}
                           </Box>
                         </Paper>
                       </Grid>
@@ -744,7 +904,7 @@ const AdminDashboard = () => {
                       <TableCell>Product</TableCell>
                       <TableCell>Weight (MT)</TableCell>
                       <TableCell>Amount</TableCell>
-                      <TableCell>Status</TableCell>
+                      {/* <TableCell>Status</TableCell> */}
                       <TableCell>Created</TableCell>
                       <TableCell>Actions</TableCell>
                     </TableRow>
@@ -815,16 +975,16 @@ const AdminDashboard = () => {
                                 ? form.amount_payable.toFixed(2)
                                 : "0.00"}
                             </Typography>
-                            {form.amount_payable > 0 && (
+                            {/* {form.amount_payable > 0 && (
                               <Typography
                                 variant="caption"
                                 color="textSecondary"
                               >
                                 Pending
                               </Typography>
-                            )}
+                            )} */}
                           </TableCell>
-                          <TableCell>
+                          {/* <TableCell>
                             <Chip
                               label={form.status}
                               size="small"
@@ -837,7 +997,7 @@ const AdminDashboard = () => {
                                 ) : null
                               }
                             />
-                          </TableCell>
+                          </TableCell> */}
                           {/* <TableCell>
                             ₹{form.amount ? form.amount.toFixed(2) : "0.00"}
                           </TableCell>
@@ -1055,10 +1215,6 @@ const AdminDashboard = () => {
         open={Boolean(formMenuAnchor)}
         onClose={handleCloseFormMenu}
       >
-        <MenuItem onClick={handleViewForm}>
-          <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
-          View Details
-        </MenuItem>
         <MenuItem onClick={handleEditForm}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Edit Form
@@ -1068,115 +1224,6 @@ const AdminDashboard = () => {
           Delete Form
         </MenuItem>
       </Menu>
-
-      {/* View Form Dialog */}
-      <Dialog
-        open={viewFormDialog}
-        onClose={() => setViewFormDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        {selectedFormDetails && (
-          <>
-            <DialogTitle>
-              Form Details: {selectedFormDetails.invoice_no}
-            </DialogTitle>
-            <DialogContent>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Party Details
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedFormDetails.party_name}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Vehicle Details
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedFormDetails.vehicle_no}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Company
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedFormDetails.company}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Created By
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedFormDetails.created_by_user}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {selectedFormDetails.created_by_email}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Product
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedFormDetails.product}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Weight
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedFormDetails.weight_mt} MT
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Amount
-                  </Typography>
-                  <Typography variant="body1" fontWeight="bold">
-                    ₹
-                    {selectedFormDetails.amount
-                      ? selectedFormDetails.amount.toFixed(2)
-                      : "0.00"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Status
-                  </Typography>
-                  <Chip
-                    label={selectedFormDetails.status}
-                    color={
-                      selectedFormDetails.status === "Paid"
-                        ? "success"
-                        : "warning"
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Created Date
-                  </Typography>
-                  <Typography variant="body1">
-                    {new Date(selectedFormDetails.created_at).toLocaleString()}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setViewFormDialog(false)}>Close</Button>
-              <Button variant="contained" onClick={handleEditForm}>
-                Edit Form
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
 
       {/* Add User Dialog */}
       <Dialog
@@ -1217,7 +1264,7 @@ const AdminDashboard = () => {
                   }
                 />
               </Grid>
-              <Grid item xs={12}>
+              {/* <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Password *"
@@ -1226,6 +1273,35 @@ const AdminDashboard = () => {
                   onChange={(e) =>
                     setNewUser({ ...newUser, password: e.target.value })
                   }
+                />
+              </Grid> */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Password *"
+                  type={showPassword ? "text" : "password"}
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? (
+                            <VisibilityIcon />
+                          ) : (
+                            <VisibilityOffIcon />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1311,6 +1387,52 @@ const AdminDashboard = () => {
                     }
                   />
                 </Grid>
+                {/* <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="New Password (Optional)"
+                    placeholder="Leave blank to keep current password"
+                    type={showEditPassword ? "text" : "password"}
+                    value={userToEdit.password || ""}
+                    onChange={(e) =>
+                      setUserToEdit({ ...userToEdit, password: e.target.value })
+                    }
+                    helperText="Enter new password to change it. Leave empty to keep current."
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={() =>
+                              setShowEditPassword(!showEditPassword)
+                            }
+                            size="small"
+                          >
+                            {showEditPassword ? (
+                              <VisibilityIcon />
+                            ) : (
+                              <VisibilityOffIcon />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={styles.compactField}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    size="small"
+                    onClick={handleResetPassword}
+                    startIcon={<RefreshIcon fontSize="small" />}
+                    disabled={!userToEdit?._id}
+                  >
+                    Reset Password (Generate New)
+                  </Button>
+                </Grid> */}
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
                     <InputLabel>Role</InputLabel>

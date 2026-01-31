@@ -30,6 +30,11 @@ import {
   Chip,
   Collapse,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Autocomplete,
 } from "@mui/material";
 import {
   AccountCircle as AccountCircleIcon,
@@ -183,6 +188,22 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     open: false,
     message: "",
     severity: "success",
+  });
+
+  // Modal state
+  const [openPartyModal, setOpenPartyModal] = useState(false);
+
+  // Party form state for modal
+  const [modalPartyForm, setModalPartyForm] = useState({
+    party_name: "",
+    address_line1: "",
+    city: "",
+    state: "",
+    pin: "",
+    contact_person: "",
+    mobile_no: "",
+    gst: "",
+    customer_type: "Registered",
   });
 
   // Add this state to track if we're using existing party
@@ -632,6 +653,47 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       if (nextFieldRef && nextFieldRef.current) {
         nextFieldRef.current.focus();
       }
+    }
+  };
+
+  const handleSavePartyInModal = async () => {
+    try {
+      const partyData = {
+        ...modalPartyForm,
+        company_id: selectedCompany,
+      };
+
+      const savedParty = await api.createParty(partyData);
+      await loadParties(); // Refresh party list
+
+      // Auto-select new party
+      setPurchaseForm((prev) => ({
+        ...prev,
+        party_name: savedParty.party_name,
+      }));
+
+      setSavedPartyData(savedParty);
+      setSavedSections((prev) => ({ ...prev, party: true }));
+      setModifiedSections((prev) => ({ ...prev, party: false }));
+
+      // Reset & close
+      setOpenPartyModal(false);
+      setModalPartyForm({
+        party_name: "",
+        address_line1: "",
+        city: "",
+        state: "",
+        pin: "",
+        contact_person: "",
+        mobile_no: "",
+        gst: "",
+        customer_type: "Registered",
+      });
+
+      showSuccess("Party details saved!");
+    } catch (err) {
+      console.error("Failed to save Party:", err);
+      showError("Failed to save Party: " + (err.message || "Unknown error"));
     }
   };
 
@@ -1217,70 +1279,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
-  // const handleSaveParty = async () => {
-  //   try {
-  //     const partyData = {
-  //       ...partyForm,
-  //       company_id: selectedCompany,
-  //     };
-
-  //     let savedParty;
-  //     if (mode === "edit" && savedPartyData) {
-  //       // Update existing party
-  //       savedParty = await api.updateParty(savedPartyData._id, partyData);
-  //     } else {
-  //       // Create new party
-  //       savedParty = await api.createParty(partyData);
-  //     }
-
-  //     setSavedPartyData(savedParty);
-  //     setPurchaseForm((prev) => ({
-  //       ...prev,
-  //       party_name: savedParty.party_name,
-  //     }));
-  //     await loadParties();
-  //     setSavedSections((prev) => ({ ...prev, party: true }));
-  //     setModifiedSections((prev) => ({ ...prev, party: false }));
-  //     showSuccess("Party details saved!");
-  //   } catch (err) {
-  //     showError("Failed to save Party");
-  //   }
-  // };
-
-  // const handleSaveParty = async () => {
-  //   try {
-  //     // If using existing party, don't save again
-  //     if (usingExistingParty && selectedExistingParty) {
-  //       showSuccess("Using existing party details!");
-  //       return;
-  //     }
-
-  //     const partyData = {
-  //       ...partyForm,
-  //       company_id: selectedCompany,
-  //     };
-
-  //     let savedParty;
-  //     if (mode === "edit" && savedPartyData) {
-  //       savedParty = await api.updateParty(savedPartyData._id, partyData);
-  //     } else {
-  //       savedParty = await api.createParty(partyData);
-  //     }
-
-  //     setSavedPartyData(savedParty);
-  //     setPurchaseForm((prev) => ({
-  //       ...prev,
-  //       party_name: savedParty.party_name,
-  //     }));
-  //     await loadParties();
-  //     setSavedSections((prev) => ({ ...prev, party: true }));
-  //     setModifiedSections((prev) => ({ ...prev, party: false }));
-  //     showSuccess("Party details saved!");
-  //   } catch (err) {
-  //     showError("Failed to save Party");
-  //   }
-  // };
-
   const handleSaveParty = async () => {
     try {
       if (usingExistingParty && selectedExistingParty) {
@@ -1545,12 +1543,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     try {
       setSaving(true);
 
-      // Save all sections in sequence
-      // if (
-      //   (mode === "create" && !savedSections.party) ||
-      //   (mode === "edit" && modifiedSections.party)
-      // )
-      //   await handleSaveParty();
       if (
         (mode === "create" && !savedSections.purchase) ||
         (mode === "edit" && modifiedSections.purchase)
@@ -1854,370 +1846,37 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               }}
             >
               <BusinessIcon color="primary" fontSize="small" />
-              <FormControl
-                size="small"
-                sx={{ minWidth: 250 }}
-                disabled={userRole !== "admin" && companies.length <= 1}
-              >
-                <InputLabel>Select Company</InputLabel>
+              <FormControl fullWidth size="small" sx={styles.compactSelect}>
+                <InputLabel>Company *</InputLabel>
                 <Select
                   value={selectedCompany}
-                  label="Select Company"
-                  onChange={handleCompanyChange}
-                  sx={{
-                    "& .MuiSelect-select": {
-                      fontSize: "13px",
-                      padding: "8px 12px",
-                    },
-                    height: "40px",
-                  }}
+                  label="Company"
+                  onChange={(e) => setSelectedCompany(e.target.value)}
                 >
-                  {loadingCompanies ? (
-                    <MenuItem disabled>Loading companies...</MenuItem>
-                  ) : companies.length === 0 ? (
-                    <MenuItem disabled>No companies available</MenuItem>
-                  ) : (
-                    companies.map((company) => (
-                      <MenuItem
-                        key={company._id || company.id}
-                        value={company._id || company.id}
-                      >
-                        {company.company_name}
-                      </MenuItem>
-                    ))
-                  )}
+                  {companies.map((company) => (
+                    <MenuItem key={company._id} value={company._id}>
+                      {company.company_name}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
-              {userRole !== "admin" && companies.length <= 1 && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: 1 }}
+              <Box
+                sx={{ display: "flex", alignItems: "center", height: "100%" }}
+              >
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setOpenPartyModal(true)}
+                  sx={{ fontSize: "0.875rem", whiteSpace: "nowrap" }}
                 >
-                  Assigned to: {getUserCompanyName()}
-                </Typography>
-              )}
+                  + Add New Party
+                </Button>
+              </Box>
             </Box>
           </Box>
 
           {/* Party and Purchase Details Side by Side */}
           <Grid container spacing={1} sx={styles.compactGrid}>
-            {/* PARTY DETAILS - Left Column */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card
-                elevation={1}
-                sx={{ borderRadius: 2, height: "100%", ...styles.compactCard }}
-              >
-                <CardContent sx={{ p: 1.5 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      mb: 1.5,
-                      cursor: "pointer",
-                    }}
-                    onClick={() => toggleSection("party")}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Avatar
-                        sx={{ bgcolor: "primary.light", width: 28, height: 28 }}
-                      >
-                        <AccountCircleIcon fontSize="small" />
-                      </Avatar>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        1. Party Details
-                      </Typography>
-                      {savedSections.party && mode === "create" && (
-                        <Chip
-                          label="✓ Saved"
-                          size="small"
-                          color="success"
-                          sx={{ ml: 1, height: 20 }}
-                        />
-                      )}
-                      {mode === "edit" && modifiedSections.party && (
-                        <Chip
-                          label="Modified"
-                          size="small"
-                          color="warning"
-                          sx={{ ml: 1, height: 20 }}
-                        />
-                      )}
-                    </Box>
-                    <ExpandMoreIcon
-                      sx={{
-                        transform: expandedSections.party
-                          ? "rotate(180deg)"
-                          : "none",
-                        transition: "0.3s",
-                      }}
-                    />
-                  </Box>
-
-                  <Collapse in={expandedSections.party}>
-                    <Divider sx={{ my: 1 }} />
-
-                    {/* Add this button to switch between new/existing party */}
-                    <Box sx={{ mb: 2, display: "flex", gap: 1 }}>
-                      <Button
-                        variant={!usingExistingParty ? "contained" : "outlined"}
-                        size="small"
-                        onClick={handleAddNewParty}
-                        sx={{ fontSize: "11px", padding: "4px 8px" }}
-                      >
-                        Add New Party
-                      </Button>
-                      {/* <Button
-                        variant={usingExistingParty ? "contained" : "outlined"}
-                        size="small"
-                        onClick={() => {
-                          // This will be triggered when user selects from dropdown
-                          // The dropdown is in Purchase Details
-                        }}
-                        sx={{ fontSize: "11px", padding: "4px 8px" }}
-                        disabled
-                      >
-                        Select Existing
-                      </Button> */}
-                    </Box>
-
-                    <Grid container spacing={1} sx={styles.compactGrid}>
-                      <Grid size={{ xs: 12 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Party Name *"
-                          value={partyForm.party_name}
-                          onChange={(e) =>
-                            updateFormWithTracking(setPartyForm, "party", {
-                              ...partyForm,
-                              party_name: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, contactPersonRef)}
-                          inputRef={partyNameRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Contact Person"
-                          value={partyForm.contact_person}
-                          onChange={(e) =>
-                            updateFormWithTracking(setPartyForm, "party", {
-                              ...partyForm,
-                              contact_person: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, partyMobileRef)}
-                          inputRef={contactPersonRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Mobile No *"
-                          value={partyForm.mobile_no}
-                          onChange={(e) =>
-                            handleMobileChange(e, "party", setPartyForm)
-                          }
-                          inputProps={{ maxLength: 10 }}
-                          type="tel"
-                          helperText="10 digits only"
-                          onKeyDown={(e) => handleKeyDown(e, partyAddressRef)}
-                          inputRef={partyMobileRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Address"
-                          value={partyForm.address_line1}
-                          onChange={(e) =>
-                            updateFormWithTracking(setPartyForm, "party", {
-                              ...partyForm,
-                              address_line1: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, partyCityRef)}
-                          inputRef={partyAddressRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="City"
-                          value={partyForm.city}
-                          onChange={(e) =>
-                            updateFormWithTracking(setPartyForm, "party", {
-                              ...partyForm,
-                              city: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, partyStateRef)}
-                          inputRef={partyCityRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="State"
-                          value={partyForm.state}
-                          onChange={(e) =>
-                            updateFormWithTracking(setPartyForm, "party", {
-                              ...partyForm,
-                              state: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, partyPinRef)}
-                          inputRef={partyStateRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Pin Code"
-                          value={partyForm.pin}
-                          onChange={(e) =>
-                            updateFormWithTracking(setPartyForm, "party", {
-                              ...partyForm,
-                              pin: e.target.value,
-                            })
-                          }
-                          inputProps={{ maxLength: 6 }}
-                          onKeyDown={(e) => handleKeyDown(e, partyGstRef)}
-                          inputRef={partyPinRef}
-                          fullWidth
-                          // disabled={usingExistingParty}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <FormControl
-                          fullWidth
-                          size="small"
-                          sx={styles.compactSelect}
-                        >
-                          <InputLabel>Customer Type</InputLabel>
-                          <Select
-                            value={partyForm.customer_type}
-                            label="Customer Type"
-                            onChange={(e) =>
-                              updateFormWithTracking(setPartyForm, "party", {
-                                ...partyForm,
-                                customer_type: e.target.value,
-                              })
-                            }
-                          >
-                            <MenuItem value="Registered">Registered</MenuItem>
-                            <MenuItem value="Unregistered">
-                              Unregistered
-                            </MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      {partyForm.customer_type === "Registered" && (
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                          <TextField
-                            size="small"
-                            sx={styles.compactField}
-                            label="GST Number"
-                            value={partyForm.gst}
-                            onChange={(e) => {
-                              const gstValue = e.target.value
-                                .toUpperCase()
-                                .replace(/[^A-Z0-9]/g, "");
-                              if (
-                                validateGSTFormat(gstValue) ||
-                                gstValue.length < 50
-                              ) {
-                                updateFormWithTracking(setPartyForm, "party", {
-                                  ...partyForm,
-                                  gst: gstValue,
-                                });
-                              }
-                            }}
-                            // helperText={
-                            //   partyForm.gst && !validateGSTFormat(partyForm.gst)
-                            //     ? "Invalid GST format"
-                            //     : partyForm.gst
-                            //     ? `State: ${partyForm.gst.substring(0, 2)}`
-                            //     : "15 characters"
-                            // }
-                            // error={
-                            //   partyForm.gst && !validateGSTFormat(partyForm.gst)
-                            // }
-                            onKeyDown={(e) => handleKeyDown(e, invoiceNoRef)}
-                            inputRef={partyGstRef}
-                            fullWidth
-                            inputProps={{
-                              style: { textTransform: "uppercase" },
-                              maxLength: 15,
-                            }}
-                          />
-                        </Grid>
-                      )}
-                      <Grid size={{ xs: 12 }}>
-                        <Box sx={{ textAlign: "right", mt: 1 }}>
-                          <Button
-                            variant="contained"
-                            startIcon={<SaveIcon />}
-                            onClick={handleSaveParty}
-                            disabled={
-                              mode === "create"
-                                ? // ? savedSections.party
-                                  // : !modifiedSections.party
-                                  (usingExistingParty && savedSections.party) ||
-                                  (!usingExistingParty &&
-                                    !partyForm.party_name?.trim())
-                                : !modifiedSections.party
-                            }
-                            sx={styles.compactButton}
-                          >
-                            {/* {mode === "create"
-                              ? savedSections.party
-                                ? "Saved"
-                                : "Save Party"
-                              : modifiedSections.party
-                                ? "Save Changes"
-                                : "Saved"} */}
-
-                            {usingExistingParty && selectedExistingParty
-                              ? "Using Existing Party"
-                              : mode === "create"
-                                ? savedSections.party
-                                  ? "Saved"
-                                  : "Save Party"
-                                : modifiedSections.party
-                                  ? "Save Changes"
-                                  : "Saved"}
-                          </Button>
-                        </Box>
-                      </Grid>
-                    </Grid>
-                  </Collapse>
-                </CardContent>
-              </Card>
-            </Grid>
-
             {/* PURCHASE DETAILS - Right Column */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Card
@@ -2242,7 +1901,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         <InventoryIcon fontSize="small" />
                       </Avatar>
                       <Typography variant="subtitle1" fontWeight="bold">
-                        2. Purchase Details
+                        1. Purchase Details
                       </Typography>
                       {savedSections.purchase && mode === "create" && (
                         <Chip
@@ -2274,27 +1933,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                   <Collapse in={expandedSections.purchase}>
                     <Divider sx={{ my: 1 }} />
                     <Grid container spacing={1} sx={styles.compactGrid}>
-                      <Grid size={{ xs: 12, sm: 6 }}>
+                      {/* <Grid size={{ xs: 12, sm: 6 }}>
                         <FormControl
                           fullWidth
                           size="small"
                           sx={styles.compactSelect}
                         >
                           <InputLabel>Party Name</InputLabel>
-                          {/* <Select
-                            value={purchaseForm.party_name}
-                            label="Party Name"
-                            onChange={(e) =>
-                              updateFormWithTracking(
-                                setPurchaseForm,
-                                "purchase",
-                                {
-                                  ...purchaseForm,
-                                  party_name: e.target.value,
-                                },
-                              )
-                            }
-                          > */}
+
                           <Select
                             value={purchaseForm.party_name}
                             label="Party Name"
@@ -2354,7 +2000,213 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             ))}
                           </Select>
                         </FormControl>
+                      </Grid> */}
+
+                      {/* New Autocomplete Component */}
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Autocomplete
+                          freeSolo
+                          value={purchaseForm.party_name}
+                          onChange={(event, newValue) => {
+                            // If user selects from dropdown
+                            if (newValue && typeof newValue === "string") {
+                              const selectedParty = parties.find(
+                                (p) => p.party_name === newValue,
+                              );
+
+                              if (selectedParty) {
+                                // Existing party selected from dropdown
+                                updateFormWithTracking(
+                                  setPurchaseForm,
+                                  "purchase",
+                                  {
+                                    ...purchaseForm,
+                                    party_name: newValue,
+                                  },
+                                );
+
+                                setUsingExistingParty(true);
+                                setSelectedExistingParty(selectedParty);
+
+                                // Auto-fill party form
+                                setPartyForm({
+                                  party_name: selectedParty.party_name,
+                                  address_line1:
+                                    selectedParty.address_line1 || "",
+                                  city: selectedParty.city || "",
+                                  state: selectedParty.state || "",
+                                  pin: selectedParty.pin || "",
+                                  contact_person:
+                                    selectedParty.contact_person || "",
+                                  mobile_no: selectedParty.mobile_no || "",
+                                  gst: selectedParty.gst || "",
+                                  customer_type:
+                                    selectedParty.customer_type || "Registered",
+                                });
+
+                                // Mark party as saved
+                                setSavedSections((prev) => ({
+                                  ...prev,
+                                  party: true,
+                                }));
+                                setModifiedSections((prev) => ({
+                                  ...prev,
+                                  party: false,
+                                }));
+                              } else {
+                                // User typed a new party name
+                                updateFormWithTracking(
+                                  setPurchaseForm,
+                                  "purchase",
+                                  {
+                                    ...purchaseForm,
+                                    party_name: newValue,
+                                  },
+                                );
+
+                                // Reset party form for new entry
+                                setUsingExistingParty(false);
+                                setSelectedExistingParty(null);
+
+                                setPartyForm({
+                                  party_name: newValue,
+                                  address_line1: "",
+                                  city: "",
+                                  state: "",
+                                  pin: "",
+                                  contact_person: "",
+                                  mobile_no: "",
+                                  gst: "",
+                                  customer_type: "Registered",
+                                });
+
+                                // Mark party as unsaved
+                                setSavedSections((prev) => ({
+                                  ...prev,
+                                  party: false,
+                                }));
+                                setModifiedSections((prev) => ({
+                                  ...prev,
+                                  party: false,
+                                }));
+                              }
+                            } else if (newValue === null) {
+                              // User cleared the field
+                              updateFormWithTracking(
+                                setPurchaseForm,
+                                "purchase",
+                                {
+                                  ...purchaseForm,
+                                  party_name: "",
+                                },
+                              );
+                              setUsingExistingParty(false);
+                              setSelectedExistingParty(null);
+                            }
+                          }}
+                          onInputChange={(event, newInputValue) => {
+                            // Update as user types
+                            updateFormWithTracking(
+                              setPurchaseForm,
+                              "purchase",
+                              {
+                                ...purchaseForm,
+                                party_name: newInputValue,
+                              },
+                            );
+
+                            // Check if typed value matches existing party
+                            const matchingParty = parties.find(
+                              (p) =>
+                                p.party_name.toLowerCase() ===
+                                newInputValue.toLowerCase(),
+                            );
+
+                            if (matchingParty && newInputValue.trim() !== "") {
+                              setUsingExistingParty(true);
+                              setSelectedExistingParty(matchingParty);
+
+                              // Auto-fill party form
+                              setPartyForm({
+                                party_name: matchingParty.party_name,
+                                address_line1:
+                                  matchingParty.address_line1 || "",
+                                city: matchingParty.city || "",
+                                state: matchingParty.state || "",
+                                pin: matchingParty.pin || "",
+                                contact_person:
+                                  matchingParty.contact_person || "",
+                                mobile_no: matchingParty.mobile_no || "",
+                                gst: matchingParty.gst || "",
+                                customer_type:
+                                  matchingParty.customer_type || "Registered",
+                              });
+
+                              setSavedSections((prev) => ({
+                                ...prev,
+                                party: true,
+                              }));
+                            } else if (newInputValue.trim() !== "") {
+                              // User typing new party
+                              setUsingExistingParty(false);
+                              setSelectedExistingParty(null);
+
+                              // Set party name but keep other fields empty
+                              setPartyForm({
+                                party_name: newInputValue,
+                                address_line1: "",
+                                city: "",
+                                state: "",
+                                pin: "",
+                                contact_person: "",
+                                mobile_no: "",
+                                gst: "",
+                                customer_type: "Registered",
+                              });
+
+                              setSavedSections((prev) => ({
+                                ...prev,
+                                party: false,
+                              }));
+                            }
+                          }}
+                          options={parties.map((p) => p.party_name)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              size="small"
+                              sx={styles.compactField}
+                              label="Party Name *"
+                              placeholder="Type or select party"
+                              fullWidth
+                              InputProps={{
+                                ...params.InputProps,
+                                style: { padding: 0, height: "32px" },
+                              }}
+                              inputProps={{
+                                ...params.inputProps,
+                                style: {
+                                  fontSize: "13px",
+                                  padding: "6px 12px",
+                                },
+                              }}
+                            />
+                          )}
+                          renderOption={(props, option) => (
+                            <li {...props} style={{ fontSize: "13px" }}>
+                              {option}
+                            </li>
+                          )}
+                          noOptionsText="No matching parties found"
+                          filterOptions={(options, state) => {
+                            const inputValue = state.inputValue.toLowerCase();
+                            return options.filter((option) =>
+                              option.toLowerCase().includes(inputValue),
+                            );
+                          }}
+                        />
                       </Grid>
+
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           size="small"
@@ -2712,7 +2564,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                             <FormControlLabel
                               value="Red"
                               control={<Radio size="small" />}
-                              label="Red Bran"
+                              label="Red Bran(500)"
                             />
                           </RadioGroup>
                         </FormControl>
@@ -2831,10 +2683,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                 </CardContent>
               </Card>
             </Grid>
-          </Grid>
-
-          {/* Vehicle and Lab Details Side by Side */}
-          <Grid container spacing={1} sx={styles.compactGrid}>
             {/* VEHICLE DETAILS - Left Column */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Card
@@ -2859,7 +2707,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         <LocalShippingIcon fontSize="small" />
                       </Avatar>
                       <Typography variant="subtitle1" fontWeight="bold">
-                        3. Vehicle Details
+                        2. Vehicle Details
                       </Typography>
                       {savedSections.vehicle && mode === "create" && (
                         <Chip
@@ -3286,7 +3134,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                 </CardContent>
               </Card>
             </Grid>
+          </Grid>
 
+          {/* Vehicle and Lab Details Side by Side */}
+          <Grid container spacing={1} sx={styles.compactGrid}>
             {/* LABORATORY DETAILS - Right Column */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Card
@@ -3315,7 +3166,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         <ScienceIcon fontSize="small" />
                       </Avatar>
                       <Typography variant="subtitle1" fontWeight="bold">
-                        4. Laboratory Details
+                        3. Laboratory Details
                       </Typography>
                       {savedSections.lab && mode === "create" && (
                         <Chip
@@ -3553,264 +3404,248 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                 </CardContent>
               </Card>
             </Grid>
-          </Grid>
-
-          {/* BILLING DETAILS Row */}
-          <Card elevation={1} sx={{ borderRadius: 2, ...styles.compactCard }}>
-            <CardContent sx={{ p: 1.5 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mb: 1,
-                  cursor: "pointer",
-                }}
-                onClick={() => toggleSection("billing")}
+            <Grid size={{ xs: 12, md: 6 }}>
+              {/* BILLING DETAILS Row */}
+              <Card
+                elevation={1}
+                sx={{ borderRadius: 2, ...styles.compactCard }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Avatar
-                    sx={{ bgcolor: "error.light", width: 28, height: 28 }}
+                <CardContent sx={{ p: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 1,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => toggleSection("billing")}
                   >
-                    <AttachMoneyIcon fontSize="small" />
-                  </Avatar>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    5. Billing Details
-                  </Typography>
-                  {savedSections.billing && mode === "create" && (
-                    <Chip
-                      label="✓ Saved"
-                      size="small"
-                      color="success"
-                      sx={{ ml: 1, height: 20 }}
-                    />
-                  )}
-                  {mode === "edit" && modifiedSections.billing && (
-                    <Chip
-                      label="Modified"
-                      size="small"
-                      color="warning"
-                      sx={{ ml: 1, height: 20 }}
-                    />
-                  )}
-                </Box>
-                <ExpandMoreIcon
-                  sx={{
-                    transform: expandedSections.billing
-                      ? "rotate(180deg)"
-                      : "none",
-                    transition: "0.3s",
-                  }}
-                />
-              </Box>
-
-              <Collapse in={expandedSections.billing}>
-                <Divider sx={{ my: 1 }} />
-
-                {/* Billing Calculation Display */}
-                <Grid container spacing={1} sx={styles.compactGrid}>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Account Rate (₹)"
-                      value={calculateAccountRate().toFixed(2)}
-                      InputProps={{ readOnly: true }}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Net Rate (₹)"
-                      value={calculateNetRate().toFixed(2)}
-                      InputProps={{ readOnly: true }}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Material Amount (₹)"
-                      value={calculateMaterialAmount().toFixed(2)}
-                      InputProps={{ readOnly: true }}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Gross Amount (₹)"
-                      value={calculateGrossAmount().toFixed(2)}
-                      InputProps={{ readOnly: true }}
-                      fullWidth
-                    />
-                  </Grid>
-                  {/* // In the billing section where GST type is shown: */}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <FormControl sx={styles.compactRadio}>
-                        <RadioGroup
-                          row
-                          value={billingForm.gst_type}
+                      <Avatar
+                        sx={{ bgcolor: "error.light", width: 28, height: 28 }}
+                      >
+                        <AttachMoneyIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        4. Billing Details
+                      </Typography>
+                      {savedSections.billing && mode === "create" && (
+                        <Chip
+                          label="✓ Saved"
+                          size="small"
+                          color="success"
+                          sx={{ ml: 1, height: 20 }}
+                        />
+                      )}
+                      {mode === "edit" && modifiedSections.billing && (
+                        <Chip
+                          label="Modified"
+                          size="small"
+                          color="warning"
+                          sx={{ ml: 1, height: 20 }}
+                        />
+                      )}
+                    </Box>
+                    <ExpandMoreIcon
+                      sx={{
+                        transform: expandedSections.billing
+                          ? "rotate(180deg)"
+                          : "none",
+                        transition: "0.3s",
+                      }}
+                    />
+                  </Box>
+
+                  <Collapse in={expandedSections.billing}>
+                    <Divider sx={{ my: 1 }} />
+
+                    {/* Billing Calculation Display */}
+                    <Grid container spacing={1} sx={styles.compactGrid}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Account Rate (₹)"
+                          value={calculateAccountRate().toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Net Rate (₹)"
+                          value={calculateNetRate().toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Material Amount (₹)"
+                          value={calculateMaterialAmount().toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Gross Amount (₹)"
+                          value={calculateGrossAmount().toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      {/* // In the billing section where GST type is shown: */}
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <FormControl sx={styles.compactRadio}>
+                            <RadioGroup
+                              row
+                              value={billingForm.gst_type}
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setBillingForm,
+                                  "billing",
+                                  {
+                                    ...billingForm,
+                                    gst_type: e.target.value,
+                                  },
+                                )
+                              }
+                            >
+                              <FormControlLabel
+                                value="Intra"
+                                control={<Radio size="small" />}
+                                label="Intra State"
+                              />
+                              <FormControlLabel
+                                value="Inter"
+                                control={<Radio size="small" />}
+                                label="Inter State"
+                              />
+                            </RadioGroup>
+                          </FormControl>
+                        </Box>
+                      </Grid>
+                      {/* GST Fields */}
+                      {billingForm.gst_type === "Intra" && (
+                        <>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="CGST (2.5%)"
+                              value={calculateGST().cgst.toFixed(2)}
+                              InputProps={{ readOnly: true }}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="SGST (2.5%)"
+                              value={calculateGST().sgst.toFixed(2)}
+                              InputProps={{ readOnly: true }}
+                              fullWidth
+                            />
+                          </Grid>
+                        </>
+                      )}
+                      {billingForm.gst_type === "Inter" && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <TextField
+                            size="small"
+                            sx={styles.compactField}
+                            label="IGST (5%)"
+                            value={calculateGST().igst.toFixed(2)}
+                            InputProps={{ readOnly: true }}
+                            fullWidth
+                          />
+                        </Grid>
+                      )}
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Billed Amount (₹)"
+                          value={calculateBilledAmount().toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Invoice Amount (₹)"
+                          type="number"
+                          value={billingForm.invoice_amount}
                           onChange={(e) =>
                             updateFormWithTracking(setBillingForm, "billing", {
                               ...billingForm,
-                              gst_type: e.target.value,
+                              invoice_amount: e.target.value,
                             })
                           }
+                          onKeyDown={(e) =>
+                            handleKeyDown(e, null, handleSaveBilling)
+                          }
+                          inputRef={invoiceAmountRef}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Amount Payable (₹)"
+                          value={calculateAmountPayable().toFixed(2)}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid
+                        size={{ xs: 12 }}
+                        sx={{ textAlign: "right", mt: 1 }}
+                      >
+                        <Button
+                          variant="contained"
+                          startIcon={<SaveIcon />}
+                          onClick={handleSaveBilling}
+                          disabled={
+                            mode === "create"
+                              ? savedSections.billing || !currentPurchaseId
+                              : !modifiedSections.billing
+                          }
+                          sx={{
+                            ...styles.compactButton,
+                            bgcolor: "error.main",
+                          }}
                         >
-                          <FormControlLabel
-                            value="Intra"
-                            control={<Radio size="small" />}
-                            label="Intra State"
-                          />
-                          <FormControlLabel
-                            value="Inter"
-                            control={<Radio size="small" />}
-                            label="Inter State"
-                          />
-                        </RadioGroup>
-                      </FormControl>
-                      {/* {partyForm.gst && (
-                        <Chip
-                          label={
-                            billingForm.gst_type === "Intra"
-                              ? `State ${partyForm.gst.substring(
-                                  0,
-                                  2,
-                                )} (CGST+SGST)`
-                              : "IGST"
-                          }
-                          size="small"
-                          color={
-                            billingForm.gst_type === "Intra"
-                              ? "success"
-                              : "warning"
-                          }
-                          variant="outlined"
-                        />
-                      )} */}
-                    </Box>
-                    {/* <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontSize: "11px" }}
-                    >
-                      {partyForm.gst
-                        ? `GST: ${partyForm.gst.substring(0, 2)} = ${
-                            billingForm.gst_type === "Intra"
-                              ? "Intra-State (2.5%+2.5%)"
-                              : "Inter-State (5%)"
-                          }`
-                        : "Enter GST to auto-select"}
-                    </Typography> */}
-                  </Grid>
-                  {/* GST Fields */}
-                  {billingForm.gst_type === "Intra" && (
-                    <>
-                      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="CGST (2.5%)"
-                          value={calculateGST().cgst.toFixed(2)}
-                          InputProps={{ readOnly: true }}
-                          fullWidth
-                        />
+                          {mode === "create"
+                            ? savedSections.billing
+                              ? "Saved"
+                              : "Save Billing"
+                            : modifiedSections.billing
+                              ? "Save Changes"
+                              : "Saved"}
+                        </Button>
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="SGST (2.5%)"
-                          value={calculateGST().sgst.toFixed(2)}
-                          InputProps={{ readOnly: true }}
-                          fullWidth
-                        />
-                      </Grid>
-                    </>
-                  )}
-                  {billingForm.gst_type === "Inter" && (
-                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                      <TextField
-                        size="small"
-                        sx={styles.compactField}
-                        label="IGST (5%)"
-                        value={calculateGST().igst.toFixed(2)}
-                        InputProps={{ readOnly: true }}
-                        fullWidth
-                      />
                     </Grid>
-                  )}
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Billed Amount (₹)"
-                      value={calculateBilledAmount().toFixed(2)}
-                      InputProps={{ readOnly: true }}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Invoice Amount (₹)"
-                      type="number"
-                      value={billingForm.invoice_amount}
-                      onChange={(e) =>
-                        updateFormWithTracking(setBillingForm, "billing", {
-                          ...billingForm,
-                          invoice_amount: e.target.value,
-                        })
-                      }
-                      onKeyDown={(e) =>
-                        handleKeyDown(e, null, handleSaveBilling)
-                      }
-                      inputRef={invoiceAmountRef}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      size="small"
-                      sx={styles.compactField}
-                      label="Amount Payable (₹)"
-                      value={calculateAmountPayable().toFixed(2)}
-                      InputProps={{ readOnly: true }}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }} sx={{ textAlign: "right", mt: 1 }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<SaveIcon />}
-                      onClick={handleSaveBilling}
-                      disabled={
-                        mode === "create"
-                          ? savedSections.billing || !currentPurchaseId
-                          : !modifiedSections.billing
-                      }
-                      sx={{ ...styles.compactButton, bgcolor: "error.main" }}
-                    >
-                      {mode === "create"
-                        ? savedSections.billing
-                          ? "Saved"
-                          : "Save Billing"
-                        : modifiedSections.billing
-                          ? "Save Changes"
-                          : "Saved"}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Collapse>
-            </CardContent>
-          </Card>
+                  </Collapse>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
 
           {/* Action Buttons */}
           <Box
@@ -3970,6 +3805,171 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      {/* Party Modal */}
+      <Dialog
+        open={openPartyModal}
+        onClose={() => setOpenPartyModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add New Party</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Party Name"
+                sx={styles.compactField}
+                value={modalPartyForm.party_name}
+                onChange={(e) =>
+                  setModalPartyForm((prev) => ({
+                    ...prev,
+                    party_name: toTitleCase(e.target.value),
+                  }))
+                }
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Contact Person"
+                sx={styles.compactField}
+                value={modalPartyForm.contact_person}
+                onChange={(e) =>
+                  setModalPartyForm((prev) => ({
+                    ...prev,
+                    contact_person: toTitleCase(e.target.value),
+                  }))
+                }
+                fullWidth
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Mobile No"
+                sx={styles.compactField}
+                value={modalPartyForm.mobile_no}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d{0,10}$/.test(val)) {
+                    setModalPartyForm((prev) => ({ ...prev, mobile_no: val }));
+                  }
+                }}
+                inputProps={{ maxLength: 10 }}
+                type="tel"
+                helperText="10 digits only"
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Address"
+                sx={styles.compactField}
+                value={modalPartyForm.address_line1}
+                onChange={(e) =>
+                  setModalPartyForm((prev) => ({
+                    ...prev,
+                    address_line1: toTitleCase(e.target.value),
+                  }))
+                }
+                fullWidth
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="City"
+                sx={styles.compactField}
+                value={modalPartyForm.city}
+                onChange={(e) =>
+                  setModalPartyForm((prev) => ({
+                    ...prev,
+                    city: toTitleCase(e.target.value),
+                  }))
+                }
+                fullWidth
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="State"
+                sx={styles.compactField}
+                value={modalPartyForm.state}
+                onChange={(e) =>
+                  setModalPartyForm((prev) => ({
+                    ...prev,
+                    state: toTitleCase(e.target.value),
+                  }))
+                }
+                fullWidth
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Pin Code"
+                sx={styles.compactField}
+                value={modalPartyForm.pin}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d{0,6}$/.test(val)) {
+                    setModalPartyForm((prev) => ({ ...prev, pin: val }));
+                  }
+                }}
+                inputProps={{ maxLength: 6 }}
+                fullWidth
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Customer Type</InputLabel>
+                <Select
+                  value={modalPartyForm.customer_type}
+                  label="Customer Type"
+                  sx={styles.compactField}
+                  onChange={(e) =>
+                    setModalPartyForm((prev) => ({
+                      ...prev,
+                      customer_type: e.target.value,
+                    }))
+                  }
+                >
+                  <MenuItem value="Registered">Registered</MenuItem>
+                  <MenuItem value="Unregistered">Unregistered</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            {modalPartyForm.customer_type === "Registered" && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  label="GST"
+                  sx={styles.compactField}
+                  value={modalPartyForm.gst}
+                  onChange={(e) =>
+                    setModalPartyForm((prev) => ({
+                      ...prev,
+                      gst: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  inputProps={{ maxLength: 15 }}
+                  fullWidth
+                />
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPartyModal(false)}>Cancel</Button>
+          <Button
+            onClick={handleSavePartyInModal}
+            variant="contained"
+            disabled={
+              !modalPartyForm.party_name.trim() || !modalPartyForm.mobile_no
+            }
+          >
+            Save Party
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
