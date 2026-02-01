@@ -28,6 +28,16 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
     igst: 0,
   });
 
+  // Mask mobile number: show last 4 digits, hide rest with X
+  const maskMobileNumber = (number) => {
+    if (!number) return "N/A";
+    const numStr = number.toString();
+    if (numStr.length <= 4) return numStr;
+    const visibleDigits = numStr.slice(-4);
+    const maskedPart = "X".repeat(numStr.length - 4);
+    return `${maskedPart}${visibleDigits}`;
+  };
+
   // Calculate GST breakdown
   useEffect(() => {
     if (invoiceData) {
@@ -775,7 +785,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                     <div>{purchase.agent_name}</div>
                   </div>
                 )}
-                {purchase.agent_number && (
+                {/* {purchase.agent_number && (
                   <div
                     style={{
                       display: "flex",
@@ -788,6 +798,22 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                       Agent Number:
                     </div>
                     <div>{purchase.agent_number}</div>
+                  </div>
+                )} */}
+
+                {purchase.agent_number && (
+                  <div
+                    style={{
+                      display: "flex",
+                      marginBottom: "3px",
+                      textAlign: "left",
+                      width: "180px",
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold", width: "90px" }}>
+                      Agent Number:
+                    </div>
+                    <div>{maskMobileNumber(purchase.agent_number)}</div>
                   </div>
                 )}
               </div>

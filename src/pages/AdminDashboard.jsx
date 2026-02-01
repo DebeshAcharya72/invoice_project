@@ -545,6 +545,16 @@ const AdminDashboard = () => {
         size="small"
       />
 
+      <Button
+        variant="contained"
+        color="info"
+        startIcon={<ReceiptIcon />}
+        onClick={() => navigate("/reports")}
+        sx={{ ml: 2 }}
+      >
+        View Reports
+      </Button>
+
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
         <Tabs

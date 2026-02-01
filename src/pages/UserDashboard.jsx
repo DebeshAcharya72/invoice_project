@@ -189,14 +189,26 @@ const UserDashboard = ({ currentUser }) => {
         };
       });
 
-      setForms(enrichedForms);
+      // setForms(enrichedForms);
+      // ✅ Sort forms by createdAt (newest first)
+      const sortedForms = [...enrichedForms].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      );
+
+      // ✅ Use sortedForms for both table and stats
+      setForms(sortedForms);
 
       // Calculate stats
-      const totalForms = enrichedForms.length;
-      const completedForms = enrichedForms.filter((f) => f.billing).length;
+      // const totalForms = enrichedForms.length;
+      // const completedForms = enrichedForms.filter((f) => f.billing).length;
+      // const pendingForms = totalForms - completedForms;
+      // const recentActivity =
+      //   enrichedForms.length > 0 ? enrichedForms[0].createdAt : null;
+      const totalForms = sortedForms.length;
+      const completedForms = sortedForms.filter((f) => f.billing).length;
       const pendingForms = totalForms - completedForms;
       const recentActivity =
-        enrichedForms.length > 0 ? enrichedForms[0].createdAt : null;
+        sortedForms.length > 0 ? sortedForms[0].createdAt : null;
 
       setStats({
         totalForms,
@@ -436,7 +448,7 @@ const UserDashboard = ({ currentUser }) => {
                   {/* <TableCell>Vehicle No</TableCell> */}
                   <TableCell>Product</TableCell>
                   <TableCell>Weight (MT)</TableCell>
-                  <TableCell>Status</TableCell>
+                  {/* <TableCell>Status</TableCell> */}
                   <TableCell>Created</TableCell>
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
@@ -477,7 +489,7 @@ const UserDashboard = ({ currentUser }) => {
                             : "N/A"}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <Chip
                           label={form.status}
                           size="small"
@@ -495,7 +507,7 @@ const UserDashboard = ({ currentUser }) => {
                             />
                           </Tooltip>
                         )}
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <Box>
                           <Typography variant="body2">

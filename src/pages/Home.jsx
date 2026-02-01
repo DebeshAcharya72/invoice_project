@@ -1357,34 +1357,75 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // const handleSavePurchase = async () => {
+  //   try {
+  //     const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
+  //     const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
+  //     const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
+  //     const netWeight = grossWeight - noOfBags * bagWeight;
+
+  //     const purchaseData = {
+  //       ...purchaseForm,
+  //       bag_weight_mt: bagWeight.toFixed(6),
+  //       net_weight_mt: netWeight.toFixed(6),
+  //       gross_weight_mt: grossWeight,
+  //       no_of_bags: noOfBags,
+  //       company_id: selectedCompany,
+  //       date: purchaseForm.date,
+  //       received_date: purchaseForm.received_date || null,
+  //     };
+
+  //     let purchase;
+  //     if (mode === "edit" && savedPurchaseData) {
+  //       // Update existing purchase
+  //       purchase = await api.updatePurchase(
+  //         savedPurchaseData._id,
+  //         purchaseData,
+  //       );
+  //     } else {
+  //       // Create new purchase
+  //       purchase = await api.createPurchase(purchaseData);
+  //     }
+
+  //     setSavedPurchaseData(purchase);
+  //     setCurrentPurchaseId(purchase._id);
+  //     setSavedSections((prev) => ({ ...prev, purchase: true }));
+  //     setModifiedSections((prev) => ({ ...prev, purchase: false }));
+  //     showSuccess("Purchase details saved!");
+  //   } catch (err) {
+  //     showError("Failed to save Purchase");
+  //   }
+  // };
+
   const handleSavePurchase = async () => {
     try {
-      const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
-      const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
-      const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
-      const netWeight = grossWeight - noOfBags * bagWeight;
-
       const purchaseData = {
         ...purchaseForm,
-        bag_weight_mt: bagWeight.toFixed(6),
-        net_weight_mt: netWeight.toFixed(6),
-        gross_weight_mt: grossWeight,
-        no_of_bags: noOfBags,
         company_id: selectedCompany,
-        date: purchaseForm.date,
-        received_date: purchaseForm.received_date || null,
+        // Ensure no_of_bags is included
+        no_of_bags: parseInt(purchaseForm.no_of_bags) || 0,
       };
 
       let purchase;
       if (mode === "edit" && savedPurchaseData) {
-        // Update existing purchase
         purchase = await api.updatePurchase(
           savedPurchaseData._id,
           purchaseData,
         );
       } else {
-        // Create new purchase
         purchase = await api.createPurchase(purchaseData);
+      }
+
+      // Also save quantity separately
+      if (purchase._id && purchaseForm.no_of_bags) {
+        const quantityData = {
+          purchase_id: purchase._id,
+          gross_weight_mt: parseFloat(purchaseForm.gross_weight_mt) || 0,
+          no_of_bags: parseInt(purchaseForm.no_of_bags) || 0,
+          bag_type: purchaseForm.bag_type || "Poly",
+        };
+
+        await api.createQuantity(quantityData);
       }
 
       setSavedPurchaseData(purchase);
@@ -1539,38 +1580,114 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // const handleSaveAll = async () => {
+  //   try {
+  //     setSaving(true);
+
+  //     if (
+  //       (mode === "create" && !savedSections.purchase) ||
+  //       (mode === "edit" && modifiedSections.purchase)
+  //     )
+  //       await handleSavePurchase();
+  //     if (
+  //       (mode === "create" && !savedSections.vehicle) ||
+  //       (mode === "edit" && modifiedSections.vehicle)
+  //     )
+  //       await handleSaveVehicle();
+  //     if (
+  //       (mode === "create" && !savedSections.lab) ||
+  //       (mode === "edit" && modifiedSections.lab)
+  //     )
+  //       await handleSaveLab();
+  //     if (
+  //       (mode === "create" && !savedSections.billing) ||
+  //       (mode === "edit" && modifiedSections.billing)
+  //     )
+  //       await handleSaveBilling();
+
+  //     if (mode === "create") {
+  //       showSuccess("All sections saved successfully!");
+  //     } else {
+  //       showSuccess("Form updated successfully!");
+  //     }
+  //   } catch (err) {
+  //     showError("Failed to save: " + err.message);
+  //   } finally {
+  //     setSaving(false);
+  //   }
+  // };
+
+  // In Home.jsx - handleSaveAll()
   const handleSaveAll = async () => {
     try {
       setSaving(true);
 
-      if (
-        (mode === "create" && !savedSections.purchase) ||
-        (mode === "edit" && modifiedSections.purchase)
-      )
-        await handleSavePurchase();
-      if (
-        (mode === "create" && !savedSections.vehicle) ||
-        (mode === "edit" && modifiedSections.vehicle)
-      )
-        await handleSaveVehicle();
-      if (
-        (mode === "create" && !savedSections.lab) ||
-        (mode === "edit" && modifiedSections.lab)
-      )
-        await handleSaveLab();
-      if (
-        (mode === "create" && !savedSections.billing) ||
-        (mode === "edit" && modifiedSections.billing)
-      )
-        await handleSaveBilling();
+      // 1. Update Purchase
+      await api.updatePurchase(currentPurchaseId, purchaseForm);
 
-      if (mode === "create") {
-        showSuccess("All sections saved successfully!");
+      // 2. Update Party
+      if (savedPartyData?._id) {
+        await api.updateParty(savedPartyData._id, partyForm);
       } else {
-        showSuccess("Form updated successfully!");
+        const newParty = await api.createParty({
+          ...partyForm,
+          company_id: selectedCompany,
+        });
+        setSavedPartyData(newParty);
       }
+
+      // 3. Update Vehicle
+      if (savedVehicleData?._id) {
+        await api.updateVehicle(savedVehicleData._id, vehicleForm);
+      } else {
+        await api.createVehicle({
+          ...vehicleForm,
+          purchase_id: currentPurchaseId,
+        });
+      }
+
+      // 4. Update Quantity
+      if (savedQuantityData?._id) {
+        await api.updateQuantity(savedQuantityData._id, quantityForm);
+      } else {
+        await api.createQuantity({
+          ...quantityForm,
+          purchase_id: currentPurchaseId,
+        });
+      }
+
+      // 5. Update Lab
+      if (savedLabData?._id) {
+        await api.updateLabDetail(savedLabData._id, labForm);
+      } else {
+        await api.createLabDetail({
+          ...labForm,
+          purchase_id: currentPurchaseId,
+        });
+      }
+
+      // 6. Update Billing
+      if (savedBillingData?._id) {
+        await api.updateBilling(savedBillingData._id, billingForm);
+      } else {
+        await api.createBilling({
+          ...billingForm,
+          purchase_id: currentPurchaseId,
+        });
+      }
+
+      showSuccess("Form updated successfully!");
+      setModifiedSections({
+        party: false,
+        purchase: false,
+        vehicle: false,
+        quantity: false,
+        lab: false,
+        billing: false,
+      });
     } catch (err) {
-      showError("Failed to save: " + err.message);
+      console.error("Save error:", err);
+      showError("Failed to save form: " + (err.message || "Unknown error"));
     } finally {
       setSaving(false);
     }

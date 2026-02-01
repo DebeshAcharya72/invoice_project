@@ -19,6 +19,7 @@ import UserDashboard from "./pages/UserDashboard";
 import Login from "./pages/Login";
 import ViewForm from "./pages/ViewForm";
 import EditForm from "./pages/EditForm";
+import ReportPage from "./pages/ReportPage";
 
 const theme = createTheme({
   palette: {
@@ -63,6 +64,7 @@ function AppContent() {
           />
 
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/reports" element={<ReportPage />} />
           <Route path="/user" element={<UserDashboard userRole={userRole} />} />
           {/* <Route path="/edit-form/:purchaseId" element={<EditForm />} /> */}
           <Route path="/view-form/:purchaseId" element={<ViewForm />} />
