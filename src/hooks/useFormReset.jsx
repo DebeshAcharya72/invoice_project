@@ -1,4 +1,4 @@
-// src/hooks/useFormReset.js
+// // src/hooks/useFormReset.js
 import { useNavigate } from "react-router-dom";
 
 const useFormReset = () => {
@@ -143,10 +143,13 @@ const useFormReset = () => {
     // Navigate if in edit mode
     if (mode === "edit") {
       navigate("/home");
+      return; // Return early to prevent further reset in edit mode
     }
 
     // Load fresh party list
-    if (loadParties) loadParties();
+    if (loadParties) {
+      setTimeout(() => loadParties(), 100);
+    }
 
     // Reset selected company
     if (currentUser?.company_id && companies && setSelectedCompany) {
@@ -155,12 +158,16 @@ const useFormReset = () => {
       );
       if (userCompany) {
         setSelectedCompany(userCompany._id || userCompany.id);
+      } else if (companies.length > 0) {
+        setSelectedCompany(companies[0]._id || companies[0].id);
       }
     }
 
     // Show success message
     if (showSuccess) {
-      showSuccess("Form reset! Ready for new entry.");
+      setTimeout(() => {
+        showSuccess("Form reset! Ready for new entry.");
+      }, 300);
     }
 
     // Focus on first field
@@ -168,7 +175,7 @@ const useFormReset = () => {
       if (partyNameRef && partyNameRef.current) {
         partyNameRef.current.focus();
       }
-    }, 100);
+    }, 500);
   };
 
   return {

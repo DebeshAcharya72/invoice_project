@@ -52,6 +52,7 @@ import {
   Business as BusinessIcon,
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
+
 // Import Components
 import PrintVehicleSlip from "../components/PrintVehicleSlip";
 import SMSDialog from "../components/SMSDialog";
@@ -178,533 +179,26 @@ const styles = {
 };
 
 const Home = ({ userRole, onLogout, currentUser }) => {
-  const { purchaseId } = useParams(); // Get purchaseId from URL if editing
+  const { purchaseId } = useParams();
   const navigate = useNavigate();
-  const [mode, setMode] = useState(purchaseId ? "edit" : "create"); // "create" or "edit"
+
+  // ======================
+  // 1. STATE DECLARATIONS
+  // ======================
+
+  const [mode, setMode] = useState(purchaseId ? "edit" : "create");
   const [loading, setLoading] = useState(purchaseId ? true : false);
   const [saving, setSaving] = useState(false);
-  const receivedDateRef = useRef(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
 
-  // Modal state
-  const [openPartyModal, setOpenPartyModal] = useState(false);
-
-  // Party form state for modal
-  const [modalPartyForm, setModalPartyForm] = useState({
-    party_name: "",
-    address_line1: "",
-    city: "",
-    state: "",
-    pin: "",
-    contact_person: "",
-    mobile_no: "",
-    gst: "",
-    customer_type: "Registered",
-  });
-
-  // Add this state to track if we're using existing party
-  const [usingExistingParty, setUsingExistingParty] = useState(false);
-  const [selectedExistingParty, setSelectedExistingParty] = useState(null);
-
-  // Add this function to handle party dropdown selection
-  const handlePartySelectFromDropdown = (partyName) => {
-    const selectedParty = parties.find((p) => p.party_name === partyName);
-    if (selectedParty) {
-      setSelectedExistingParty(selectedParty);
-      setUsingExistingParty(true);
-
-      // Auto-fill party form with selected party data
-      setPartyForm({
-        party_name: selectedParty.party_name,
-        address_line1: selectedParty.address_line1 || "",
-        city: selectedParty.city || "",
-        state: selectedParty.state || "",
-        pin: selectedParty.pin || "",
-        contact_person: selectedParty.contact_person || "",
-        mobile_no: selectedParty.mobile_no || "",
-        gst: selectedParty.gst || "",
-        customer_type: selectedParty.customer_type || "Registered",
-      });
-
-      // Mark party section as saved (since we're using existing)
-      setSavedSections((prev) => ({ ...prev, party: true }));
-      setModifiedSections((prev) => ({ ...prev, party: false }));
-    }
-  };
-
-  // Add these helper functions after your calculation functions
-
-  // Helper function to round to 2 decimal places (for prices)
-  const roundToTwoDecimals = (num) => {
-    return Math.round(parseFloat(num || 0) * 100) / 100;
-  };
-
-  // Helper function to round to 3 decimal places (for weights)
-  const roundToThreeDecimals = (num) => {
-    return Math.round(parseFloat(num || 0) * 1000) / 1000;
-  };
-
-  // Helper function to format currency for display
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null || isNaN(amount)) return "0.00";
-    const rounded = roundToTwoDecimals(amount);
-    return rounded.toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  // Helper function to format weight for display
-  const formatWeight = (weight) => {
-    if (weight === undefined || weight === null || isNaN(weight))
-      return "0.000";
-    const rounded = roundToThreeDecimals(weight);
-    return rounded.toLocaleString("en-IN", {
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3,
-    });
-  };
-
-  // ============ CALCULATION FUNCTIONS ============
-
-  const validateGSTFormat = (gst) => {
-    if (!gst) return true;
-    const gstRegex =
-      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    return gstRegex.test(gst);
-  };
-
-  // 1. FFA Rebate Calculation (Keeping your logic intact)
-  const calculateFFARebate = (product, ffa) => {
-    const ffaValue = parseFloat(ffa) || 0;
-    let rebate = 0;
-
-    if (product === "Boiled Rice Bran") {
-      // Handle flat deductions for high FFA
-      if (ffaValue > 45) {
-        rebate = 4000;
-      } else if (ffaValue > 30) {
-        rebate = 3500;
-      } else if (ffaValue > 25) {
-        rebate = 2500;
-      } else if (ffaValue > 20) {
-        rebate = 2000;
-      } else if (ffaValue > 15) {
-        // Tier 3: 15.1 to 19.99
-        if (ffaValue <= 19.99) {
-          rebate += (ffaValue - 15) * 170;
-        }
-
-        // Tier 2: 10.1 to 15.0 (max 5 units)
-        if (15 > 10) {
-          rebate += Math.min(15 - 10, 5) * 150;
-        }
-
-        // Tier 1: 7.1 to 10.0
-        if (10 > 7) {
-          rebate += (10 - 7) * 100;
-        }
-      } else if (ffaValue > 10) {
-        // Only in tiers 1 and 2 (10.1 to 15.0)
-        // Tier 2: 10.1 to 15.0 (max 5 units)
-        rebate += Math.min(ffaValue - 10, 5) * 150;
-
-        // Tier 1: 7.1 to 10.0
-        if (10 > 7) {
-          rebate += (10 - 7) * 100;
-        }
-      } else if (ffaValue > 7) {
-        // Only in tier 1 (7.1 to 10.0)
-        rebate += (ffaValue - 7) * 100;
-      }
-    } else {
-      // For other products: flat rebates
-      if (ffaValue > 55) rebate = 1000;
-      else if (ffaValue > 50) rebate = 700;
-      else if (ffaValue > 45) rebate = 600;
-      else if (ffaValue > 40) rebate = 500;
-      else if (ffaValue > 35) rebate = 400;
-      else if (ffaValue > 30) rebate = 300;
-      else if (ffaValue > 25) rebate = 200;
-      else if (ffaValue > 20) rebate = 100;
-    }
-
-    return rebate;
-  };
-
-  // 2. Oil Rebate & Premium Calculation
-  const calculateOilRebatePremium = (
-    product,
-    oilObtained,
-    contractedRate,
-    netWeight,
-  ) => {
-    const oilValue = parseFloat(oilObtained) || 0;
-    const rate = parseFloat(contractedRate) || 0;
-    const weight = parseFloat(netWeight) || 0;
-    let rebate = 0;
-    let premium = 0;
-
-    const oilStandard = getOilStandard(product);
-    const oilDiff = oilValue - oilStandard;
-
-    if (oilDiff > 0) {
-      // PREMIUM CALCULATION
-      if (product === "Boiled Rice Bran") {
-        if (oilDiff <= 5) {
-          const ratio = oilDiff / oilStandard;
-          const effectivePremiumWeight = weight * ratio;
-          premium = effectivePremiumWeight * rate;
-        } else if (oilDiff <= 9) {
-          const halfExcess = oilDiff / 2;
-          const ratio = halfExcess / oilStandard;
-          const effectivePremiumWeight = weight * ratio;
-          premium = effectivePremiumWeight * rate;
-        }
-      } else if (product === "Raw Rice Bran") {
-        const rawStandard = 16;
-        if (oilDiff <= 3) {
-          const ratio = oilDiff / rawStandard;
-          const effectivePremiumWeight = weight * ratio;
-          premium = effectivePremiumWeight * rate;
-        }
-      } else if (product === "Rough Rice Bran") {
-        const roughStandard = 7;
-        if (oilDiff === 1) {
-          const ratio = 1 / roughStandard;
-          const effectivePremiumWeight = weight * ratio;
-          premium = effectivePremiumWeight * rate;
-        } else if (oilDiff === 2) {
-          const halfExcess = 2 / 2;
-          const ratio = halfExcess / roughStandard;
-          const effectivePremiumWeight = weight * ratio;
-          premium = effectivePremiumWeight * rate;
-        }
-      }
-    } else if (oilDiff < 0) {
-      const diff = Math.abs(oilDiff);
-
-      if (product === "Boiled Rice Bran") {
-        const boiledStandard = 19;
-        if (oilValue >= 16) {
-          const ratio = diff / boiledStandard;
-          const effectiveRebateWeight = weight * ratio;
-          rebate = effectiveRebateWeight * rate;
-        } else {
-          const diffTo16 = 16 - oilValue;
-          const diffFrom19 = 3;
-
-          const ratio1 = diffFrom19 / boiledStandard;
-          const weight1 = weight * ratio1;
-          const rebate1 = weight1 * rate;
-
-          const doubleExcess = diffTo16 * 2;
-          const ratio2 = doubleExcess / boiledStandard;
-          const weight2 = weight * ratio2;
-          const rebate2 = weight2 * rate;
-
-          rebate = rebate1 + rebate2;
-        }
-      } else if (product === "Raw Rice Bran") {
-        const rawStandard = 16;
-        if (oilValue >= 12) {
-          const ratio = diff / rawStandard;
-          const effectiveRebateWeight = weight * ratio;
-          rebate = effectiveRebateWeight * rate;
-        } else {
-          const diffTo12 = 12 - oilValue;
-          const diffFrom16 = 4;
-
-          const ratio1 = diffFrom16 / rawStandard;
-          const weight1 = weight * ratio1;
-          const rebate1 = weight1 * rate;
-
-          const onePointFiveExcess = diffTo12 * 1.5;
-          const ratio2 = onePointFiveExcess / rawStandard;
-          const weight2 = weight * ratio2;
-          const rebate2 = weight2 * rate;
-
-          rebate = rebate1 + rebate2;
-        }
-      }
-    }
-
-    return {
-      rebate: parseFloat(rebate.toFixed(2)),
-      premium: parseFloat(premium.toFixed(2)),
-    };
-  };
-
-  // Initialize the form reset hook
-  const formReset = useFormReset();
-
-  // Create resetForm function using the hook
-  const resetForm = () => {
-    formReset.resetForm({
-      setPartyForm,
-      setPurchaseForm,
-      setVehicleForm,
-      setLabForm,
-      setBillingForm,
-      setSavedSections,
-      setModifiedSections,
-      setSavedVehicleData,
-      setSavedLabData,
-      setSavedPurchaseData,
-      setSavedPartyData,
-      setSavedBillingData,
-      setCurrentPurchaseId,
-      setUsingExistingParty,
-      setSelectedExistingParty,
-      mode,
-      loadParties,
-      showSuccess,
-      partyNameRef,
-      currentUser,
-      companies,
-      setSelectedCompany,
-      navigate, // Add this since your hook uses navigate
-    });
-  };
-
-  const calculateAccountRate = () => {
-    const contractedRate =
-      parseFloat(
-        purchaseForm.bran_type === "Red"
-          ? purchaseForm.final_contracted_rate || purchaseForm.contracted_rate
-          : purchaseForm.contracted_rate,
-      ) || 0;
-
-    const ffaRebate =
-      parseFloat(
-        savedLabData?.ffa_rebate_rs ||
-          savedLabData?.rebate_rs ||
-          labForm.ffa_rebate_rs,
-      ) || 0;
-
-    return roundToTwoDecimals(contractedRate - ffaRebate);
-  };
-
-  const calculateNetRate = () => {
-    const accountRate = calculateAccountRate();
-    const oilStandard = parseFloat(labForm.standard_oil) || 19;
-    const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
-    const oilDifference = oilObtained - oilStandard;
-
-    if (oilStandard === 0) return 0;
-
-    const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
-    return roundToTwoDecimals(netRate);
-  };
-
-  const calculateNetAmount = () => {
-    const netRate = calculateNetRate();
-    const accountRate = calculateAccountRate();
-    const netAmount = netRate * accountRate;
-    return roundToTwoDecimals(netAmount);
-  };
-
-  const calculateMaterialAmount = () => {
-    const accountRate = calculateAccountRate();
-    const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
-    return roundToTwoDecimals(accountRate * netWeight);
-  };
-
-  const calculateGrossAmount = () => {
-    const materialAmount = calculateMaterialAmount();
-    const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
-    const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
-
-    if (oilPremium > 0) {
-      return roundToTwoDecimals(materialAmount + oilPremium);
-    } else if (oilRebate > 0) {
-      return roundToTwoDecimals(materialAmount - oilRebate);
-    } else {
-      return roundToTwoDecimals(materialAmount);
-    }
-  };
-
-  const canGenerateInvoice = () => {
-    // Minimum requirements for invoice:
-    // 1. Purchase must be saved (mandatory)
-    // 2. Billing should be saved for calculations
-    // Party, Vehicle, Lab are optional
-
-    if (!savedSections.purchase) {
-      return false; // Purchase is mandatory
-    }
-
-    // Optional: Check if billing is saved (recommended but not mandatory)
-    if (!savedSections.billing) {
-      console.warn(
-        "Billing not saved - invoice may have incomplete calculations",
-      );
-      // You can still allow generation but show warning
-    }
-
-    return true;
-  };
-
-  const calculateGST = () => {
-    const grossAmount = calculateGrossAmount();
-    const gstType = billingForm.gst_type || "Intra";
-
-    let cgst = 0,
-      sgst = 0,
-      igst = 0;
-
-    // FIXED: Match backend logic
-    if (gstType === "Intra") {
-      // Intra-state: Same state (Odisha to Odisha) → CGST 2.5% + SGST 2.5%
-      cgst = grossAmount * 0.025;
-      sgst = grossAmount * 0.025;
-    } else {
-      // Inter-state: Different state → IGST 5%
-      igst = grossAmount * 0.05;
-    }
-
-    return {
-      cgst: roundToTwoDecimals(cgst),
-      sgst: roundToTwoDecimals(sgst),
-      igst: roundToTwoDecimals(igst),
-      total: roundToTwoDecimals(cgst + sgst + igst),
-    };
-  };
-
-  const calculateBilledAmount = () => {
-    const grossAmount = calculateGrossAmount();
-    const gst = calculateGST();
-    return roundToTwoDecimals(grossAmount + gst.total);
-  };
-
-  const calculateAmountPayable = () => {
-    const billedAmount = calculateBilledAmount();
-    const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
-    return roundToTwoDecimals(billedAmount - invoiceAmount);
-  };
-  const getOilStandard = (product) => {
-    const mapping = {
-      "Boiled Rice Bran": 19.0,
-      "Raw Rice Bran": 16.0,
-      "Rough Rice Bran": 7.0,
-    };
-    return mapping[product] || 19.0;
-  };
-
-  // ============ UTILITY FUNCTIONS ============
-  const toTitleCase = (str) => {
-    return str
-      .toLowerCase()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
-  // Refs for all input fields...
-  const partyNameRef = useRef(null);
-  const contactPersonRef = useRef(null);
-  const partyMobileRef = useRef(null);
-  const partyAddressRef = useRef(null);
-  const partyCityRef = useRef(null);
-  const partyStateRef = useRef(null);
-  const partyPinRef = useRef(null);
-  const partyGstRef = useRef(null);
-
-  const invoiceNoRef = useRef(null);
-  const purchaseDateRef = useRef(null);
-  const contractedRateRef = useRef(null);
-  const grossWeightRef = useRef(null);
-  const noOfBagsRef = useRef(null);
-  const agentNameRef = useRef(null);
-  const agentMobileRef = useRef(null);
-
-  const vehicleNoRef = useRef(null);
-  const ownerNameRef = useRef(null);
-  const ownerMobileRef = useRef(null);
-  const riceMillRef = useRef(null);
-  const destFromRef = useRef(null);
-  const destToRef = useRef(null);
-  const quantityMtRef = useRef(null);
-  const freightMtRef = useRef(null);
-  const advanceAmtRef = useRef(null);
-  const bankAccRef = useRef(null);
-  const bankNameRef = useRef(null);
-  const ifscRef = useRef(null);
-  const ownerAddrRef = useRef(null);
-  const ownerCityRef = useRef(null);
-  const ownerStateRef = useRef(null);
-  const ownerPinRef = useRef(null);
-
-  const obtainFfaRef = useRef(null);
-  const ffaPremiumRef = useRef(null);
-  const obtainOilRef = useRef(null);
-  const oilRebateRef = useRef(null);
-  const oilPremiumRef = useRef(null);
-  const invoiceAmountRef = useRef(null);
-
-  // Enter key navigation
-  const handleKeyDown = (e, nextFieldRef) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (nextFieldRef && nextFieldRef.current) {
-        nextFieldRef.current.focus();
-      }
-    }
-  };
-
-  const handleSavePartyInModal = async () => {
-    try {
-      const partyData = {
-        ...modalPartyForm,
-        company_id: selectedCompany,
-      };
-
-      const savedParty = await api.createParty(partyData);
-      await loadParties(); // Refresh party list
-
-      // Auto-select new party
-      setPurchaseForm((prev) => ({
-        ...prev,
-        party_name: savedParty.party_name,
-      }));
-
-      setSavedPartyData(savedParty);
-      setSavedSections((prev) => ({ ...prev, party: true }));
-      setModifiedSections((prev) => ({ ...prev, party: false }));
-
-      // Reset & close
-      setOpenPartyModal(false);
-      setModalPartyForm({
-        party_name: "",
-        address_line1: "",
-        city: "",
-        state: "",
-        pin: "",
-        contact_person: "",
-        mobile_no: "",
-        gst: "",
-        customer_type: "Registered",
-      });
-
-      showSuccess("Party details saved!");
-    } catch (err) {
-      console.error("Failed to save Party:", err);
-      showError("Failed to save Party: " + (err.message || "Unknown error"));
-    }
-  };
-
-  // ============ STATE VARIABLES ============
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+
   const [showVehicleSlip, setShowVehicleSlip] = useState(false);
   const [showSMSDialog, setShowSMSDialog] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState(null);
+
   const [expandedSections, setExpandedSections] = useState({
     party: true,
     purchase: true,
@@ -713,7 +207,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     billing: true,
   });
 
-  // Form States
   const [partyForm, setPartyForm] = useState({
     party_name: "",
     address_line1: "",
@@ -783,7 +276,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     invoice_amount: "",
   });
 
-  // Data States
   const [currentPurchaseId, setCurrentPurchaseId] = useState(
     purchaseId || null,
   );
@@ -795,8 +287,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     lab: false,
     billing: false,
   });
-
-  // Add this new state variable for tracking modifications
   const [modifiedSections, setModifiedSections] = useState({
     party: false,
     purchase: false,
@@ -805,23 +295,347 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     billing: false,
   });
 
-  // Saved data states (for edit mode)
   const [savedVehicleData, setSavedVehicleData] = useState(null);
   const [savedLabData, setSavedLabData] = useState(null);
   const [savedPurchaseData, setSavedPurchaseData] = useState(null);
   const [savedPartyData, setSavedPartyData] = useState(null);
   const [savedBillingData, setSavedBillingData] = useState(null);
 
-  // ============ USE EFFECTS ============
+  // Modal & Party States
+  const [openPartyModal, setOpenPartyModal] = useState(false);
+  const [modalPartyForm, setModalPartyForm] = useState({
+    party_name: "",
+    address_line1: "",
+    city: "",
+    state: "",
+    pin: "",
+    contact_person: "",
+    mobile_no: "",
+    gst: "",
+    customer_type: "Registered",
+  });
+  const [usingExistingParty, setUsingExistingParty] = useState(false);
+  const [selectedExistingParty, setSelectedExistingParty] = useState(null);
 
-  // Add this useEffect to auto-fill party when party name changes
+  // Refs
+  const receivedDateRef = useRef(null);
+  const partyNameRef = useRef(null);
+  const contactPersonRef = useRef(null);
+  const partyMobileRef = useRef(null);
+  const partyAddressRef = useRef(null);
+  const partyCityRef = useRef(null);
+  const partyStateRef = useRef(null);
+  const partyPinRef = useRef(null);
+  const partyGstRef = useRef(null);
+  const invoiceNoRef = useRef(null);
+  const purchaseDateRef = useRef(null);
+  const contractedRateRef = useRef(null);
+  const grossWeightRef = useRef(null);
+  const noOfBagsRef = useRef(null);
+  const agentNameRef = useRef(null);
+  const agentMobileRef = useRef(null);
+  const vehicleNoRef = useRef(null);
+  const ownerNameRef = useRef(null);
+  const ownerMobileRef = useRef(null);
+  const riceMillRef = useRef(null);
+  const destFromRef = useRef(null);
+  const destToRef = useRef(null);
+  const quantityMtRef = useRef(null);
+  const freightMtRef = useRef(null);
+  const advanceAmtRef = useRef(null);
+  const bankAccRef = useRef(null);
+  const bankNameRef = useRef(null);
+  const ifscRef = useRef(null);
+  const ownerAddrRef = useRef(null);
+  const ownerCityRef = useRef(null);
+  const ownerStateRef = useRef(null);
+  const ownerPinRef = useRef(null);
+  const obtainFfaRef = useRef(null);
+  const ffaPremiumRef = useRef(null);
+  const obtainOilRef = useRef(null);
+  const oilRebateRef = useRef(null);
+  const oilPremiumRef = useRef(null);
+  const invoiceAmountRef = useRef(null);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const totalFreight =
+    (parseFloat(vehicleForm.quantity_mt) || 0) *
+    (parseFloat(vehicleForm.freight_per_mt) || 0);
+  const toPay = totalFreight - (parseFloat(vehicleForm.advance_amount) || 0);
+  // ======================
+  // 2. HELPER FUNCTIONS
+  // ======================
+
+  const roundToTwoDecimals = (num) => {
+    return Math.round(parseFloat(num || 0) * 100) / 100;
+  };
+
+  const roundToThreeDecimals = (num) => {
+    return Math.round(parseFloat(num || 0) * 1000) / 1000;
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null || isNaN(amount)) return "0.00";
+    const rounded = roundToTwoDecimals(amount);
+    return rounded.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const formatWeight = (weight) => {
+    if (weight === undefined || weight === null || isNaN(weight))
+      return "0.000";
+    const rounded = roundToThreeDecimals(weight);
+    return rounded.toLocaleString("en-IN", {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    });
+  };
+
+  const toTitleCase = (str) => {
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const validateGSTFormat = (gst) => {
+    if (!gst) return true;
+    const gstRegex =
+      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    return gstRegex.test(gst);
+  };
+
+  const validateMobileNumber = (value) => {
+    if (value === "") return true;
+    return /^\d{0,10}$/.test(value);
+  };
+
+  const handleMobileChange = (e, formType, setForm) => {
+    const value = e.target.value;
+    if (validateMobileNumber(value)) {
+      setForm((prev) => ({ ...prev, mobile_no: value }));
+    }
+  };
+
+  const handleKeyDown = (e, nextFieldRef) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (nextFieldRef && nextFieldRef.current) {
+        nextFieldRef.current.focus();
+      }
+    }
+  };
+
+  const showError = (msg) =>
+    setSnackbar({ open: true, message: msg, severity: "error" });
+  const showSuccess = (msg) =>
+    setSnackbar({ open: true, message: msg, severity: "success" });
+  const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
+
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const getOilStandard = (product) => {
+    const mapping = {
+      "Boiled Rice Bran": 19.0,
+      "Raw Rice Bran": 16.0,
+      "Rough Rice Bran": 7.0,
+    };
+    return mapping[product] || 19.0;
+  };
+
+  // ======================
+  // 3. CALCULATION FUNCTIONS
+  // ======================
+
+  const calculateFFARebate = (product, ffa) => {
+    const ffaValue = parseFloat(ffa) || 0;
+    let rebate = 0;
+    if (product === "Boiled Rice Bran") {
+      if (ffaValue > 45) rebate = 4000;
+      else if (ffaValue > 30) rebate = 3500;
+      else if (ffaValue > 25) rebate = 2500;
+      else if (ffaValue > 20) rebate = 2000;
+      else if (ffaValue > 15) {
+        if (ffaValue <= 19.99) rebate += (ffaValue - 15) * 170;
+        rebate += Math.min(15 - 10, 5) * 150;
+        if (10 > 7) rebate += (10 - 7) * 100;
+      } else if (ffaValue > 10) {
+        rebate += Math.min(ffaValue - 10, 5) * 150;
+        if (10 > 7) rebate += (10 - 7) * 100;
+      } else if (ffaValue > 7) {
+        rebate += (ffaValue - 7) * 100;
+      }
+    } else {
+      if (ffaValue > 55) rebate = 1000;
+      else if (ffaValue > 50) rebate = 700;
+      else if (ffaValue > 45) rebate = 600;
+      else if (ffaValue > 40) rebate = 500;
+      else if (ffaValue > 35) rebate = 400;
+      else if (ffaValue > 30) rebate = 300;
+      else if (ffaValue > 25) rebate = 200;
+      else if (ffaValue > 20) rebate = 100;
+    }
+    return rebate;
+  };
+
+  const calculateOilRebatePremium = (
+    product,
+    oilObtained,
+    accountRate,
+    netWeight,
+  ) => {
+    const oilValue = parseFloat(oilObtained) || 0;
+    const rate = parseFloat(accountRate) || 0;
+    const weight = parseFloat(netWeight) || 0;
+    let premium = 0;
+    const standards = {
+      "Boiled Rice Bran": 19.0,
+      "Raw Rice Bran": 16.0,
+      "Rough Rice Bran": 7.0,
+    };
+    const oilStandard = standards[product] || 19.0;
+    const oilDiff = oilValue - oilStandard;
+
+    if (oilDiff > 0) {
+      if (product === "Boiled Rice Bran") {
+        if (oilValue <= 24) {
+          premium = (rate / oilStandard) * oilDiff * weight;
+        } else if (oilValue <= 28) {
+          premium = ((rate / oilStandard) * oilDiff * weight) / 2;
+        }
+      } else if (product === "Raw Rice Bran") {
+        if (oilValue <= 19) {
+          premium = (rate / oilStandard) * oilDiff * weight;
+        } else if (oilValue <= 21) {
+          premium = ((rate / oilStandard) * oilDiff * weight) / 2;
+        }
+      } else if (product === "Rough Rice Bran") {
+        if (oilValue <= 8) {
+          premium = (rate / oilStandard) * oilDiff * weight;
+        } else if (oilValue <= 9) {
+          premium = ((rate / oilStandard) * oilDiff * weight) / 2;
+        }
+      }
+    }
+
+    return {
+      rebate: 0,
+      premium: parseFloat(premium.toFixed(2)),
+    };
+  };
+
+  const calculateAccountRate = () => {
+    const contractedRate =
+      parseFloat(
+        purchaseForm.bran_type === "Red"
+          ? purchaseForm.final_contracted_rate || purchaseForm.contracted_rate
+          : purchaseForm.contracted_rate,
+      ) || 0;
+    const ffaRebate =
+      parseFloat(
+        savedLabData?.ffa_rebate_rs ||
+          savedLabData?.rebate_rs ||
+          labForm.ffa_rebate_rs,
+      ) || 0;
+    return roundToTwoDecimals(contractedRate - ffaRebate);
+  };
+
+  const calculateNetRate = () => {
+    const accountRate = calculateAccountRate();
+    const oilStandard = parseFloat(labForm.standard_oil) || 19;
+    const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
+    const oilDifference = oilObtained - oilStandard;
+    if (oilStandard === 0) return 0;
+    const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
+    return roundToTwoDecimals(netRate);
+  };
+
+  const calculateNetAmount = () => {
+    const netRate = calculateNetRate();
+    const accountRate = calculateAccountRate();
+    const netAmount = netRate * accountRate;
+    return roundToTwoDecimals(netAmount);
+  };
+
+  const calculateMaterialAmount = () => {
+    const accountRate = calculateAccountRate();
+    const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    return roundToTwoDecimals(accountRate * netWeight);
+  };
+
+  const calculateGrossAmount = () => {
+    const materialAmount = calculateMaterialAmount();
+    const oilPremium = parseFloat(labForm.oil_premium_rs) || 0;
+    const oilRebate = parseFloat(labForm.oil_rebate_rs) || 0;
+    if (oilPremium > 0) {
+      return roundToTwoDecimals(materialAmount + oilPremium);
+    } else if (oilRebate > 0) {
+      return roundToTwoDecimals(materialAmount - oilRebate);
+    } else {
+      return roundToTwoDecimals(materialAmount);
+    }
+  };
+
+  const calculateGST = () => {
+    const grossAmount = calculateGrossAmount();
+    const gstType = billingForm.gst_type || "Intra";
+    let cgst = 0,
+      sgst = 0,
+      igst = 0;
+    if (gstType === "Intra") {
+      cgst = grossAmount * 0.025;
+      sgst = grossAmount * 0.025;
+    } else {
+      igst = grossAmount * 0.05;
+    }
+    return {
+      cgst: roundToTwoDecimals(cgst),
+      sgst: roundToTwoDecimals(sgst),
+      igst: roundToTwoDecimals(igst),
+      total: roundToTwoDecimals(cgst + sgst + igst),
+    };
+  };
+
+  const calculateBilledAmount = () => {
+    const grossAmount = calculateGrossAmount();
+    const gst = calculateGST();
+    return roundToTwoDecimals(grossAmount + gst.total);
+  };
+
+  const calculateAmountPayable = () => {
+    const billedAmount = calculateBilledAmount();
+    const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
+    return roundToTwoDecimals(billedAmount - invoiceAmount);
+  };
+
+  const canGenerateInvoice = () => {
+    if (!savedSections.purchase) return false;
+    return true;
+  };
+
+  // ======================
+  // 4. USE EFFECTS
+  // ======================
+
+  // Auto-fill party when selected
   useEffect(() => {
     if (purchaseForm.party_name && parties.length > 0) {
       const selectedParty = parties.find(
         (p) => p.party_name === purchaseForm.party_name,
       );
       if (selectedParty && !usingExistingParty) {
-        // Only auto-fill if not already using an existing party
         setPartyForm({
           party_name: selectedParty.party_name,
           address_line1: selectedParty.address_line1 || "",
@@ -833,145 +647,26 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           gst: selectedParty.gst || "",
           customer_type: selectedParty.customer_type || "Registered",
         });
-
         setUsingExistingParty(true);
         setSelectedExistingParty(selectedParty);
       }
     }
   }, [purchaseForm.party_name, parties, usingExistingParty]);
 
-  // Load companies and parties on mount
+  // Load data on mount
   useEffect(() => {
     loadCompanies();
     loadParties();
     if (mode === "edit" && purchaseId) {
       loadFormData();
+    } else {
+      // If in create mode (fresh Home page), reset the form
+      console.log("🔄 Fresh Home page - resetting form");
+      resetForm();
     }
   }, [purchaseId]);
 
-  // Load form data for edit mode
-  const loadFormData = async () => {
-    try {
-      setLoading(true);
-      const formData = await api.getFormComplete(purchaseId);
-
-      // Populate party form
-      if (formData.party) {
-        setPartyForm({
-          party_name: formData.party.party_name || "",
-          address_line1: formData.party.address_line1 || "",
-          city: formData.party.city || "",
-          state: formData.party.state || "",
-          pin: formData.party.pin || "",
-          contact_person: formData.party.contact_person || "",
-          mobile_no: formData.party.mobile_no || "",
-          gst: formData.party.gst || "",
-          customer_type: formData.party.customer_type || "Registered",
-        });
-        setSavedPartyData(formData.party);
-        setSavedSections((prev) => ({ ...prev, party: true }));
-      }
-
-      // Populate purchase form
-      if (formData.purchase) {
-        setPurchaseForm({
-          party_name: formData.purchase.party_name || "",
-          purchased_from: formData.purchase.purchased_from || "Party",
-          agent_name: formData.purchase.agent_name || "",
-          agent_number: formData.purchase.agent_number || "",
-          invoice_no: formData.purchase.invoice_no || "",
-          date:
-            formData.purchase.date || new Date().toISOString().split("T")[0],
-          received_date: formData.purchase.received_date || "",
-          product_name: formData.purchase.product_name || "Boiled Rice Bran",
-          contracted_rate: formData.purchase.contracted_rate || "",
-          final_contracted_rate: formData.purchase.final_contracted_rate || "",
-          bran_type: formData.purchase.bran_type || "Good",
-          gross_weight_mt: formData.purchase.gross_weight_mt || "",
-          no_of_bags: formData.quantity?.no_of_bags || "",
-          bag_type: "Poly",
-          bag_weight_mt: formData.quantity?.bag_weight_mt || "0.000200",
-          net_weight_mt: formData.quantity?.net_weight_mt || "",
-          billed_weight_mt: formData.purchase.billed_weight_mt || "",
-        });
-        setSavedPurchaseData(formData.purchase);
-        setSavedSections((prev) => ({ ...prev, purchase: true }));
-      }
-
-      // Populate vehicle form
-      if (formData.vehicle) {
-        setVehicleForm({
-          vehicle_no: formData.vehicle.vehicle_no || "",
-          owner_name: formData.vehicle.owner_name || "",
-          owner_rc: formData.vehicle.owner_rc || "",
-          owner_address_line1: formData.vehicle.owner_address_line1 || "",
-          owner_city: formData.vehicle.owner_city || "",
-          owner_state: formData.vehicle.owner_state || "",
-          owner_pin: formData.vehicle.owner_pin || "",
-          mobile_no: formData.vehicle.mobile_no || "",
-          bank_account: formData.vehicle.bank_account || "",
-          bank_name: formData.vehicle.bank_name || "",
-          ifsc: formData.vehicle.ifsc || "",
-          rice_mill_name: formData.vehicle.rice_mill_name || "",
-          destination_from: formData.vehicle.destination_from || "",
-          destination_to: formData.vehicle.destination_to || "",
-          quantity_mt: formData.vehicle.quantity_mt || "",
-          freight_per_mt: formData.vehicle.freight_per_mt || "",
-          advance_amount: formData.vehicle.advance_amount || "",
-          paid_by: formData.vehicle.paid_by || "Buyer",
-        });
-        setSavedVehicleData(formData.vehicle);
-        setSavedSections((prev) => ({ ...prev, vehicle: true }));
-      }
-
-      // Populate lab form
-      if (formData.lab) {
-        setLabForm({
-          standard_ffa: formData.lab.standard_ffa?.toString() || "7",
-          standard_oil: formData.lab.standard_oil?.toString() || "19",
-          obtain_ffa: formData.lab.obtain_ffa?.toString() || "",
-          obtain_oil: formData.lab.obtain_oil?.toString() || "",
-          ffa_rebate_rs: formData.lab.rebate_rs?.toString() || "",
-          ffa_premium_rs: formData.lab.premium_rs?.toString() || "",
-          oil_rebate_rs: formData.lab.oil_rebate_rs?.toString() || "",
-          oil_premium_rs: formData.lab.oil_premium_rs?.toString() || "",
-        });
-        setSavedLabData(formData.lab);
-        setSavedSections((prev) => ({ ...prev, lab: true }));
-      }
-
-      // Populate billing form
-      if (formData.billing) {
-        setBillingForm({
-          gst_type: formData.billing.gst_type || "Intra",
-          invoice_amount: formData.billing.invoice_amount?.toString() || "",
-        });
-        setSavedBillingData(formData.billing);
-        setSavedSections((prev) => ({ ...prev, billing: true }));
-      }
-
-      // Set selected company
-      if (formData.purchase?.company_id) {
-        setSelectedCompany(formData.purchase.company_id);
-      }
-
-      // Reset modified sections when loading form
-      setModifiedSections({
-        party: false,
-        purchase: false,
-        vehicle: false,
-        lab: false,
-        billing: false,
-      });
-    } catch (error) {
-      console.error("Failed to load form data:", error);
-      showError("Failed to load form data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Auto-fill destination_from from selected party
+  // Auto-fill destination_from from party
   useEffect(() => {
     if (purchaseForm.party_name) {
       const selectedParty = parties.find(
@@ -986,7 +681,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         ]
           .filter(Boolean)
           .join(", ");
-
         setVehicleForm((prev) => ({
           ...prev,
           destination_from: destinationFrom,
@@ -995,7 +689,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [purchaseForm.party_name, parties]);
 
-  // Auto-fill rice mill name from selected party
+  // Auto-fill rice mill name
   useEffect(() => {
     if (purchaseForm.party_name) {
       setVehicleForm((prev) => ({
@@ -1005,6 +699,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [purchaseForm.party_name]);
 
+  // Sync quantity_mt with gross_weight_mt
   useEffect(() => {
     if (purchaseForm.gross_weight_mt) {
       setVehicleForm((prev) => ({
@@ -1014,7 +709,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [purchaseForm.gross_weight_mt]);
 
-  // Auto-fill destination_to from selected company
+  // Auto-fill destination_to from company
   useEffect(() => {
     if (selectedCompany) {
       const selectedCompanyObj = companies.find(
@@ -1029,7 +724,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         ]
           .filter(Boolean)
           .join(", ");
-
         setVehicleForm((prev) => ({
           ...prev,
           destination_to: destinationTo,
@@ -1038,7 +732,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [selectedCompany, companies]);
 
-  // Auto-recalculate oil rebate/premium when ANY input changes
+  // Auto-recalculate oil rebate/premium
   useEffect(() => {
     const oilValue = parseFloat(labForm.obtain_oil);
     const rate = parseFloat(purchaseForm.contracted_rate);
@@ -1070,7 +764,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     purchaseForm.product_name,
   ]);
 
-  // Auto-update lab standards based on product
+  // Update lab standards based on product
   useEffect(() => {
     const map = {
       "Boiled Rice Bran": { ffa: "7", oil: "19" },
@@ -1099,6 +793,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [purchaseForm.product_name]);
 
+  // Handle Red Bran logic
   useEffect(() => {
     if (purchaseForm.bran_type === "Red") {
       const baseRate = parseFloat(purchaseForm.contracted_rate) || 0;
@@ -1115,20 +810,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   }, [purchaseForm.bran_type, purchaseForm.contracted_rate]);
 
-  // Auto-calculate bag weight and net weight
+  // Auto-calculate bag & net weight
   useEffect(() => {
     const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
-    const bagWeightStr = bagWeight.toFixed(6);
-
     const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
     const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
     const netWeight = grossWeight - noOfBags * bagWeight;
-    const netWeightStr = netWeight >= 0 ? netWeight.toFixed(3) : "0.000";
-
     setPurchaseForm((prev) => ({
       ...prev,
-      bag_weight_mt: bagWeightStr,
-      net_weight_mt: netWeightStr,
+      bag_weight_mt: bagWeight.toFixed(6),
+      net_weight_mt: netWeight >= 0 ? netWeight.toFixed(3) : "0.000",
     }));
   }, [
     purchaseForm.bag_type,
@@ -1136,29 +827,57 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     purchaseForm.no_of_bags,
   ]);
 
-  // Auto-select GST type based on GST number
+  // Auto-set GST type from GST number
   useEffect(() => {
     if (partyForm.gst && partyForm.gst.length >= 2) {
       const stateCode = partyForm.gst.substring(0, 2);
       const isOdisha = stateCode === "21";
-      // FIXED: If state code is 21 (Odisha), it's Intra State
       setBillingForm((prev) => ({
         ...prev,
-        gst_type: isOdisha ? "Intra" : "Inter", // Changed from isOdisha ? "Inter" : "Intra"
+        gst_type: isOdisha ? "Intra" : "Inter",
       }));
     }
   }, [partyForm.gst]);
 
-  // ============ HELPER FUNCTIONS ============
+  // NEW: Oil premium calculation using account rate (as per your logic)
+  useEffect(() => {
+    const oilValue = parseFloat(labForm.obtain_oil);
+    const accountRate = calculateAccountRate();
+    const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    const product = purchaseForm.product_name;
 
-  // Load companies from backend
+    if (!isNaN(oilValue) && !isNaN(accountRate) && netWeight > 0 && product) {
+      const oilCalc = calculateOilRebatePremium(
+        product,
+        oilValue,
+        accountRate,
+        netWeight,
+      );
+      setLabForm((prev) => ({
+        ...prev,
+        oil_rebate_rs: "0.00",
+        oil_premium_rs: oilCalc.premium > 0 ? oilCalc.premium.toFixed(2) : "",
+      }));
+    }
+  }, [
+    labForm.obtain_oil,
+    purchaseForm.product_name,
+    purchaseForm.net_weight_mt,
+    purchaseForm.contracted_rate,
+    purchaseForm.bran_type,
+    labForm.obtain_ffa,
+    labForm.ffa_rebate_rs,
+  ]);
+
+  // ======================
+  // 5. DATA LOADING & FORM HANDLERS
+  // ======================
+
   const loadCompanies = async () => {
     try {
       setLoadingCompanies(true);
       const companiesData = await api.getMyCompanies();
-
       setCompanies(companiesData);
-
       if (companiesData.length > 0) {
         if (mode === "edit" && savedPurchaseData?.company_id) {
           setSelectedCompany(savedPurchaseData.company_id);
@@ -1169,12 +888,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           if (userCompany) {
             setSelectedCompany(userCompany._id || userCompany.id);
           } else {
-            const firstCompany = companiesData[0];
-            setSelectedCompany(firstCompany._id || firstCompany.id);
+            setSelectedCompany(companiesData[0]._id || companiesData[0].id);
           }
         } else {
-          const firstCompany = companiesData[0];
-          setSelectedCompany(firstCompany._id || firstCompany.id);
+          setSelectedCompany(companiesData[0]._id || companiesData[0].id);
         }
       }
     } catch (err) {
@@ -1185,53 +902,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
-  // Mobile number validation
-  const validateMobileNumber = (value) => {
-    if (value === "") return true;
-    return /^\d{0,10}$/.test(value);
-  };
-
-  // Handle mobile number input
-  const handleMobileChange = (e, formType, setForm) => {
-    const value = e.target.value;
-    if (validateMobileNumber(value)) {
-      setForm((prev) => ({ ...prev, mobile_no: value }));
-    }
-  };
-
-  // Handle company change
-  const handleCompanyChange = (event) => {
-    const companyId = event.target.value;
-    setSelectedCompany(companyId);
-  };
-
-  // Calculations
-  const totalFreight =
-    (parseFloat(vehicleForm.quantity_mt) || 0) *
-    (parseFloat(vehicleForm.freight_per_mt) || 0);
-  const toPay = totalFreight - (parseFloat(vehicleForm.advance_amount) || 0);
-
-  // Load parties
-  // const loadParties = async () => {
-  //   try {
-  //     const data = await api.getParties();
-  //     setParties(data);
-  //     if (data.length > 0 && !purchaseForm.party_name && mode === "create") {
-  //       setPurchaseForm((prev) => ({
-  //         ...prev,
-  //         party_name: data[0].party_name,
-  //       }));
-  //     }
-  //   } catch (err) {
-  //     showError("Failed to load parties");
-  //   }
-  // };
-
   const loadParties = async () => {
     try {
       const data = await api.getParties();
       setParties(data);
-      // Optional: If no party is selected and it's create mode, auto-select first
       if (data.length > 0 && !purchaseForm.party_name && mode === "create") {
         setPurchaseForm((prev) => ({
           ...prev,
@@ -1243,31 +917,120 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
-  const showError = (msg) =>
-    setSnackbar({ open: true, message: msg, severity: "error" });
-  const showSuccess = (msg) =>
-    setSnackbar({ open: true, message: msg, severity: "success" });
-  const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
+  const loadFormData = async () => {
+    try {
+      setLoading(true);
+      const formData = await api.getFormComplete(purchaseId);
 
-  const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+      if (formData.party) {
+        setPartyForm({
+          party_name: formData.party.party_name || "",
+          address_line1: formData.party.address_line1 || "",
+          city: formData.party.city || "",
+          state: formData.party.state || "",
+          pin: formData.party.pin || "",
+          contact_person: formData.party.contact_person || "",
+          mobile_no: formData.party.mobile_no || "",
+          gst: formData.party.gst || "",
+          customer_type: formData.party.customer_type || "Registered",
+        });
+        setSavedPartyData(formData.party);
+        setSavedSections((prev) => ({ ...prev, party: true }));
+      }
 
-  // Handle SMS button click
-  const handleSMSClick = () => {
-    if (!savedSections.lab) {
-      showError("Please save Lab details first");
-      return;
+      if (formData.purchase) {
+        setPurchaseForm({
+          party_name: formData.purchase.party_name || "",
+          purchased_from: formData.purchase.purchased_from || "Party",
+          agent_name: formData.purchase.agent_name || "",
+          agent_number: formData.purchase.agent_number || "",
+          invoice_no: formData.purchase.invoice_no || "",
+          date:
+            formData.purchase.date || new Date().toISOString().split("T")[0],
+          received_date: formData.purchase.received_date || "",
+          product_name: formData.purchase.product_name || "Boiled Rice Bran",
+          contracted_rate: formData.purchase.contracted_rate || "",
+          final_contracted_rate: formData.purchase.final_contracted_rate || "",
+          bran_type: formData.purchase.bran_type || "Good",
+          gross_weight_mt: formData.purchase.gross_weight_mt || "",
+          no_of_bags: formData.quantity?.no_of_bags || "",
+          bag_type: "Poly",
+          bag_weight_mt: formData.quantity?.bag_weight_mt || "0.000200",
+          net_weight_mt: formData.quantity?.net_weight_mt || "",
+          billed_weight_mt: formData.purchase.billed_weight_mt || "",
+        });
+        setSavedPurchaseData(formData.purchase);
+        setSavedSections((prev) => ({ ...prev, purchase: true }));
+      }
+
+      if (formData.vehicle) {
+        setVehicleForm({
+          vehicle_no: formData.vehicle.vehicle_no || "",
+          owner_name: formData.vehicle.owner_name || "",
+          owner_rc: formData.vehicle.owner_rc || "",
+          owner_address_line1: formData.vehicle.owner_address_line1 || "",
+          owner_city: formData.vehicle.owner_city || "",
+          owner_state: formData.vehicle.owner_state || "",
+          owner_pin: formData.vehicle.owner_pin || "",
+          mobile_no: formData.vehicle.mobile_no || "",
+          bank_account: formData.vehicle.bank_account || "",
+          bank_name: formData.vehicle.bank_name || "",
+          ifsc: formData.vehicle.ifsc || "",
+          rice_mill_name: formData.vehicle.rice_mill_name || "",
+          destination_from: formData.vehicle.destination_from || "",
+          destination_to: formData.vehicle.destination_to || "",
+          quantity_mt: formData.vehicle.quantity_mt || "",
+          freight_per_mt: formData.vehicle.freight_per_mt || "",
+          advance_amount: formData.vehicle.advance_amount || "",
+          paid_by: formData.vehicle.paid_by || "Buyer",
+        });
+        setSavedVehicleData(formData.vehicle);
+        setSavedSections((prev) => ({ ...prev, vehicle: true }));
+      }
+
+      if (formData.lab) {
+        setLabForm({
+          standard_ffa: formData.lab.standard_ffa?.toString() || "7",
+          standard_oil: formData.lab.standard_oil?.toString() || "19",
+          obtain_ffa: formData.lab.obtain_ffa?.toString() || "",
+          obtain_oil: formData.lab.obtain_oil?.toString() || "",
+          ffa_rebate_rs: formData.lab.rebate_rs?.toString() || "",
+          ffa_premium_rs: formData.lab.premium_rs?.toString() || "",
+          oil_rebate_rs: formData.lab.oil_rebate_rs?.toString() || "",
+          oil_premium_rs: formData.lab.oil_premium_rs?.toString() || "",
+        });
+        setSavedLabData(formData.lab);
+        setSavedSections((prev) => ({ ...prev, lab: true }));
+      }
+
+      if (formData.billing) {
+        setBillingForm({
+          gst_type: formData.billing.gst_type || "Intra",
+          invoice_amount: formData.billing.invoice_amount?.toString() || "",
+        });
+        setSavedBillingData(formData.billing);
+        setSavedSections((prev) => ({ ...prev, billing: true }));
+      }
+
+      if (formData.purchase?.company_id) {
+        setSelectedCompany(formData.purchase.company_id);
+      }
+
+      setModifiedSections({
+        party: false,
+        purchase: false,
+        vehicle: false,
+        lab: false,
+        billing: false,
+      });
+    } catch (error) {
+      console.error("Failed to load form data:", error);
+      showError("Failed to load form data");
+    } finally {
+      setLoading(false);
     }
-    setShowSMSDialog(true);
   };
 
-  // ============ FORM HANDLERS ============
-
-  // Helper function to update form with tracking
   const updateFormWithTracking = (setter, formType, updater) => {
     if (mode === "edit") {
       setModifiedSections((prev) => ({ ...prev, [formType]: true }));
@@ -1279,6 +1042,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // --- Save Handlers ---
   const handleSaveParty = async () => {
     try {
       if (usingExistingParty && selectedExistingParty) {
@@ -1320,83 +1084,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       showError("Failed to save Party: " + (err.message || "Unknown error"));
     }
   };
-
-  // Add this to reset party form when user wants to add new party
-
-  const handleAddNewParty = () => {
-    // Reset all party-related states
-    setUsingExistingParty(false);
-    setSelectedExistingParty(null);
-
-    // Clear the party form
-    setPartyForm({
-      party_name: "",
-      address_line1: "",
-      city: "",
-      state: "",
-      pin: "",
-      contact_person: "",
-      mobile_no: "",
-      gst: "",
-      customer_type: "Registered",
-    });
-
-    // Also clear the party in purchase form if it was selected
-    setPurchaseForm((prev) => ({
-      ...prev,
-      party_name: "",
-    }));
-
-    // Reset saved state
-    setSavedSections((prev) => ({ ...prev, party: false }));
-    setModifiedSections((prev) => ({ ...prev, party: false }));
-
-    // Focus on the party name field
-    if (partyNameRef.current) {
-      setTimeout(() => partyNameRef.current.focus(), 100);
-    }
-  };
-
-  // const handleSavePurchase = async () => {
-  //   try {
-  //     const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
-  //     const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
-  //     const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
-  //     const netWeight = grossWeight - noOfBags * bagWeight;
-
-  //     const purchaseData = {
-  //       ...purchaseForm,
-  //       bag_weight_mt: bagWeight.toFixed(6),
-  //       net_weight_mt: netWeight.toFixed(6),
-  //       gross_weight_mt: grossWeight,
-  //       no_of_bags: noOfBags,
-  //       company_id: selectedCompany,
-  //       date: purchaseForm.date,
-  //       received_date: purchaseForm.received_date || null,
-  //     };
-
-  //     let purchase;
-  //     if (mode === "edit" && savedPurchaseData) {
-  //       // Update existing purchase
-  //       purchase = await api.updatePurchase(
-  //         savedPurchaseData._id,
-  //         purchaseData,
-  //       );
-  //     } else {
-  //       // Create new purchase
-  //       purchase = await api.createPurchase(purchaseData);
-  //     }
-
-  //     setSavedPurchaseData(purchase);
-  //     setCurrentPurchaseId(purchase._id);
-  //     setSavedSections((prev) => ({ ...prev, purchase: true }));
-  //     setModifiedSections((prev) => ({ ...prev, purchase: false }));
-  //     showSuccess("Purchase details saved!");
-  //   } catch (err) {
-  //     showError("Failed to save Purchase");
-  //   }
-  // };
-
   const handleSavePurchase = async () => {
     try {
       const purchaseData = {
@@ -1528,8 +1215,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       showError("Failed to save Lab: " + err.message);
     }
   };
-
-  // In your Home.jsx file, find the handleSaveBilling function and update it:
   const handleSaveBilling = async () => {
     try {
       if (!currentPurchaseId) {
@@ -1579,45 +1264,6 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       showError("Failed to save Billing: " + err.message);
     }
   };
-
-  // const handleSaveAll = async () => {
-  //   try {
-  //     setSaving(true);
-
-  //     if (
-  //       (mode === "create" && !savedSections.purchase) ||
-  //       (mode === "edit" && modifiedSections.purchase)
-  //     )
-  //       await handleSavePurchase();
-  //     if (
-  //       (mode === "create" && !savedSections.vehicle) ||
-  //       (mode === "edit" && modifiedSections.vehicle)
-  //     )
-  //       await handleSaveVehicle();
-  //     if (
-  //       (mode === "create" && !savedSections.lab) ||
-  //       (mode === "edit" && modifiedSections.lab)
-  //     )
-  //       await handleSaveLab();
-  //     if (
-  //       (mode === "create" && !savedSections.billing) ||
-  //       (mode === "edit" && modifiedSections.billing)
-  //     )
-  //       await handleSaveBilling();
-
-  //     if (mode === "create") {
-  //       showSuccess("All sections saved successfully!");
-  //     } else {
-  //       showSuccess("Form updated successfully!");
-  //     }
-  //   } catch (err) {
-  //     showError("Failed to save: " + err.message);
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // };
-
-  // In Home.jsx - handleSaveAll()
   const handleSaveAll = async () => {
     try {
       setSaving(true);
@@ -1690,6 +1336,80 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       showError("Failed to save form: " + (err.message || "Unknown error"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePartyInModal = async () => {
+    try {
+      const partyData = {
+        ...modalPartyForm,
+        company_id: selectedCompany,
+      };
+
+      const savedParty = await api.createParty(partyData);
+      await loadParties(); // Refresh party list
+
+      // Auto-select new party
+      setPurchaseForm((prev) => ({
+        ...prev,
+        party_name: savedParty.party_name,
+      }));
+
+      setSavedPartyData(savedParty);
+      setSavedSections((prev) => ({ ...prev, party: true }));
+      setModifiedSections((prev) => ({ ...prev, party: false }));
+
+      // Reset & close
+      setOpenPartyModal(false);
+      setModalPartyForm({
+        party_name: "",
+        address_line1: "",
+        city: "",
+        state: "",
+        pin: "",
+        contact_person: "",
+        mobile_no: "",
+        gst: "",
+        customer_type: "Registered",
+      });
+
+      showSuccess("Party details saved!");
+    } catch (err) {
+      console.error("Failed to save Party:", err);
+      showError("Failed to save Party: " + (err.message || "Unknown error"));
+    }
+  };
+  const handleAddNewParty = () => {
+    // Reset all party-related states
+    setUsingExistingParty(false);
+    setSelectedExistingParty(null);
+
+    // Clear the party form
+    setPartyForm({
+      party_name: "",
+      address_line1: "",
+      city: "",
+      state: "",
+      pin: "",
+      contact_person: "",
+      mobile_no: "",
+      gst: "",
+      customer_type: "Registered",
+    });
+
+    // Also clear the party in purchase form if it was selected
+    setPurchaseForm((prev) => ({
+      ...prev,
+      party_name: "",
+    }));
+
+    // Reset saved state
+    setSavedSections((prev) => ({ ...prev, party: false }));
+    setModifiedSections((prev) => ({ ...prev, party: false }));
+
+    // Focus on the party name field
+    if (partyNameRef.current) {
+      setTimeout(() => partyNameRef.current.focus(), 100);
     }
   };
 
@@ -1836,28 +1556,81 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       );
     }
   };
-
   const handleCancelEdit = () => {
-    navigate(-1); // Go back to previous page
+    navigate(-1);
+  };
+  const handleSMSClick = () => {
+    if (!savedSections.lab) {
+      showError("Please save Lab details first");
+      return;
+    }
+    setShowSMSDialog(true);
+  };
+  const formReset = useFormReset();
+  const resetForm = () => {
+    formReset.resetForm({
+      setPartyForm,
+      setPurchaseForm,
+      setVehicleForm,
+      setLabForm,
+      setBillingForm,
+      setSavedSections,
+      setModifiedSections,
+      setSavedVehicleData,
+      setSavedLabData,
+      setSavedPurchaseData,
+      setSavedPartyData,
+      setSavedBillingData,
+      setCurrentPurchaseId,
+      setUsingExistingParty,
+      setSelectedExistingParty,
+      mode,
+      loadParties: () => loadParties(),
+      showSuccess: (msg) => showSuccess(msg),
+      partyNameRef,
+      currentUser,
+      companies,
+      setSelectedCompany,
+    });
   };
 
-  // const allSectionsSaved = Object.values(savedSections).every(Boolean);
   const allSectionsSaved = savedSections.purchase && savedSections.billing;
 
   const getUserCompanyName = () => {
-    if (!currentUser || companies.length === 0) {
-      return "Select Company";
-    }
-
+    if (!currentUser || companies.length === 0) return "Select Company";
     if (selectedCompany) {
       const selected = companies.find(
         (c) => (c._id || c.id) === selectedCompany,
       );
       return selected ? selected.company_name : "Select Company";
     }
-
     return "Select Company";
   };
+
+  const handlePartySelectFromDropdown = (partyName) => {
+    const selectedParty = parties.find((p) => p.party_name === partyName);
+    if (selectedParty) {
+      setSelectedExistingParty(selectedParty);
+      setUsingExistingParty(true);
+      setPartyForm({
+        party_name: selectedParty.party_name,
+        address_line1: selectedParty.address_line1 || "",
+        city: selectedParty.city || "",
+        state: selectedParty.state || "",
+        pin: selectedParty.pin || "",
+        contact_person: selectedParty.contact_person || "",
+        mobile_no: selectedParty.mobile_no || "",
+        gst: selectedParty.gst || "",
+        customer_type: selectedParty.customer_type || "Registered",
+      });
+      setSavedSections((prev) => ({ ...prev, party: true }));
+      setModifiedSections((prev) => ({ ...prev, party: false }));
+    }
+  };
+
+  // ======================
+  // 6. RENDER
+  // ======================
 
   if (loading) {
     return (
@@ -3943,6 +3716,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     party_name: toTitleCase(e.target.value),
                   }))
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Focus on Contact Person field
+                    if (contactPersonRef.current) {
+                      contactPersonRef.current.focus();
+                    }
+                  }
+                }}
+                inputRef={partyNameRef}
                 fullWidth
                 required
               />
@@ -3958,6 +3741,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     contact_person: toTitleCase(e.target.value),
                   }))
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Focus on Mobile No field
+                    if (partyMobileRef.current) {
+                      partyMobileRef.current.focus();
+                    }
+                  }
+                }}
+                inputRef={contactPersonRef}
                 fullWidth
               />
             </Grid>
@@ -3972,6 +3765,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     setModalPartyForm((prev) => ({ ...prev, mobile_no: val }));
                   }
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Focus on Address field
+                    if (partyAddressRef.current) {
+                      partyAddressRef.current.focus();
+                    }
+                  }
+                }}
+                inputRef={partyMobileRef}
                 inputProps={{ maxLength: 10 }}
                 type="tel"
                 helperText="10 digits only"
@@ -3990,6 +3793,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     address_line1: toTitleCase(e.target.value),
                   }))
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Focus on City field
+                    if (partyCityRef.current) {
+                      partyCityRef.current.focus();
+                    }
+                  }
+                }}
+                inputRef={partyAddressRef}
                 fullWidth
               />
             </Grid>
@@ -4004,6 +3817,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     city: toTitleCase(e.target.value),
                   }))
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Focus on State field
+                    if (partyStateRef.current) {
+                      partyStateRef.current.focus();
+                    }
+                  }
+                }}
+                inputRef={partyCityRef}
                 fullWidth
               />
             </Grid>
@@ -4018,6 +3841,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     state: toTitleCase(e.target.value),
                   }))
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Focus on Pin Code field
+                    if (partyPinRef.current) {
+                      partyPinRef.current.focus();
+                    }
+                  }
+                }}
+                inputRef={partyStateRef}
                 fullWidth
               />
             </Grid>
@@ -4032,11 +3865,30 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     setModalPartyForm((prev) => ({ ...prev, pin: val }));
                   }
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // If customer type is Registered, focus on GST field
+                    if (modalPartyForm.customer_type === "Registered") {
+                      if (partyGstRef.current) {
+                        partyGstRef.current.focus();
+                      }
+                    } else {
+                      // Otherwise focus on Save button
+                      const saveButton =
+                        document.querySelector(".save-party-button");
+                      if (saveButton) {
+                        saveButton.focus();
+                      }
+                    }
+                  }
+                }}
+                inputRef={partyPinRef}
                 inputProps={{ maxLength: 6 }}
                 fullWidth
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
+            {/* <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Customer Type</InputLabel>
                 <Select
@@ -4082,6 +3934,94 @@ const Home = ({ userRole, onLogout, currentUser }) => {
             disabled={
               !modalPartyForm.party_name.trim() || !modalPartyForm.mobile_no
             }
+          >
+            Save Party
+          </Button> */}
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Customer Type</InputLabel>
+                <Select
+                  value={modalPartyForm.customer_type}
+                  label="Customer Type"
+                  sx={styles.compactField}
+                  onChange={(e) =>
+                    setModalPartyForm((prev) => ({
+                      ...prev,
+                      customer_type: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Focus on next field based on customer type
+                      if (modalPartyForm.customer_type === "Registered") {
+                        if (partyGstRef.current) {
+                          partyGstRef.current.focus();
+                        }
+                      } else {
+                        // Focus on Save button for Unregistered
+                        const saveButton =
+                          document.querySelector(".save-party-button");
+                        if (saveButton) {
+                          saveButton.focus();
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <MenuItem value="Registered">Registered</MenuItem>
+                  <MenuItem value="Unregistered">Unregistered</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* GST (only for Registered customers) */}
+            {modalPartyForm.customer_type === "Registered" && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  label="GST"
+                  sx={styles.compactField}
+                  value={modalPartyForm.gst}
+                  onChange={(e) =>
+                    setModalPartyForm((prev) => ({
+                      ...prev,
+                      gst: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      // Focus on Save button
+                      const saveButton =
+                        document.querySelector(".save-party-button");
+                      if (saveButton) {
+                        saveButton.focus();
+                      }
+                    }
+                  }}
+                  inputRef={partyGstRef}
+                  inputProps={{ maxLength: 15 }}
+                  fullWidth
+                />
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPartyModal(false)}>Cancel</Button>
+          <Button
+            onClick={handleSavePartyInModal}
+            variant="contained"
+            disabled={
+              !modalPartyForm.party_name.trim() || !modalPartyForm.mobile_no
+            }
+            className="save-party-button"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSavePartyInModal();
+              }
+            }}
           >
             Save Party
           </Button>

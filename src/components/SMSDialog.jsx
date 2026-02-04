@@ -63,6 +63,7 @@ const SMSDialog = ({
     invoice_no = "",
     date = "",
     gross_weight_mt = 0,
+    net_weight_mt = 0,
     contracted_rate = 0,
     no_of_bags = "",
     bag_type = "",
@@ -109,7 +110,7 @@ Bags.- ${no_of_bags || "0"}
 Bag Type:- ${
     bag_type === "Poly" ? "Poly" : bag_type === "Jute" ? "Jute" : "Poly/Jute"
   }
-Weight.- ${(parseFloat(gross_weight_mt) || 0).toFixed(2)}
+Weight.- ${(parseFloat(net_weight_mt) || parseFloat(gross_weight_mt) || 0).toFixed(3)} MT
 Rate.- ${parseFloat(contracted_rate) || 0}
 Oil.- ${formatOilFFA(obtain_oil || standard_oil)}
 FFA.- ${formatOilFFA(obtain_ffa || standard_ffa)}
