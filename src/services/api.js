@@ -150,10 +150,44 @@ export const api = {
   },
 
   // GET COMPLETE FORM DATA
-  getFormComplete: (purchaseId) =>
-    fetch(`${API_BASE}/forms/${purchaseId}/complete`, {
-      headers: getHeaders(),
-    }).then(handleResponse),
+  // getFormComplete: (purchaseId) =>
+  //   fetch(`${API_BASE}/forms/${purchaseId}/complete`, {
+  //     headers: getHeaders(),
+  //   }).then(handleResponse),
+  // GET COMPLETE FORM DATA - FIXED VERSION
+  getFormComplete: async (purchaseId) => {
+    try {
+      console.log(
+        `🔍 API: getFormComplete called for purchaseId: ${purchaseId}`,
+      );
+      console.log(`🔍 API: Token present: ${!!authToken}`);
+
+      const response = await fetch(`${API_BASE}/forms/${purchaseId}/complete`, {
+        headers: getHeaders(),
+      });
+
+      console.log(`🔍 API: Response status: ${response.status}`);
+
+      if (!response.ok) {
+        let errorText;
+        try {
+          const errorData = await response.json();
+          errorText = JSON.stringify(errorData);
+        } catch (e) {
+          errorText = await response.text();
+        }
+        console.error(`🔍 API Error ${response.status}:`, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`🔍 API: Success response received`);
+      return data;
+    } catch (error) {
+      console.error(`🔍 API Exception in getFormComplete:`, error);
+      throw error;
+    }
+  },
 
   // Original Company endpoints (kept for backward compatibility)
   getCompanies: () =>
@@ -419,6 +453,13 @@ export const api = {
     fetch(`${API_BASE}/users/me/stats`, {
       headers: getHeaders(),
     }).then(handleResponse),
+
+  // getPartyPurchaseReport: (params = {}) => {
+  //   const queryParams = new URLSearchParams(params).toString();
+  //   return fetch(`${API_BASE}/reports/party-purchases?${queryParams}`, {
+  //     headers: getHeaders(),
+  //   }).then(handleResponse);
+  // },
 
   // Health check
   healthCheck: () =>

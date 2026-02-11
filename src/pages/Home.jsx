@@ -370,6 +370,26 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   // 2. HELPER FUNCTIONS
   // ======================
 
+  const checkInvoiceRequirements = () => {
+    if (!selectedCompany) {
+      showError("Please select a company first");
+      return false;
+    }
+
+    if (!savedSections.purchase) {
+      showError("Please save purchase details first");
+      return false;
+    }
+
+    // Optional: Add more checks with specific messages
+    if (!savedSections.billing) {
+      showError("Please save billing details first");
+      return false;
+    }
+
+    return true;
+  };
+
   const roundToTwoDecimals = (num) => {
     return Math.round(parseFloat(num || 0) * 100) / 100;
   };
@@ -500,32 +520,57 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const rate = parseFloat(accountRate) || 0;
     const weight = parseFloat(netWeight) || 0;
     let premium = 0;
+
     const standards = {
       "Boiled Rice Bran": 19.0,
       "Raw Rice Bran": 16.0,
       "Rough Rice Bran": 7.0,
     };
+
     const oilStandard = standards[product] || 19.0;
     const oilDiff = oilValue - oilStandard;
 
     if (oilDiff > 0) {
       if (product === "Boiled Rice Bran") {
-        if (oilValue <= 24) {
+        if (oilValue > 24) {
+          // Split calculation: full premium for 19-24, half for 24+
+          const fullPremiumUnits = 5.0; // 19 to 24 = 5 units
+          const halfPremiumUnits = oilValue - 24;
+
+          const fullPremium = (rate / oilStandard) * fullPremiumUnits * weight;
+          const halfPremium =
+            ((rate / oilStandard) * halfPremiumUnits * weight) / 2;
+
+          premium = fullPremium + halfPremium;
+        } else if (oilValue > 19) {
+          // Only full premium range (19-24)
           premium = (rate / oilStandard) * oilDiff * weight;
-        } else if (oilValue <= 28) {
-          premium = ((rate / oilStandard) * oilDiff * weight) / 2;
         }
       } else if (product === "Raw Rice Bran") {
-        if (oilValue <= 19) {
+        if (oilValue > 19) {
+          const fullPremiumUnits = 3.0; // 16 to 19 = 3 units
+          const halfPremiumUnits = oilValue - 19;
+
+          const fullPremium = (rate / oilStandard) * fullPremiumUnits * weight;
+          const halfPremium =
+            ((rate / oilStandard) * halfPremiumUnits * weight) / 2;
+
+          premium = fullPremium + halfPremium;
+        } else if (oilValue > 16) {
           premium = (rate / oilStandard) * oilDiff * weight;
-        } else if (oilValue <= 21) {
-          premium = ((rate / oilStandard) * oilDiff * weight) / 2;
         }
       } else if (product === "Rough Rice Bran") {
-        if (oilValue <= 8) {
+        if (oilValue > 8) {
+          const fullPremiumUnits = 1.0; // 7 to 8 = 1 unit
+          const halfPremiumUnits = oilValue - 8;
+
+          const fullPremium = (rate / oilStandard) * fullPremiumUnits * weight;
+          const halfPremium =
+            ((rate / oilStandard) * halfPremiumUnits * weight) / 2;
+
+          premium = fullPremium + halfPremium;
+        } else if (oilValue > 7) {
           premium = (rate / oilStandard) * oilDiff * weight;
-        } else if (oilValue <= 9) {
-          premium = ((rate / oilStandard) * oilDiff * weight) / 2;
         }
       }
     }
@@ -620,8 +665,26 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     return roundToTwoDecimals(billedAmount - invoiceAmount);
   };
 
+  // const canGenerateInvoice = () => {
+  //   if (!savedSections.purchase) return false;
+  //   return true;
+  // };
+
   const canGenerateInvoice = () => {
-    if (!savedSections.purchase) return false;
+    // Check if company is selected
+    if (!selectedCompany) {
+      return false;
+    }
+
+    // Check if purchase is saved
+    if (!savedSections.purchase) {
+      return false;
+    }
+
+    // Optional: You can add more checks here if needed
+    // For example, check if billing is saved:
+    // if (!savedSections.billing) return false;
+
     return true;
   };
 
@@ -1414,6 +1477,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   };
 
   const handleGenerateInvoice = async () => {
+    // Check all requirements first
+    if (!checkInvoiceRequirements()) {
+      return; // Stop if requirements not met
+    }
     try {
       if (!currentPurchaseId) {
         showError("Please save purchase details first");
@@ -1444,22 +1511,22 @@ const Home = ({ userRole, onLogout, currentUser }) => {
         // Transform data to match InvoicePreview format
         const transformedData = {
           company: selectedCompanyObj || {
-            company_name: "Sriyansh Solvent Solutions Pvt Ltd",
-            address_line1: "At-Kamira, Po-Singhijuba, Via-Binka",
-            mobile_no: "6371195818",
+            company_name: "Not Added Yet!",
+            address_line1: "N/A",
+            mobile_no: "N/A",
             gst_number: selectedCompanyObj?.gst_number || "",
             email: selectedCompanyObj?.email || "",
           },
 
           party: partyData || {
-            party_name: "MANMATH PATTNAIK & CO",
-            address_line1: "MANASA PLACE GANDARPUR",
-            city: "Cuttack",
-            state: "Odisha",
-            pin: "753003",
-            gst: "21AMJPP6577A124",
-            mobile_no: "9876543210",
-            contact_person: "Mr. Mammath Pathnak",
+            party_name: "Not Added Yet!",
+            address_line1: "N/A",
+            city: "N/A",
+            state: "N/A",
+            pin: "N/A",
+            gst: "N/A",
+            mobile_no: "N/A",
+            contact_person: "N/A",
           },
 
           purchase: raw.purchase || {
@@ -2629,341 +2696,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                   <Collapse in={expandedSections.vehicle}>
                     <Divider sx={{ my: 1 }} />
                     <Grid container spacing={1} sx={styles.compactGrid}>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Vehicle No *"
-                          value={vehicleForm.vehicle_no}
-                          onChange={(e) => {
-                            // Auto capitalize all letters
-                            const value = e.target.value.toUpperCase();
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              vehicle_no: value,
-                            });
-                          }}
-                          onKeyDown={(e) => handleKeyDown(e, ownerNameRef)}
-                          inputRef={vehicleNoRef}
-                          fullWidth
-                          inputProps={{
-                            style: { textTransform: "uppercase" },
-                          }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Owner Name"
-                          value={vehicleForm.owner_name}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              owner_name: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, ownerMobileRef)}
-                          inputRef={ownerNameRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Owner Mobile No"
-                          value={vehicleForm.mobile_no}
-                          onChange={(e) =>
-                            handleMobileChange(e, "vehicle", setVehicleForm)
-                          }
-                          inputProps={{ maxLength: 10 }}
-                          type="tel"
-                          onKeyDown={(e) => handleKeyDown(e, riceMillRef)}
-                          inputRef={ownerMobileRef}
-                          fullWidth
-                        />
-                      </Grid>
-
-                      {/* Rice Mill Name - Auto-filled from Party Name but editable */}
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Rice Mill Name"
-                          value={
-                            vehicleForm.rice_mill_name ||
-                            purchaseForm.party_name
-                          }
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              rice_mill_name: e.target.value,
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, destFromRef)}
-                          inputRef={riceMillRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Destination From"
-                          value={vehicleForm.destination_from}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              destination_from: e.target.value,
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, destToRef)}
-                          inputRef={destFromRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Destination To"
-                          value={vehicleForm.destination_to}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              destination_to: e.target.value,
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, quantityMtRef)}
-                          inputRef={destToRef}
-                          fullWidth
-                        />
-                      </Grid>
-
-                      {/* Vehicle Quantity - Auto-filled from Actual Weight */}
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Quantity (MT) *"
-                          type="number"
-                          value={vehicleForm.quantity_mt}
-                          onChange={(e) => {
-                            const quantity = e.target.value;
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              quantity_mt: quantity,
-                            });
-                          }}
-                          onKeyDown={(e) => handleKeyDown(e, freightMtRef)}
-                          inputRef={quantityMtRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Freight/MT (₹)"
-                          type="number"
-                          value={vehicleForm.freight_per_mt}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            // Allow up to 2 decimal places
-                            if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
-                              updateFormWithTracking(
-                                setVehicleForm,
-                                "vehicle",
-                                {
-                                  ...vehicleForm,
-                                  freight_per_mt: value,
-                                },
-                              );
-                            }
-                          }}
-                          onKeyDown={(e) => handleKeyDown(e, advanceAmtRef)}
-                          inputRef={freightMtRef}
-                          fullWidth
-                          InputProps={{
-                            inputProps: {
-                              min: "0",
-                              step: "0.01",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Advance Amount (₹)"
-                          type="number"
-                          value={vehicleForm.advance_amount}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            // Allow up to 2 decimal places
-                            if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
-                              updateFormWithTracking(
-                                setVehicleForm,
-                                "vehicle",
-                                {
-                                  ...vehicleForm,
-                                  advance_amount: value,
-                                },
-                              );
-                            }
-                          }}
-                          onKeyDown={(e) => handleKeyDown(e, bankAccRef)}
-                          inputRef={advanceAmtRef}
-                          fullWidth
-                          InputProps={{
-                            inputProps: {
-                              min: "0",
-                              step: "0.01",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Balance to Pay (₹)"
-                          value={toPay.toFixed(2)}
-                          InputProps={{ readOnly: true }}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Bank Account Number"
-                          value={vehicleForm.bank_account}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              bank_account: e.target.value,
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, bankNameRef)}
-                          inputRef={bankAccRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Bank Name"
-                          value={vehicleForm.bank_name}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              bank_name: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, ifscRef)}
-                          inputRef={bankNameRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="IFSC Code"
-                          value={vehicleForm.ifsc}
-                          onChange={(e) => {
-                            // Auto capitalize and allow only alphanumeric
-                            const value = e.target.value
-                              .toUpperCase()
-                              .replace(/[^A-Z0-9]/g, "");
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              ifsc: value,
-                            });
-                          }}
-                          onKeyDown={(e) => handleKeyDown(e, ownerAddrRef)}
-                          inputRef={ifscRef}
-                          fullWidth
-                          inputProps={{
-                            style: { textTransform: "uppercase" },
-                            maxLength: 50, // IFSC codes are typically 11 characters
-                          }}
-                          helperText="e.g., SBIN0001234"
-                        />
-                      </Grid>
-                      {/* <Grid size={{ xs: 12 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Owner Address"
-                          value={vehicleForm.owner_address_line1}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              owner_address_line1: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, ownerCityRef)}
-                          inputRef={ownerAddrRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Owner City"
-                          value={vehicleForm.owner_city}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              owner_city: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, ownerStateRef)}
-                          inputRef={ownerCityRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Owner State"
-                          value={vehicleForm.owner_state}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              owner_state: toTitleCase(e.target.value),
-                            })
-                          }
-                          onKeyDown={(e) => handleKeyDown(e, ownerPinRef)}
-                          inputRef={ownerStateRef}
-                          fullWidth
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          size="small"
-                          sx={styles.compactField}
-                          label="Owner Pin Code"
-                          value={vehicleForm.owner_pin}
-                          onChange={(e) =>
-                            updateFormWithTracking(setVehicleForm, "vehicle", {
-                              ...vehicleForm,
-                              owner_pin: e.target.value,
-                            })
-                          }
-                          inputProps={{ maxLength: 6 }}
-                          onKeyDown={(e) => handleKeyDown(e, obtainFfaRef)}
-                          inputRef={ownerPinRef}
-                          fullWidth
-                        />
-                      </Grid> */}
+                      {/* Radio button for Paid By - Should always be visible */}
                       <Grid size={{ xs: 12 }}>
                         <FormControl sx={styles.compactRadio}>
                           <RadioGroup
@@ -2993,6 +2726,328 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                           </RadioGroup>
                         </FormControl>
                       </Grid>
+
+                      {/* Vehicle No - Always visible */}
+                      <Grid
+                        size={{
+                          xs: 12,
+                          sm: vehicleForm.paid_by === "Seller" ? 12 : 6,
+                        }}
+                      >
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Vehicle No *"
+                          value={vehicleForm.vehicle_no}
+                          onChange={(e) => {
+                            const value = e.target.value.toUpperCase();
+                            updateFormWithTracking(setVehicleForm, "vehicle", {
+                              ...vehicleForm,
+                              vehicle_no: value,
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (vehicleForm.paid_by === "Buyer") {
+                              handleKeyDown(e, ownerNameRef);
+                            } else {
+                              handleKeyDown(e, null);
+                            }
+                          }}
+                          inputRef={vehicleNoRef}
+                          fullWidth
+                          inputProps={{
+                            style: { textTransform: "uppercase" },
+                          }}
+                        />
+                      </Grid>
+
+                      {/* Show all other fields ONLY when Paid by Buyer */}
+                      {vehicleForm.paid_by === "Buyer" && (
+                        <>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Owner Name"
+                              value={vehicleForm.owner_name}
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    owner_name: toTitleCase(e.target.value),
+                                  },
+                                )
+                              }
+                              onKeyDown={(e) =>
+                                handleKeyDown(e, ownerMobileRef)
+                              }
+                              inputRef={ownerNameRef}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Owner Mobile No"
+                              value={vehicleForm.mobile_no}
+                              onChange={(e) =>
+                                handleMobileChange(e, "vehicle", setVehicleForm)
+                              }
+                              inputProps={{ maxLength: 10 }}
+                              type="tel"
+                              onKeyDown={(e) => handleKeyDown(e, riceMillRef)}
+                              inputRef={ownerMobileRef}
+                              fullWidth
+                            />
+                          </Grid>
+
+                          {/* Rice Mill Name - Auto-filled from Party Name but editable */}
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Rice Mill Name"
+                              value={
+                                vehicleForm.rice_mill_name ||
+                                purchaseForm.party_name
+                              }
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    rice_mill_name: e.target.value,
+                                  },
+                                )
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, destFromRef)}
+                              inputRef={riceMillRef}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Destination From"
+                              value={vehicleForm.destination_from}
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    destination_from: e.target.value,
+                                  },
+                                )
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, destToRef)}
+                              inputRef={destFromRef}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Destination To"
+                              value={vehicleForm.destination_to}
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    destination_to: e.target.value,
+                                  },
+                                )
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, quantityMtRef)}
+                              inputRef={destToRef}
+                              fullWidth
+                            />
+                          </Grid>
+
+                          {/* Vehicle Quantity - Auto-filled from Actual Weight */}
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Quantity (MT) *"
+                              type="number"
+                              value={vehicleForm.quantity_mt}
+                              onChange={(e) => {
+                                const quantity = e.target.value;
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    quantity_mt: quantity,
+                                  },
+                                );
+                              }}
+                              onKeyDown={(e) => handleKeyDown(e, freightMtRef)}
+                              inputRef={quantityMtRef}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Freight/MT (₹)"
+                              type="number"
+                              value={vehicleForm.freight_per_mt}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (
+                                  value === "" ||
+                                  /^\d*\.?\d{0,2}$/.test(value)
+                                ) {
+                                  updateFormWithTracking(
+                                    setVehicleForm,
+                                    "vehicle",
+                                    {
+                                      ...vehicleForm,
+                                      freight_per_mt: value,
+                                    },
+                                  );
+                                }
+                              }}
+                              onKeyDown={(e) => handleKeyDown(e, advanceAmtRef)}
+                              inputRef={freightMtRef}
+                              fullWidth
+                              InputProps={{
+                                inputProps: {
+                                  min: "0",
+                                  step: "0.01",
+                                },
+                              }}
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Advance Amount (₹)"
+                              type="number"
+                              value={vehicleForm.advance_amount}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (
+                                  value === "" ||
+                                  /^\d*\.?\d{0,2}$/.test(value)
+                                ) {
+                                  updateFormWithTracking(
+                                    setVehicleForm,
+                                    "vehicle",
+                                    {
+                                      ...vehicleForm,
+                                      advance_amount: value,
+                                    },
+                                  );
+                                }
+                              }}
+                              onKeyDown={(e) => handleKeyDown(e, bankAccRef)}
+                              inputRef={advanceAmtRef}
+                              fullWidth
+                              InputProps={{
+                                inputProps: {
+                                  min: "0",
+                                  step: "0.01",
+                                },
+                              }}
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Balance to Pay (₹)"
+                              value={toPay.toFixed(2)}
+                              InputProps={{ readOnly: true }}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Bank Account Number"
+                              value={vehicleForm.bank_account}
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    bank_account: e.target.value,
+                                  },
+                                )
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, bankNameRef)}
+                              inputRef={bankAccRef}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="Bank Name"
+                              value={vehicleForm.bank_name}
+                              onChange={(e) =>
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    bank_name: toTitleCase(e.target.value),
+                                  },
+                                )
+                              }
+                              onKeyDown={(e) => handleKeyDown(e, ifscRef)}
+                              inputRef={bankNameRef}
+                              fullWidth
+                            />
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              size="small"
+                              sx={styles.compactField}
+                              label="IFSC Code"
+                              value={vehicleForm.ifsc}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                  .toUpperCase()
+                                  .replace(/[^A-Z0-9]/g, "");
+                                updateFormWithTracking(
+                                  setVehicleForm,
+                                  "vehicle",
+                                  {
+                                    ...vehicleForm,
+                                    ifsc: value,
+                                  },
+                                );
+                              }}
+                              onKeyDown={(e) => handleKeyDown(e, null)}
+                              inputRef={ifscRef}
+                              fullWidth
+                              inputProps={{
+                                style: { textTransform: "uppercase" },
+                                maxLength: 50,
+                              }}
+                              helperText="e.g., SBIN0001234"
+                            />
+                          </Grid>
+                        </>
+                      )}
+
                       <Grid size={{ xs: 12 }}>
                         <Box sx={{ textAlign: "right", mt: 1 }}>
                           <Button
@@ -3599,10 +3654,39 @@ const Home = ({ userRole, onLogout, currentUser }) => {
               {/* Generate Invoice Button */}
               {/* {allSectionsSaved && ( */}
               {canGenerateInvoice() && (
+                // <Button
+                //   variant="contained"
+                //   startIcon={<ReceiptIcon />}
+                //   onClick={handleGenerateInvoice}
+                //   sx={{
+                //     padding: "6px 20px",
+                //     fontSize: "13px",
+                //     fontWeight: "600",
+                //     textTransform: "none",
+                //     borderRadius: "4px",
+                //     height: "36px",
+                //     minWidth: "180px",
+                //     bgcolor: "#ff6b6b",
+                //     background:
+                //       "linear-gradient(45deg, #ff6b6b 30%, #ff8e53 90%)",
+                //     "&:hover": { bgcolor: "#ff5252" },
+                //     boxShadow: "0 2px 4px 1px rgba(255, 105, 135, .2)",
+                //     "& .MuiButton-startIcon": {
+                //       marginRight: "6px",
+                //       "& > *:first-of-type": {
+                //         fontSize: "18px",
+                //       },
+                //     },
+                //   }}
+                // >
+                //   Generate Final Invoice
+                // </Button>
+                // Replace your current Generate Invoice button with this:
                 <Button
                   variant="contained"
                   startIcon={<ReceiptIcon />}
                   onClick={handleGenerateInvoice}
+                  disabled={!canGenerateInvoice()}
                   sx={{
                     padding: "6px 20px",
                     fontSize: "13px",
@@ -3611,11 +3695,17 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     borderRadius: "4px",
                     height: "36px",
                     minWidth: "180px",
-                    bgcolor: "#ff6b6b",
-                    background:
-                      "linear-gradient(45deg, #ff6b6b 30%, #ff8e53 90%)",
-                    "&:hover": { bgcolor: "#ff5252" },
-                    boxShadow: "0 2px 4px 1px rgba(255, 105, 135, .2)",
+                    bgcolor: !selectedCompany ? "#bdc3c7" : "#ff6b6b",
+                    background: !selectedCompany
+                      ? "linear-gradient(45deg, #bdc3c7 30%, #95a5a6 90%)"
+                      : "linear-gradient(45deg, #ff6b6b 30%, #ff8e53 90%)",
+                    "&:hover": {
+                      bgcolor: !selectedCompany ? "#bdc3c7" : "#ff5252",
+                    },
+                    boxShadow: !selectedCompany
+                      ? "none"
+                      : "0 2px 4px 1px rgba(255, 105, 135, .2)",
+                    cursor: !selectedCompany ? "not-allowed" : "pointer",
                     "& .MuiButton-startIcon": {
                       marginRight: "6px",
                       "& > *:first-of-type": {
@@ -3624,7 +3714,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                     },
                   }}
                 >
-                  Generate Final Invoice
+                  {!selectedCompany
+                    ? "Select Company First"
+                    : "Generate Final Invoice"}
                 </Button>
               )}
             </Box>
