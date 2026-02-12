@@ -27,7 +27,7 @@ const PrintVehicleSlip = ({
   companyData = {},
 }) => {
   const [advanceDate, setAdvanceDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -175,11 +175,10 @@ const PrintVehicleSlip = ({
         <div class="container">
           <div class="header">
             <div class="company-name">${
-              companyData?.company_name || "MANMATH PATTANAIK & CO"
+              companyData?.company_name || "Company Not Added Yet!"
             }</div>
             <div class="company-address">${
-              companyData?.address_line1 ||
-              "PLOT NO-746/3061_MANSA PALACE_NUASAHI, GANDARPUR, CUTTACK-753003"
+              companyData?.address_line1 || "N/A"
             }</div>
           </div>
           
@@ -221,7 +220,7 @@ const PrintVehicleSlip = ({
                 freight_per_mt || "0"
               }</td>
               <td style="height: 50px; text-align: center; vertical-align: middle; font-weight: bold;">₹${totalFreight.toFixed(
-                2
+                2,
               )}</td>
             </tr>
           </table>
@@ -255,7 +254,7 @@ const PrintVehicleSlip = ({
               }</td>
               <td style="height: 35px; text-align: center; color: #d32f2f; font-weight: bold;">${paid_by}</td>
               <td style="height: 35px; text-align: center; font-weight: bold;">₹${toPay.toFixed(
-                2
+                2,
               )}</td>
             </tr>
           </table>

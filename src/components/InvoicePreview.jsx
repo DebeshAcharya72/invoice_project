@@ -589,7 +589,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                   letterSpacing: "1px",
                 }}
               >
-                {company.company_name || "MANMATH PATTANAIK & CO"}
+                {company.company_name || "Not Added Yet!"}
               </div>
 
               <div
@@ -598,7 +598,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                   marginBottom: "3px",
                 }}
               >
-                {company.address_line1 || "bantila, Charampa, Bhadrak"}
+                {company.address_line1 || "N/A"}
               </div>
               {/* Company Email - Add this */}
               {company.email && (
@@ -618,7 +618,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                   marginBottom: "10px",
                 }}
               >
-                Mobile: {company.mobile_no || "6371195818"}
+                Mobile: {company.mobile_no || "N/A"}
               </div>
               {/* Company GST Number - Add this */}
               {(company.gst_number || company.gst) && (

@@ -528,49 +528,48 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     };
 
     const oilStandard = standards[product] || 19.0;
-    const oilDiff = oilValue - oilStandard;
 
-    if (oilDiff > 0) {
+    if (oilValue > oilStandard) {
       if (product === "Boiled Rice Bran") {
-        if (oilValue > 24) {
-          // Split calculation: full premium for 19-24, half for 24+
+        if (oilValue <= 24) {
+          // 19-24%: Full premium for all units
+          const effectiveDifference = oilValue - oilStandard;
+          premium = (rate / oilStandard) * effectiveDifference * weight;
+        } else if (oilValue <= 28) {
+          // 24-28%: First 5 units full, remaining half premium
           const fullPremiumUnits = 5.0; // 19 to 24 = 5 units
           const halfPremiumUnits = oilValue - 24;
-
-          const fullPremium = (rate / oilStandard) * fullPremiumUnits * weight;
-          const halfPremium =
-            ((rate / oilStandard) * halfPremiumUnits * weight) / 2;
-
-          premium = fullPremium + halfPremium;
-        } else if (oilValue > 19) {
-          // Only full premium range (19-24)
-          premium = (rate / oilStandard) * oilDiff * weight;
+          const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          premium = (rate / oilStandard) * effectiveDifference * weight;
+        } else {
+          // 🔴 FIXED: Above 28% - NO PREMIUM (ZERO)
+          premium = 0; // No premium above 28%
         }
       } else if (product === "Raw Rice Bran") {
-        if (oilValue > 19) {
+        if (oilValue <= 19) {
+          const effectiveDifference = oilValue - oilStandard;
+          premium = (rate / oilStandard) * effectiveDifference * weight;
+        } else if (oilValue <= 21) {
           const fullPremiumUnits = 3.0; // 16 to 19 = 3 units
           const halfPremiumUnits = oilValue - 19;
-
-          const fullPremium = (rate / oilStandard) * fullPremiumUnits * weight;
-          const halfPremium =
-            ((rate / oilStandard) * halfPremiumUnits * weight) / 2;
-
-          premium = fullPremium + halfPremium;
-        } else if (oilValue > 16) {
-          premium = (rate / oilStandard) * oilDiff * weight;
+          const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          premium = (rate / oilStandard) * effectiveDifference * weight;
+        } else {
+          // 🔴 FIXED: Above 21% - NO PREMIUM (ZERO)
+          premium = 0; // No premium above 21%
         }
       } else if (product === "Rough Rice Bran") {
-        if (oilValue > 8) {
+        if (oilValue <= 8) {
+          const effectiveDifference = oilValue - oilStandard;
+          premium = (rate / oilStandard) * effectiveDifference * weight;
+        } else if (oilValue <= 9) {
           const fullPremiumUnits = 1.0; // 7 to 8 = 1 unit
           const halfPremiumUnits = oilValue - 8;
-
-          const fullPremium = (rate / oilStandard) * fullPremiumUnits * weight;
-          const halfPremium =
-            ((rate / oilStandard) * halfPremiumUnits * weight) / 2;
-
-          premium = fullPremium + halfPremium;
-        } else if (oilValue > 7) {
-          premium = (rate / oilStandard) * oilDiff * weight;
+          const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          premium = (rate / oilStandard) * effectiveDifference * weight;
+        } else {
+          // 🔴 FIXED: Above 9% - NO PREMIUM (ZERO)
+          premium = 0; // No premium above 9%
         }
       }
     }
