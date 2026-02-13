@@ -370,6 +370,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   // 2. HELPER FUNCTIONS
   // ======================
 
+  // Add this alongside other helpers
+  const truncateToThreeDecimals = (num) => {
+    if (num == null || isNaN(num)) return "0.000";
+    const truncated = Math.floor(num * 1000) / 1000;
+    return truncated.toFixed(3); // Ensures 3 decimal places (e.g., 21.159 → "21.159")
+  };
   const checkInvoiceRequirements = () => {
     if (!selectedCompany) {
       showError("Please select a company first");
@@ -877,11 +883,19 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
     const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
     const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
+    // const netWeight = grossWeight - noOfBags * bagWeight;
+    // setPurchaseForm((prev) => ({
+    //   ...prev,
+    //   bag_weight_mt: bagWeight.toFixed(6),
+    //   net_weight_mt: netWeight >= 0 ? netWeight.toFixed(3) : "0.000",
+    // }));
+
+    // In the useEffect that calculates net weight
     const netWeight = grossWeight - noOfBags * bagWeight;
     setPurchaseForm((prev) => ({
       ...prev,
-      bag_weight_mt: bagWeight.toFixed(6),
-      net_weight_mt: netWeight >= 0 ? netWeight.toFixed(3) : "0.000",
+      bag_weight_mt: bagWeight.toString(), // or keep as number
+      net_weight_mt: netWeight >= 0 ? netWeight : 0, // ← store as NUMBER
     }));
   }, [
     purchaseForm.bag_type,
@@ -2487,11 +2501,26 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
+                        {/* <TextField
                           size="small"
                           sx={styles.compactField}
                           label="Net Weight (MT)"
                           value={purchaseForm.net_weight_mt}
+                          InputProps={{ readOnly: true }}
+                          fullWidth
+                        /> */}
+
+                        <TextField
+                          size="small"
+                          sx={styles.compactField}
+                          label="Net Weight (MT)"
+                          value={
+                            purchaseForm.net_weight_mt >= 0
+                              ? truncateToThreeDecimals(
+                                  purchaseForm.net_weight_mt,
+                                )
+                              : "0.000"
+                          }
                           InputProps={{ readOnly: true }}
                           fullWidth
                         />
