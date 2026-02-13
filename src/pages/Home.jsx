@@ -371,10 +371,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   // ======================
 
   // Add this alongside other helpers
+  // const truncateToThreeDecimals = (num) => {
+  //   if (num == null || isNaN(num)) return "0.000";
+  //   const truncated = Math.floor(num * 1000) / 1000;
+  //   return truncated.toFixed(3); // Ensures 3 decimal places (e.g., 21.159 → "21.159")
+  // };
   const truncateToThreeDecimals = (num) => {
-    if (num == null || isNaN(num)) return "0.000";
-    const truncated = Math.floor(num * 1000) / 1000;
-    return truncated.toFixed(3); // Ensures 3 decimal places (e.g., 21.159 → "21.159")
+    if (num == null || isNaN(num)) return 0;
+    return Math.floor(num * 1000) / 1000;
   };
   const checkInvoiceRequirements = () => {
     if (!selectedCompany) {
@@ -919,7 +923,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   useEffect(() => {
     const oilValue = parseFloat(labForm.obtain_oil);
     const accountRate = calculateAccountRate();
-    const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    // const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    const netWeightRaw = parseFloat(purchaseForm.net_weight_mt) || 0;
+    const netWeight = truncateToThreeDecimals(netWeightRaw); // e.g., 21.1596 → 21.159
     const product = purchaseForm.product_name;
 
     if (!isNaN(oilValue) && !isNaN(accountRate) && netWeight > 0 && product) {
