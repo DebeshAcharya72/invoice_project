@@ -625,7 +625,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
   const calculateMaterialAmount = () => {
     const accountRate = calculateAccountRate();
-    const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    // const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
+    const netWeight = truncateToThreeDecimals(
+      parseFloat(purchaseForm.net_weight_mt),
+    );
     return roundToTwoDecimals(accountRate * netWeight);
   };
 
