@@ -606,13 +606,62 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     return roundToTwoDecimals(contractedRate - ffaRebate);
   };
 
+  // const calculateNetRate = () => {
+  //   const accountRate = calculateAccountRate();
+  //   const oilStandard = parseFloat(labForm.standard_oil) || 19;
+  //   const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
+  //   const oilDifference = oilObtained - oilStandard;
+  //   if (oilStandard === 0) return 0;
+  //   const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
+  //   return roundToTwoDecimals(netRate);
+  // };
   const calculateNetRate = () => {
     const accountRate = calculateAccountRate();
     const oilStandard = parseFloat(labForm.standard_oil) || 19;
     const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
-    const oilDifference = oilObtained - oilStandard;
-    if (oilStandard === 0) return 0;
-    const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
+
+    // Calculate Effective Difference based on your premium logic
+    let effectiveDifference = 0;
+
+    if (oilObtained > oilStandard) {
+      const product = purchaseForm.product_name;
+
+      if (product === "Boiled Rice Bran") {
+        if (oilObtained <= 24) {
+          effectiveDifference = oilObtained - oilStandard; // Full premium
+        } else if (oilObtained <= 28) {
+          const fullPremiumUnits = 5; // 19 to 24 = 5 units
+          const halfPremiumUnits = oilObtained - 24;
+          effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+        } else {
+          effectiveDifference = 5 + 4 * 0.5; // 5 + 2 = 7 (max at 28%)
+        }
+      } else if (product === "Raw Rice Bran") {
+        if (oilObtained <= 19) {
+          effectiveDifference = oilObtained - oilStandard; // 16 to 19 = full premium
+        } else if (oilObtained <= 21) {
+          const fullPremiumUnits = 3; // 16 to 19 = 3 units
+          const halfPremiumUnits = oilObtained - 19;
+          effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+        } else {
+          effectiveDifference = 3 + 2 * 0.5; // 3 + 1 = 4 (max at 21%)
+        }
+      } else if (product === "Rough Rice Bran") {
+        if (oilObtained <= 8) {
+          effectiveDifference = oilObtained - oilStandard; // 7 to 8 = full premium
+        } else if (oilObtained <= 9) {
+          const fullPremiumUnits = 1; // 7 to 8 = 1 unit
+          const halfPremiumUnits = oilObtained - 8;
+          effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+        } else {
+          effectiveDifference = 1 + 1 * 0.5; // 1 + 0.5 = 1.5 (max at 9%)
+        }
+      }
+    }
+
+    // Net Rate = Account Rate + (Account Rate / Oil Standard) × Effective Difference
+    const netRate =
+      (accountRate / oilStandard) * effectiveDifference + accountRate;
     return roundToTwoDecimals(netRate);
   };
 
@@ -890,19 +939,16 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const bagWeight = purchaseForm.bag_type === "Poly" ? 0.0002 : 0.0005;
     const grossWeight = parseFloat(purchaseForm.gross_weight_mt) || 0;
     const noOfBags = parseInt(purchaseForm.no_of_bags) || 0;
-    // const netWeight = grossWeight - noOfBags * bagWeight;
-    // setPurchaseForm((prev) => ({
-    //   ...prev,
-    //   bag_weight_mt: bagWeight.toFixed(6),
-    //   net_weight_mt: netWeight >= 0 ? netWeight.toFixed(3) : "0.000",
-    // }));
 
-    // In the useEffect that calculates net weight
+    // Calculate and truncate immediately
     const netWeight = grossWeight - noOfBags * bagWeight;
+    const truncatedNetWeight =
+      netWeight >= 0 ? truncateToThreeDecimals(netWeight) : 0;
+
     setPurchaseForm((prev) => ({
       ...prev,
-      bag_weight_mt: bagWeight.toString(), // or keep as number
-      net_weight_mt: netWeight >= 0 ? netWeight : 0, // ← store as NUMBER
+      bag_weight_mt: bagWeight.toString(),
+      net_weight_mt: truncatedNetWeight, // ← Store as TRUNCATED value
     }));
   }, [
     purchaseForm.bag_type,
@@ -1041,7 +1087,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           no_of_bags: formData.quantity?.no_of_bags || "",
           bag_type: "Poly",
           bag_weight_mt: formData.quantity?.bag_weight_mt || "0.000200",
-          net_weight_mt: formData.quantity?.net_weight_mt || "",
+          // net_weight_mt: formData.quantity?.net_weight_mt || "",
+          net_weight_mt: truncateToThreeDecimals(
+            parseFloat(formData.quantity?.net_weight_mt) || "",
+          ),
           billed_weight_mt: formData.purchase.billed_weight_mt || "",
         });
         setSavedPurchaseData(formData.purchase);
@@ -3787,7 +3836,10 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           bag_type: purchaseForm.bag_type, // Make sure this exists
           product_name: purchaseForm.product_name,
           // Also include net weight if available
-          net_weight_mt: purchaseForm.net_weight_mt,
+          // net_weight_mt: purchaseForm.net_weight_mt,
+          net_weight_mt: truncateToThreeDecimals(
+            parseFloat(purchaseForm.net_weight_mt),
+          ),
         }}
         partyData={parties.find(
           (p) =>

@@ -535,6 +535,39 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
   const oilRebate = lab?.oil_rebate_rs || 0;
   const oilPremium = lab?.oil_premium_rs || 0;
 
+  // Add this function inside your component
+  const calculateEffectiveOilAndDifference = () => {
+    const standard = standardOil;
+    const obtained = obtainedOil;
+    const product = purchase?.product_name || "Boiled Rice Bran";
+
+    let effectiveOil = standard;
+    let effectiveDifference = 0;
+
+    if (obtained > standard) {
+      if (product === "Boiled Rice Bran") {
+        if (obtained <= 24) {
+          effectiveDifference = obtained - standard;
+          effectiveOil = standard + effectiveDifference;
+        } else if (obtained <= 28) {
+          const fullPremiumUnits = 5; // 19 to 24 = 5 units
+          const halfPremiumUnits = obtained - 24;
+          effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          effectiveOil = standard + effectiveDifference;
+        } else {
+          effectiveDifference = 5 + 4 * 0.5; // 5 + 2 = 7
+          effectiveOil = standard + effectiveDifference;
+        }
+      }
+      // Add similar logic for Raw Rice Bran and Rough Rice Bran if needed
+    }
+
+    return { effectiveOil, effectiveDifference };
+  };
+
+  const { effectiveOil, effectiveDifference } =
+    calculateEffectiveOilAndDifference();
+
   return (
     <Dialog
       open={open}
@@ -1173,7 +1206,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                             textAlign: "center",
                           }}
                         >
-                          {obtainedOil}%
+                          {effectiveOil.toFixed(2)}%
                         </td>
                         <td
                           style={{
@@ -1184,7 +1217,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                               obtainedOil > standardOil ? "#4caf50" : "#f44336",
                           }}
                         >
-                          {(obtainedOil - standardOil).toFixed(2)}%
+                          {effectiveDifference.toFixed(2)}%
                         </td>
                       </tr>
                     </tbody>
