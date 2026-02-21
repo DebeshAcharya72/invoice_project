@@ -547,19 +547,53 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
     if (obtained > standard) {
       if (product === "Boiled Rice Bran") {
         if (obtained <= 24) {
+          // 19-24%: Full premium for all units
           effectiveDifference = obtained - standard;
           effectiveOil = standard + effectiveDifference;
         } else if (obtained <= 28) {
+          // 24-28%: First 5 units full, remaining half premium
           const fullPremiumUnits = 5; // 19 to 24 = 5 units
           const halfPremiumUnits = obtained - 24;
           effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
           effectiveOil = standard + effectiveDifference;
         } else {
+          // Above 28%: No premium beyond 28% (max at 28%)
           effectiveDifference = 5 + 4 * 0.5; // 5 + 2 = 7
           effectiveOil = standard + effectiveDifference;
         }
+      } else if (product === "Raw Rice Bran") {
+        if (obtained <= 19) {
+          // 16-19%: Full premium
+          effectiveDifference = obtained - standard;
+          effectiveOil = standard + effectiveDifference;
+        } else if (obtained <= 21) {
+          // 19-21%: First 3 units full, remaining half premium
+          const fullPremiumUnits = 3; // 16 to 19 = 3 units
+          const halfPremiumUnits = obtained - 19;
+          effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          effectiveOil = standard + effectiveDifference;
+        } else {
+          // Above 21%: No premium beyond 21% (max at 21%)
+          effectiveDifference = 3 + 2 * 0.5; // 3 + 1 = 4
+          effectiveOil = standard + effectiveDifference;
+        }
+      } else if (product === "Rough Rice Bran") {
+        if (obtained <= 8) {
+          // 7-8%: Full premium
+          effectiveDifference = obtained - standard;
+          effectiveOil = standard + effectiveDifference;
+        } else if (obtained <= 9) {
+          // 8-9%: First 1 unit full, remaining half premium
+          const fullPremiumUnits = 1; // 7 to 8 = 1 unit
+          const halfPremiumUnits = obtained - 8;
+          effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          effectiveOil = standard + effectiveDifference;
+        } else {
+          // Above 9%: No premium beyond 9% (max at 9%)
+          effectiveDifference = 1 + 1 * 0.5; // 1 + 0.5 = 1.5
+          effectiveOil = standard + effectiveDifference;
+        }
       }
-      // Add similar logic for Raw Rice Bran and Rough Rice Bran if needed
     }
 
     return { effectiveOil, effectiveDifference };
