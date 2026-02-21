@@ -1,7 +1,8 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import useFormReset from "../hooks/useFormReset";
+// import useFormReset from "../hooks/useFormReset";
+import { useFormReset } from "../hooks/useFormReset";
 import {
   Container,
   Box,
@@ -1729,6 +1730,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       currentUser,
       companies,
       setSelectedCompany,
+      parties,
     });
   };
 
