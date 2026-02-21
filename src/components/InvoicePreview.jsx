@@ -1168,7 +1168,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                             textAlign: "center",
                           }}
                         >
-                          {standardFFA}%
+                          {standardFFA}
                         </td>
                         <td
                           style={{
@@ -1177,7 +1177,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                             textAlign: "center",
                           }}
                         >
-                          {obtainedFFA}%
+                          {obtainedFFA}
                         </td>
                         <td
                           style={{
@@ -1188,7 +1188,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                         >
                           {obtainedFFA < standardFFA
                             ? "0.00"
-                            : `${obtainedFFA}%`}
+                            : `${obtainedFFA}`}
                         </td>
                         <td
                           style={{
@@ -1201,7 +1201,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                         >
                           {obtainedFFA < standardFFA
                             ? "0.00"
-                            : `${(obtainedFFA - standardFFA).toFixed(2)}%`}
+                            : `${(obtainedFFA - standardFFA).toFixed(2)}`}
                         </td>
                       </tr>
                       <tr>
@@ -1222,7 +1222,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                             textAlign: "center",
                           }}
                         >
-                          {standardOil}%
+                          {standardOil}
                         </td>
                         <td
                           style={{
@@ -1231,7 +1231,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                             textAlign: "center",
                           }}
                         >
-                          {obtainedOil}%
+                          {obtainedOil}
                         </td>
                         <td
                           style={{
@@ -1240,7 +1240,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                             textAlign: "center",
                           }}
                         >
-                          {effectiveOil.toFixed(2)}%
+                          {effectiveOil.toFixed(2)}
                         </td>
                         <td
                           style={{
@@ -1251,7 +1251,7 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                               obtainedOil > standardOil ? "#4caf50" : "#f44336",
                           }}
                         >
-                          {effectiveDifference.toFixed(2)}%
+                          {effectiveDifference.toFixed(2)}
                         </td>
                       </tr>
                     </tbody>
