@@ -508,7 +508,8 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       } else if (ffaValue > 7) {
         rebate += (ffaValue - 7) * 100;
       }
-    } else {
+    } else if (product === "Raw Rice Bran") {
+      // Raw Rice Bran FFA rebate structure
       if (ffaValue > 55) rebate = 1000;
       else if (ffaValue > 50) rebate = 700;
       else if (ffaValue > 45) rebate = 600;
@@ -517,6 +518,15 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       else if (ffaValue > 30) rebate = 300;
       else if (ffaValue > 25) rebate = 200;
       else if (ffaValue > 20) rebate = 100;
+      // else ffa <= 20: rebate = 0 (Pass/Ok)
+    } else if (product === "Rough Rice Bran") {
+      // Rough Rice Bran FFA rebate structure
+      if (ffaValue > 50) rebate = 500;
+      else if (ffaValue > 30) rebate = 400;
+      else if (ffaValue > 20) rebate = 300;
+      else if (ffaValue > 15) rebate = 200;
+      else if (ffaValue > 10) rebate = 100;
+      // else ffa <= 10: rebate = 0 (Pass/Ok)
     }
     return rebate;
   };
@@ -1001,6 +1011,32 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     labForm.ffa_rebate_rs,
   ]);
 
+  useEffect(() => {
+    if (selectedCompany && companies.length > 0) {
+      const selectedCompanyObj = companies.find(
+        (c) => (c._id || c.id) === selectedCompany,
+      );
+      if (selectedCompanyObj) {
+        const destinationTo = [
+          selectedCompanyObj.address_line1,
+          selectedCompanyObj.city,
+          selectedCompanyObj.state,
+          selectedCompanyObj.pin,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        // Only update if different to avoid loops
+        if (vehicleForm.destination_to !== destinationTo) {
+          setVehicleForm((prev) => ({
+            ...prev,
+            destination_to: destinationTo,
+          }));
+        }
+      }
+    }
+  }, [selectedCompany, companies, vehicleForm.destination_to]);
+
   // ======================
   // 5. DATA LOADING & FORM HANDLERS
   // ======================
@@ -1034,15 +1070,35 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // const loadParties = async () => {
+  //   try {
+  //     const data = await api.getParties();
+  //     setParties(data);
+  //     if (data.length > 0 && !purchaseForm.party_name && mode === "create") {
+  //       setPurchaseForm((prev) => ({
+  //         ...prev,
+  //         party_name: data[0].party_name,
+  //       }));
+  //     }
+  //   } catch (err) {
+  //     showError("Failed to load parties");
+  //   }
+  // };
+
   const loadParties = async () => {
     try {
       const data = await api.getParties();
       setParties(data);
-      if (data.length > 0 && !purchaseForm.party_name && mode === "create") {
-        setPurchaseForm((prev) => ({
-          ...prev,
-          party_name: data[0].party_name,
-        }));
+
+      // Only set first party in create mode and if no party is selected
+      if (mode === "create" && data.length > 0 && !purchaseForm.party_name) {
+        // Use setTimeout to ensure this runs after other state updates
+        setTimeout(() => {
+          setPurchaseForm((prev) => ({
+            ...prev,
+            party_name: data[0].party_name,
+          }));
+        }, 100);
       }
     } catch (err) {
       showError("Failed to load parties");
@@ -1724,7 +1780,30 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       setUsingExistingParty,
       setSelectedExistingParty,
       mode,
-      loadParties: () => loadParties(),
+      loadParties: async () => {
+        await loadParties();
+        // After parties load, trigger destination_from update
+        if (parties.length > 0 && purchaseForm.party_name) {
+          const selectedParty = parties.find(
+            (p) => p.party_name === purchaseForm.party_name,
+          );
+          if (selectedParty) {
+            const destinationFrom = [
+              selectedParty.address_line1,
+              selectedParty.city,
+              selectedParty.state,
+              selectedParty.pin,
+            ]
+              .filter(Boolean)
+              .join(", ");
+            setVehicleForm((prev) => ({
+              ...prev,
+              destination_from: destinationFrom,
+              rice_mill_name: selectedParty.party_name,
+            }));
+          }
+        }
+      },
       showSuccess: (msg) => showSuccess(msg),
       partyNameRef,
       currentUser,
