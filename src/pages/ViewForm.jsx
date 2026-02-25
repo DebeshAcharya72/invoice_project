@@ -340,7 +340,7 @@ const ViewForm = () => {
               color={isEditable ? "success" : "default"}
               icon={isEditable ? <EditIcon /> : <TimeIcon />}
             />
-            {billing && (
+            {/* {billing && (
               <Button
                 variant="contained"
                 startIcon={<ReceiptIcon />}
@@ -350,7 +350,7 @@ const ViewForm = () => {
               >
                 View Invoice
               </Button>
-            )}
+            )} */}
           </Box>
         </Box>
 
@@ -400,7 +400,7 @@ const ViewForm = () => {
                 </Typography>
                 <Typography variant="h6" color="primary">
                   {formatCurrency(
-                    billing?.billed_amount || calculatedValues.billedAmount
+                    billing?.billed_amount || calculatedValues.billedAmount,
                   )}
                 </Typography>
               </CardContent>
@@ -570,7 +570,7 @@ const ViewForm = () => {
               <TextField
                 label="Net Weight (MT)"
                 value={formatWeight(
-                  purchase?.net_weight_mt || quantity?.net_weight_mt
+                  purchase?.net_weight_mt || quantity?.net_weight_mt,
                 )}
                 fullWidth
                 size="small"
@@ -748,7 +748,7 @@ const ViewForm = () => {
               <TextField
                 label="Account Rate (₹)"
                 value={formatCurrency(
-                  billing?.account_rate || calculatedValues.accountRate
+                  billing?.account_rate || calculatedValues.accountRate,
                 )}
                 fullWidth
                 size="small"
@@ -760,7 +760,7 @@ const ViewForm = () => {
               <TextField
                 label="Net Rate (₹)"
                 value={formatCurrency(
-                  billing?.net_rate || calculatedValues.netRate
+                  billing?.net_rate || calculatedValues.netRate,
                 )}
                 fullWidth
                 size="small"
@@ -772,7 +772,7 @@ const ViewForm = () => {
               <TextField
                 label="Material Amount (₹)"
                 value={formatCurrency(
-                  billing?.material_amount || calculatedValues.materialAmount
+                  billing?.material_amount || calculatedValues.materialAmount,
                 )}
                 fullWidth
                 size="small"
@@ -784,7 +784,7 @@ const ViewForm = () => {
               <TextField
                 label="Gross Amount (₹)"
                 value={formatCurrency(
-                  billing?.gross_amount || calculatedValues.grossAmount
+                  billing?.gross_amount || calculatedValues.grossAmount,
                 )}
                 fullWidth
                 size="small"
@@ -841,7 +841,7 @@ const ViewForm = () => {
               <TextField
                 label="Billed Amount (₹)"
                 value={formatCurrency(
-                  billing?.billed_amount || calculatedValues.billedAmount
+                  billing?.billed_amount || calculatedValues.billedAmount,
                 )}
                 fullWidth
                 size="small"
@@ -863,7 +863,7 @@ const ViewForm = () => {
               <TextField
                 label="Amount Payable (₹)"
                 value={formatCurrency(
-                  billing?.amount_payable || calculatedValues.amountPayable
+                  billing?.amount_payable || calculatedValues.amountPayable,
                 )}
                 fullWidth
                 size="small"
@@ -875,9 +875,9 @@ const ViewForm = () => {
                   0
                     ? "error"
                     : (billing?.amount_payable ||
-                        calculatedValues.amountPayable) < 0
-                    ? "success"
-                    : "primary"
+                          calculatedValues.amountPayable) < 0
+                      ? "success"
+                      : "primary"
                 }
               />
             </Grid>
@@ -894,7 +894,7 @@ const ViewForm = () => {
         >
           Back to List
         </Button>
-        <Box sx={{ display: "flex", gap: 2 }}>
+        {/* <Box sx={{ display: "flex", gap: 2 }}>
           <Button
             startIcon={<EditIcon />}
             onClick={handleEdit}
@@ -914,7 +914,7 @@ const ViewForm = () => {
               Generate Invoice
             </Button>
           )}
-        </Box>
+        </Box> */}
       </Box>
 
       {/* Invoice Preview Dialog */}

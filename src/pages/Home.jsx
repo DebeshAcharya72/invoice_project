@@ -728,13 +728,15 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   const calculateBilledAmount = () => {
     const grossAmount = calculateGrossAmount();
     const gst = calculateGST();
-    return roundToTwoDecimals(grossAmount + gst.total);
+    // return roundToTwoDecimals(grossAmount + gst.total);
+    return grossAmount + gst.total;
   };
 
   const calculateAmountPayable = () => {
     const billedAmount = calculateBilledAmount();
     const invoiceAmount = parseFloat(billingForm.invoice_amount) || 0;
-    return roundToTwoDecimals(billedAmount - invoiceAmount);
+    // return roundToTwoDecimals(billedAmount - invoiceAmount);
+    return billedAmount - invoiceAmount;
   };
 
   // const canGenerateInvoice = () => {
