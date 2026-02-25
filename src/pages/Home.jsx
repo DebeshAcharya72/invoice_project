@@ -1898,9 +1898,23 @@ const Home = ({ userRole, onLogout, currentUser }) => {
                 size="small"
                 variant="outlined"
               />
-              <IconButton
+              {/* <IconButton
                 color="primary"
                 onClick={() => navigate("/home")}
+                size="small"
+              >
+                <HomeIcon />
+              </IconButton> */}
+              <IconButton
+                color="primary"
+                onClick={() => {
+                  navigate("/home");
+                  // Force reset after navigation
+                  setTimeout(() => {
+                    setMode("create");
+                    resetForm();
+                  }, 0);
+                }}
                 size="small"
               >
                 <HomeIcon />
