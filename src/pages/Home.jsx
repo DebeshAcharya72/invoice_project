@@ -1061,12 +1061,12 @@ const Home = ({ userRole, onLogout, currentUser }) => {
   }, [partyForm.gst]);
 
   // NEW: Oil premium calculation using account rate (as per your logic)
+
   useEffect(() => {
     const oilValue = parseFloat(labForm.obtain_oil);
     const accountRate = calculateAccountRate();
-    // const netWeight = parseFloat(purchaseForm.net_weight_mt) || 0;
     const netWeightRaw = parseFloat(purchaseForm.net_weight_mt) || 0;
-    const netWeight = truncateToThreeDecimals(netWeightRaw); // e.g., 21.1596 → 21.159
+    const netWeight = truncateToThreeDecimals(netWeightRaw);
     const product = purchaseForm.product_name;
 
     if (!isNaN(oilValue) && !isNaN(accountRate) && netWeight > 0 && product) {
@@ -1078,7 +1078,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       );
       setLabForm((prev) => ({
         ...prev,
-        oil_rebate_rs: "0.00",
+        oil_rebate_rs: oilCalc.rebate > 0 ? oilCalc.rebate.toFixed(2) : "",
         oil_premium_rs: oilCalc.premium > 0 ? oilCalc.premium.toFixed(2) : "",
       }));
     }
