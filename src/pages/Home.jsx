@@ -531,6 +531,76 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     return rebate;
   };
 
+  // const calculateOilRebatePremium = (
+  //   product,
+  //   oilObtained,
+  //   accountRate,
+  //   netWeight,
+  // ) => {
+  //   const oilValue = parseFloat(oilObtained) || 0;
+  //   const rate = parseFloat(accountRate) || 0;
+  //   const weight = parseFloat(netWeight) || 0;
+  //   let premium = 0;
+
+  //   const standards = {
+  //     "Boiled Rice Bran": 19.0,
+  //     "Raw Rice Bran": 16.0,
+  //     "Rough Rice Bran": 7.0,
+  //   };
+
+  //   const oilStandard = standards[product] || 19.0;
+
+  //   if (oilValue > oilStandard) {
+  //     if (product === "Boiled Rice Bran") {
+  //       if (oilValue <= 24) {
+  //         // 19-24%: Full premium for all units
+  //         const effectiveDifference = oilValue - oilStandard;
+  //         premium = (rate / oilStandard) * effectiveDifference * weight;
+  //       } else if (oilValue <= 28) {
+  //         // 24-28%: First 5 units full, remaining half premium
+  //         const fullPremiumUnits = 5.0; // 19 to 24 = 5 units
+  //         const halfPremiumUnits = oilValue - 24;
+  //         const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+  //         premium = (rate / oilStandard) * effectiveDifference * weight;
+  //       } else {
+  //         // 🔴 FIXED: Above 28% - NO PREMIUM (ZERO)
+  //         premium = 0; // No premium above 28%
+  //       }
+  //     } else if (product === "Raw Rice Bran") {
+  //       if (oilValue <= 19) {
+  //         const effectiveDifference = oilValue - oilStandard;
+  //         premium = (rate / oilStandard) * effectiveDifference * weight;
+  //       } else if (oilValue <= 21) {
+  //         const fullPremiumUnits = 3.0; // 16 to 19 = 3 units
+  //         const halfPremiumUnits = oilValue - 19;
+  //         const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+  //         premium = (rate / oilStandard) * effectiveDifference * weight;
+  //       } else {
+  //         // 🔴 FIXED: Above 21% - NO PREMIUM (ZERO)
+  //         premium = 0; // No premium above 21%
+  //       }
+  //     } else if (product === "Rough Rice Bran") {
+  //       if (oilValue <= 8) {
+  //         const effectiveDifference = oilValue - oilStandard;
+  //         premium = (rate / oilStandard) * effectiveDifference * weight;
+  //       } else if (oilValue <= 9) {
+  //         const fullPremiumUnits = 1.0; // 7 to 8 = 1 unit
+  //         const halfPremiumUnits = oilValue - 8;
+  //         const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+  //         premium = (rate / oilStandard) * effectiveDifference * weight;
+  //       } else {
+  //         // 🔴 FIXED: Above 9% - NO PREMIUM (ZERO)
+  //         premium = 0; // No premium above 9%
+  //       }
+  //     }
+  //   }
+
+  //   return {
+  //     rebate: 0,
+  //     premium: parseFloat(premium.toFixed(2)),
+  //   };
+  // };
+
   const calculateOilRebatePremium = (
     product,
     oilObtained,
@@ -540,6 +610,7 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     const oilValue = parseFloat(oilObtained) || 0;
     const rate = parseFloat(accountRate) || 0;
     const weight = parseFloat(netWeight) || 0;
+    let rebate = 0;
     let premium = 0;
 
     const standards = {
@@ -550,54 +621,62 @@ const Home = ({ userRole, onLogout, currentUser }) => {
 
     const oilStandard = standards[product] || 19.0;
 
-    if (oilValue > oilStandard) {
+    // CASE 1: Oil is LOWER than standard → SIMPLE REBATE (ALWAYS)
+    if (oilValue < oilStandard) {
+      const oilDifference = oilStandard - oilValue;
+      rebate = (rate / oilStandard) * oilDifference * weight;
+      console.log(
+        `OIL REBATE: ${oilValue}% < ${oilStandard}%, Diff: ${oilDifference.toFixed(2)}%, Rebate: ₹${rebate.toFixed(2)}`,
+      );
+    }
+
+    // CASE 2: Oil is HIGHER than standard → COMPLEX PREMIUM (unchanged)
+    else if (oilValue > oilStandard) {
       if (product === "Boiled Rice Bran") {
         if (oilValue <= 24) {
-          // 19-24%: Full premium for all units
           const effectiveDifference = oilValue - oilStandard;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else if (oilValue <= 28) {
-          // 24-28%: First 5 units full, remaining half premium
-          const fullPremiumUnits = 5.0; // 19 to 24 = 5 units
+          const fullPremiumUnits = 5.0;
           const halfPremiumUnits = oilValue - 24;
           const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else {
-          // 🔴 FIXED: Above 28% - NO PREMIUM (ZERO)
-          premium = 0; // No premium above 28%
+          premium = 0;
         }
       } else if (product === "Raw Rice Bran") {
         if (oilValue <= 19) {
           const effectiveDifference = oilValue - oilStandard;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else if (oilValue <= 21) {
-          const fullPremiumUnits = 3.0; // 16 to 19 = 3 units
+          const fullPremiumUnits = 3.0;
           const halfPremiumUnits = oilValue - 19;
           const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else {
-          // 🔴 FIXED: Above 21% - NO PREMIUM (ZERO)
-          premium = 0; // No premium above 21%
+          premium = 0;
         }
       } else if (product === "Rough Rice Bran") {
         if (oilValue <= 8) {
           const effectiveDifference = oilValue - oilStandard;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else if (oilValue <= 9) {
-          const fullPremiumUnits = 1.0; // 7 to 8 = 1 unit
+          const fullPremiumUnits = 1.0;
           const halfPremiumUnits = oilValue - 8;
           const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else {
-          // 🔴 FIXED: Above 9% - NO PREMIUM (ZERO)
-          premium = 0; // No premium above 9%
+          premium = 0;
         }
       }
+      console.log(
+        `OIL PREMIUM: ${oilValue}% > ${oilStandard}%, Premium: ₹${premium.toFixed(2)}`,
+      );
     }
 
     return {
-      rebate: 0,
-      premium: parseFloat(premium.toFixed(2)),
+      rebate: rebate > 0 ? parseFloat(rebate.toFixed(2)) : 0,
+      premium: premium > 0 ? parseFloat(premium.toFixed(2)) : 0,
     };
   };
 
