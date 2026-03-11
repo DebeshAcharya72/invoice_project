@@ -696,21 +696,11 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     return roundToTwoDecimals(contractedRate - ffaRebate);
   };
 
-  // const calculateNetRate = () => {
-  //   const accountRate = calculateAccountRate();
-  //   const oilStandard = parseFloat(labForm.standard_oil) || 19;
-  //   const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
-  //   const oilDifference = oilObtained - oilStandard;
-  //   if (oilStandard === 0) return 0;
-  //   const netRate = (accountRate / oilStandard) * oilDifference + accountRate;
-  //   return roundToTwoDecimals(netRate);
-  // };
   const calculateNetRate = () => {
     const accountRate = calculateAccountRate();
     const oilStandard = parseFloat(labForm.standard_oil) || 19;
     const oilObtained = parseFloat(labForm.obtain_oil) || oilStandard;
 
-    // Calculate Effective Difference based on your premium logic
     let effectiveDifference = 0;
 
     if (oilObtained > oilStandard) {
@@ -747,6 +737,9 @@ const Home = ({ userRole, onLogout, currentUser }) => {
           effectiveDifference = 1 + 1 * 0.5; // 1 + 0.5 = 1.5 (max at 9%)
         }
       }
+    } else if (oilObtained < oilStandard) {
+      // REBATE: Simple negative difference (ONLY THIS PART ADDED)
+      effectiveDifference = oilObtained - oilStandard; // This will be negative
     }
 
     // Net Rate = Account Rate + (Account Rate / Oil Standard) × Effective Difference
