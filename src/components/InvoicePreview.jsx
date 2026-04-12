@@ -729,7 +729,8 @@ const InvoicePreview = ({ open, onClose, invoiceData, onAfterPrint }) => {
                   <div style={{ fontWeight: "bold", width: "90px" }}>
                     Report Date:
                   </div>
-                  <div>{formatDate(purchase.date) || "04-01-2026"}</div>
+                  {/* <div>{formatDate(purchase.date) || "04-01-2026"}</div> */}
+                  <div>{formatDate(new Date()) || "04-01-2026"}</div>
                 </div>
                 <div style={{ display: "flex", marginBottom: "3px" }}>
                   <div style={{ fontWeight: "bold", width: "90px" }}>

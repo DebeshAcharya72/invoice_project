@@ -1390,26 +1390,98 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     }
   };
 
+  // const handleSaveVehicle = async () => {
+  //   try {
+  //     if (!currentPurchaseId) {
+  //       showError("Purchase must be saved first");
+  //       return;
+  //     }
+  //     const vehicleData = {
+  //       ...vehicleForm,
+  //       purchase_id: currentPurchaseId,
+  //     };
+
+  //     let savedVehicle;
+  //     if (mode === "edit" && savedVehicleData) {
+  //       // Update existing vehicle
+  //       savedVehicle = await api.updateVehicle(
+  //         savedVehicleData._id,
+  //         vehicleData,
+  //       );
+  //     } else {
+  //       // Create new vehicle
+  //       savedVehicle = await api.createVehicle(vehicleData);
+  //     }
+
+  //     setSavedVehicleData(savedVehicle);
+  //     setSavedSections((prev) => ({ ...prev, vehicle: true }));
+  //     setModifiedSections((prev) => ({ ...prev, vehicle: false }));
+  //     showSuccess("Vehicle details saved!");
+  //     if (mode === "create") {
+  //       setShowVehicleSlip(true);
+  //     }
+  //   } catch (err) {
+  //     showError("Failed to save Vehicle");
+  //   }
+  // };
+
   const handleSaveVehicle = async () => {
     try {
       if (!currentPurchaseId) {
         showError("Purchase must be saved first");
         return;
       }
-      const vehicleData = {
-        ...vehicleForm,
-        purchase_id: currentPurchaseId,
-      };
+
+      let vehicleData;
+
+      if (vehicleForm.paid_by === "Seller") {
+        // For "Paid by Seller" - ONLY send essential fields
+        vehicleData = {
+          purchase_id: currentPurchaseId,
+          vehicle_no: vehicleForm.vehicle_no,
+          paid_by: "Seller",
+        };
+      } else {
+        // For "Paid by Buyer" - send all fields
+        vehicleData = {
+          purchase_id: currentPurchaseId,
+          vehicle_no: vehicleForm.vehicle_no,
+          paid_by: "Buyer",
+          owner_name: vehicleForm.owner_name || null,
+          owner_rc: vehicleForm.owner_rc || null,
+          owner_address_line1: vehicleForm.owner_address_line1 || null,
+          owner_city: vehicleForm.owner_city || null,
+          owner_state: vehicleForm.owner_state || null,
+          owner_pin: vehicleForm.owner_pin || null,
+          mobile_no: vehicleForm.mobile_no || null,
+          bank_account: vehicleForm.bank_account || null,
+          bank_name: vehicleForm.bank_name || null,
+          ifsc: vehicleForm.ifsc || null,
+          rice_mill_name:
+            vehicleForm.rice_mill_name || purchaseForm.party_name || null,
+          destination_from: vehicleForm.destination_from || null,
+          destination_to: vehicleForm.destination_to || null,
+          quantity_mt: vehicleForm.quantity_mt
+            ? parseFloat(vehicleForm.quantity_mt)
+            : null,
+          freight_per_mt: vehicleForm.freight_per_mt
+            ? parseFloat(vehicleForm.freight_per_mt)
+            : null,
+          advance_amount: vehicleForm.advance_amount
+            ? parseFloat(vehicleForm.advance_amount)
+            : null,
+        };
+      }
+
+      console.log("Sending vehicle data:", vehicleData);
 
       let savedVehicle;
       if (mode === "edit" && savedVehicleData) {
-        // Update existing vehicle
         savedVehicle = await api.updateVehicle(
           savedVehicleData._id,
           vehicleData,
         );
       } else {
-        // Create new vehicle
         savedVehicle = await api.createVehicle(vehicleData);
       }
 
@@ -1417,11 +1489,14 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       setSavedSections((prev) => ({ ...prev, vehicle: true }));
       setModifiedSections((prev) => ({ ...prev, vehicle: false }));
       showSuccess("Vehicle details saved!");
-      if (mode === "create") {
+
+      // ✅ ONLY show vehicle slip when "Paid by Buyer" is selected
+      if (mode === "create" && vehicleForm.paid_by === "Buyer") {
         setShowVehicleSlip(true);
       }
     } catch (err) {
-      showError("Failed to save Vehicle");
+      console.error("Vehicle save error:", err);
+      showError("Failed to save Vehicle: " + (err.message || "Unknown error"));
     }
   };
 
