@@ -634,12 +634,17 @@ const Home = ({ userRole, onLogout, currentUser }) => {
     else if (oilValue > oilStandard) {
       if (product === "Boiled Rice Bran") {
         if (oilValue <= 24) {
-          const effectiveDifference = oilValue - oilStandard;
+          // const effectiveDifference = oilValue - oilStandard;
+          let effectiveDifference = oilValue - oilStandard;
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else if (oilValue <= 28) {
           const fullPremiumUnits = 5.0;
           const halfPremiumUnits = oilValue - 24;
-          const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          // const effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          let effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          // ✅ ADD ROUNDING TO 2 DECIMAL PLACES
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
           premium = (rate / oilStandard) * effectiveDifference * weight;
         } else {
           premium = 0;
