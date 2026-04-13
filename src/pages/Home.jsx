@@ -714,37 +714,47 @@ const Home = ({ userRole, onLogout, currentUser }) => {
       if (product === "Boiled Rice Bran") {
         if (oilObtained <= 24) {
           effectiveDifference = oilObtained - oilStandard; // Full premium
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         } else if (oilObtained <= 28) {
           const fullPremiumUnits = 5; // 19 to 24 = 5 units
           const halfPremiumUnits = oilObtained - 24;
           effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         } else {
           effectiveDifference = 5 + 4 * 0.5; // 5 + 2 = 7 (max at 28%)
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         }
       } else if (product === "Raw Rice Bran") {
         if (oilObtained <= 19) {
           effectiveDifference = oilObtained - oilStandard; // 16 to 19 = full premium
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         } else if (oilObtained <= 21) {
           const fullPremiumUnits = 3; // 16 to 19 = 3 units
           const halfPremiumUnits = oilObtained - 19;
           effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         } else {
           effectiveDifference = 3 + 2 * 0.5; // 3 + 1 = 4 (max at 21%)
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         }
       } else if (product === "Rough Rice Bran") {
         if (oilObtained <= 8) {
           effectiveDifference = oilObtained - oilStandard; // 7 to 8 = full premium
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         } else if (oilObtained <= 9) {
           const fullPremiumUnits = 1; // 7 to 8 = 1 unit
           const halfPremiumUnits = oilObtained - 8;
           effectiveDifference = fullPremiumUnits + halfPremiumUnits * 0.5;
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         } else {
           effectiveDifference = 1 + 1 * 0.5; // 1 + 0.5 = 1.5 (max at 9%)
+          effectiveDifference = Math.round(effectiveDifference * 100) / 100;
         }
       }
     } else if (oilObtained < oilStandard) {
       // REBATE: Simple negative difference (ONLY THIS PART ADDED)
       effectiveDifference = oilObtained - oilStandard; // This will be negative
+      effectiveDifference = Math.round(effectiveDifference * 100) / 100;
     }
 
     // Net Rate = Account Rate + (Account Rate / Oil Standard) × Effective Difference
